@@ -27,11 +27,11 @@ block content %}
           <th>Oct</th>
           <th>Nov</th>
           <th>Dec</th>
+          <th class="irc1a-rowavg-col">Average</th>
         </tr>
       </thead>
 
       <tbody>
-        <!-- 10 TA Indicator rows -->
         <tr data-indicator="1">
           <td class="irc1a-indicator-col">1. Observes the schedule.</td>
           <td>
@@ -153,6 +153,9 @@ block content %}
               max="5"
               step="0.01"
             />
+          </td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" data-indicator="1">&mdash;</span>
           </td>
         </tr>
 
@@ -280,6 +283,9 @@ block content %}
               step="0.01"
             />
           </td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" data-indicator="2">&mdash;</span>
+          </td>
         </tr>
 
         <tr data-indicator="3">
@@ -406,6 +412,9 @@ block content %}
               step="0.01"
             />
           </td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" data-indicator="3">&mdash;</span>
+          </td>
         </tr>
 
         <tr data-indicator="4">
@@ -531,6 +540,9 @@ block content %}
               max="5"
               step="0.01"
             />
+          </td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" data-indicator="4">&mdash;</span>
           </td>
         </tr>
 
@@ -659,6 +671,9 @@ block content %}
               step="0.01"
             />
           </td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" data-indicator="5">&mdash;</span>
+          </td>
         </tr>
 
         <tr data-indicator="6">
@@ -784,6 +799,9 @@ block content %}
               max="5"
               step="0.01"
             />
+          </td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" data-indicator="6">&mdash;</span>
           </td>
         </tr>
 
@@ -912,6 +930,9 @@ block content %}
               step="0.01"
             />
           </td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" data-indicator="7">&mdash;</span>
+          </td>
         </tr>
 
         <tr data-indicator="8">
@@ -1037,6 +1058,9 @@ block content %}
               max="5"
               step="0.01"
             />
+          </td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" data-indicator="8">&mdash;</span>
           </td>
         </tr>
 
@@ -1164,6 +1188,9 @@ block content %}
               step="0.01"
             />
           </td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" data-indicator="9">&mdash;</span>
+          </td>
         </tr>
 
         <tr data-indicator="10">
@@ -1290,6 +1317,9 @@ block content %}
               step="0.01"
             />
           </td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" data-indicator="10">&mdash;</span>
+          </td>
         </tr>
       </tbody>
 
@@ -1308,6 +1338,7 @@ block content %}
           <td><span class="irc1a-avg" data-month="oct">&mdash;</span></td>
           <td><span class="irc1a-avg" data-month="nov">&mdash;</span></td>
           <td><span class="irc1a-avg" data-month="dec">&mdash;</span></td>
+          <td class="irc1a-rowavg-cell">&mdash;</td>
         </tr>
         <tr class="irc1a-descriptive-row">
           <td class="irc1a-indicator-col">Descriptive Value</td>
@@ -1323,9 +1354,50 @@ block content %}
           <td><span class="irc1a-desc" data-month="oct">&mdash;</span></td>
           <td><span class="irc1a-desc" data-month="nov">&mdash;</span></td>
           <td><span class="irc1a-desc" data-month="dec">&mdash;</span></td>
+          <td class="irc1a-rowavg-cell">&mdash;</td>
         </tr>
       </tfoot>
     </table>
+  </div>
+
+  <div class="irc1a-lowest-section">
+    <h3>Three Lowest TA Indicators</h3>
+    <p class="irc1a-subtitle">
+      Based on each indicator's average rating across all months.
+    </p>
+    <ol id="irc1a-lowest-list" class="irc1a-lowest-list">
+      <li class="irc1a-lowest-placeholder">
+        Enter ratings above to see results.
+      </li>
+    </ol>
+  </div>
+
+  <div class="irc1a-remarks-section">
+    <div class="irc1a-remarks-field">
+      <label for="irc1a-positive" class="irc1a-remarks-label"
+        >Positive Aspect</label
+      >
+      <textarea
+        id="irc1a-positive"
+        name="irc1a_positive"
+        class="irc1a-remarks-textarea"
+        rows="4"
+        placeholder="Describe a positive aspect observed..."
+      ></textarea>
+    </div>
+
+    <div class="irc1a-remarks-field">
+      <label for="irc1a-ofi" class="irc1a-remarks-label"
+        >Opportunity for Improvement (OFI)</label
+      >
+      <textarea
+        id="irc1a-ofi"
+        name="irc1a_ofi"
+        class="irc1a-remarks-textarea"
+        rows="4"
+        placeholder="Describe an opportunity for improvement, if applicable..."
+      ></textarea>
+    </div>
   </div>
 </section>
 
@@ -1347,8 +1419,24 @@ block content %}
       "dec",
     ];
 
+    const INDICATOR_COUNT = 10;
+    const INDICATOR_LABELS = {
+      1: "Observes the schedule.",
+      2: "Establishes the objectives of the Technical Assistance.",
+      3: "Uses necessary tools/process/procedure for the conduct of TA.",
+      4: "Provide relevant, timely and appropriate Technical Assistance.",
+      5: "Understand the situation of schools in case may be, their needs, aspirations, plans, strength and weaknesses.",
+      6: "Recommends/suggests points for improvement.",
+      7: "Provides constructive feedback and establishes a cordial atmosphere in giving of feedback.",
+      8: "Skills and competencies of the TA provider.",
+      9: "Processes the results of the Technical Assistance.",
+      10: "General view of the provision of the Technical Assistance.",
+    };
+
     const table = document.getElementById("irc1a-table");
     if (!table) return; // tab not on the page (e.g. not the active tab yet)
+
+    const lowestList = document.getElementById("irc1a-lowest-list");
 
     function descriptiveValue(avg) {
       if (avg === null) return "\u2014"; // em dash, no data yet
@@ -1358,46 +1446,90 @@ block content %}
       return "Poor";
     }
 
+    function average(values) {
+      const nums = values.filter((v) => !Number.isNaN(v));
+      if (nums.length === 0) return null;
+      return nums.reduce((a, b) => a + b, 0) / nums.length;
+    }
+
     function recalcMonth(month) {
       const inputs = table.querySelectorAll(
         `tbody input.irc1a-rating[data-month="${month}"]`,
       );
-
-      let sum = 0;
-      let count = 0;
-
-      inputs.forEach((input) => {
-        const val = parseFloat(input.value);
-        if (!Number.isNaN(val)) {
-          sum += val;
-          count += 1;
-        }
-      });
+      const values = Array.from(inputs).map((input) => parseFloat(input.value));
+      const avg = average(values);
 
       const avgSpan = table.querySelector(`.irc1a-avg[data-month="${month}"]`);
       const descSpan = table.querySelector(
         `.irc1a-desc[data-month="${month}"]`,
       );
 
-      if (count === 0) {
-        avgSpan.textContent = "\u2014";
-        descSpan.textContent = "\u2014";
+      avgSpan.textContent = avg === null ? "\u2014" : avg.toFixed(2);
+      descSpan.textContent = descriptiveValue(avg);
+    }
+
+    function recalcRow(indicatorId) {
+      const inputs = table.querySelectorAll(
+        `tbody tr[data-indicator="${indicatorId}"] input.irc1a-rating`,
+      );
+      const values = Array.from(inputs).map((input) => parseFloat(input.value));
+      const avg = average(values);
+
+      const rowAvgSpan = table.querySelector(
+        `.irc1a-row-avg[data-indicator="${indicatorId}"]`,
+      );
+      rowAvgSpan.textContent = avg === null ? "\u2014" : avg.toFixed(2);
+
+      return avg;
+    }
+
+    function recalcLowest() {
+      const rowAverages = [];
+      for (let i = 1; i <= INDICATOR_COUNT; i++) {
+        const span = table.querySelector(
+          `.irc1a-row-avg[data-indicator="${i}"]`,
+        );
+        const avg = parseFloat(span.textContent);
+        if (!Number.isNaN(avg)) {
+          rowAverages.push({ id: i, label: INDICATOR_LABELS[i], avg });
+        }
+      }
+
+      lowestList.innerHTML = "";
+
+      if (rowAverages.length === 0) {
+        const li = document.createElement("li");
+        li.className = "irc1a-lowest-placeholder";
+        li.textContent = "Enter ratings above to see results.";
+        lowestList.appendChild(li);
         return;
       }
 
-      const avg = sum / count;
-      avgSpan.textContent = avg.toFixed(2);
-      descSpan.textContent = descriptiveValue(avg);
+      rowAverages.sort((a, b) => a.avg - b.avg);
+      const lowestThree = rowAverages.slice(0, 3);
+
+      lowestThree.forEach((item) => {
+        const li = document.createElement("li");
+        li.className = "irc1a-lowest-item";
+        li.innerHTML =
+          `<span class="irc1a-lowest-label">${item.label}</span>` +
+          `<span class="irc1a-lowest-avg">${item.avg.toFixed(2)}</span>`;
+        lowestList.appendChild(li);
+      });
     }
 
     function recalcAll() {
       MONTHS.forEach(recalcMonth);
+      for (let i = 1; i <= INDICATOR_COUNT; i++) recalcRow(i);
+      recalcLowest();
     }
 
     table.addEventListener("input", (e) => {
-      if (e.target.matches("input.irc1a-rating")) {
-        recalcMonth(e.target.dataset.month);
-      }
+      if (!e.target.matches("input.irc1a-rating")) return;
+      const row = e.target.closest("tr[data-indicator]");
+      recalcMonth(e.target.dataset.month);
+      if (row) recalcRow(row.dataset.indicator);
+      recalcLowest();
     });
 
     // Initial pass in case values are pre-filled server-side (e.g. Jinja value=…)
