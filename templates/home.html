@@ -1,10 +1,14 @@
 {% extends "base.html" %} {% block title %}Home - SGOD PMES{% endblock %} {%
 block content %}
-<div class="content__header">
-  <h1>Welcome to SGOD PMES!</h1>
+<div class="page-hero">
+  <h1>Welcome to SGOD PMES</h1>
 </div>
-<p class="placeholder-text">
-  Select a report card below or from the navigation bar above to get started.
+
+<hr class="page-divider" />
+
+<p class="page-instruction">
+  SGOD Performance Monitoring and Evaluation System. Select a report card below
+  or from the navigation bar above to get started.
 </p>
 
 <div class="content__body">
@@ -21,7 +25,9 @@ block content %}
     <div class="carousel__track" id="carouselTrack">
       {% for group in groups %}
       <div class="carousel-card">
-        <i class="ti ti-file-report carousel-card__icon" aria-hidden="true"></i>
+        <span class="carousel-card__icon-badge">
+          <i class="ti ti-file-report" aria-hidden="true"></i>
+        </span>
         <p class="carousel-card__code">{{ group.code }}</p>
         <p class="carousel-card__label">{{ group.label }}</p>
 

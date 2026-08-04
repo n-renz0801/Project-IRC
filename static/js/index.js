@@ -12,18 +12,28 @@ document.addEventListener("DOMContentLoaded", function () {
   var track = document.getElementById("carouselTrack");
   var leftBtn = document.getElementById("carouselLeft");
   var rightBtn = document.getElementById("carouselRight");
-  var SCROLL_STEP = 280;
+  var CARDS_PER_PRESS = 3; // how many cards each arrow click scrolls past
+
+  function getScrollStep() {
+    var card = track.querySelector(".carousel-card");
+    if (!card) return 280;
+    var cardWidth = card.getBoundingClientRect().width;
+    var gap = parseFloat(
+      getComputedStyle(track).columnGap || getComputedStyle(track).gap || 20,
+    );
+    return (cardWidth + gap) * CARDS_PER_PRESS;
+  }
 
   if (track) {
     if (leftBtn) {
       leftBtn.addEventListener("click", function () {
-        track.scrollBy({ left: -SCROLL_STEP, behavior: "smooth" });
+        track.scrollBy({ left: -getScrollStep(), behavior: "smooth" });
       });
     }
 
     if (rightBtn) {
       rightBtn.addEventListener("click", function () {
-        track.scrollBy({ left: SCROLL_STEP, behavior: "smooth" });
+        track.scrollBy({ left: getScrollStep(), behavior: "smooth" });
       });
     }
 
