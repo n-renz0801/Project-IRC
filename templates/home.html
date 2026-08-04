@@ -1,0 +1,62 @@
+{% extends "base.html" %} {% block title %}Home - SGOD PMES{% endblock %} {%
+block content %}
+<div class="content__header">
+  <h1>Welcome to SGOD PMES!</h1>
+</div>
+<p class="placeholder-text">
+  Select a report card below or from the navigation bar above to get started.
+</p>
+
+<div class="content__body">
+  <div class="carousel">
+    <button
+      type="button"
+      class="carousel__arrow carousel__arrow--left"
+      id="carouselLeft"
+      aria-label="Scroll left"
+    >
+      &#8249;
+    </button>
+
+    <div class="carousel__track" id="carouselTrack">
+      {% for group in groups %}
+      <div class="carousel-card">
+        <i class="ti ti-file-report carousel-card__icon" aria-hidden="true"></i>
+        <p class="carousel-card__code">{{ group.code }}</p>
+        <p class="carousel-card__label">{{ group.label }}</p>
+
+        {% if group.tabs|length == 1 %} {# Single-report group: whole card is
+        one link #}
+        <a
+          href="{{ url_for('view_tab', tab_id=group.tabs[0].id) }}"
+          class="carousel-card__link"
+        ></a>
+        {% else %} {# Multi-part group: one full-width row per sub-report #}
+        <div class="carousel-card__rows">
+          {% for tab in group.tabs %}
+          <a
+            href="{{ url_for('view_tab', tab_id=tab.id) }}"
+            class="carousel-card__row"
+            title="{{ tab.name }}"
+          >
+            <span>{{ tab.short }}</span>
+            <i class="ti ti-chevron-right" aria-hidden="true"></i>
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <button
+      type="button"
+      class="carousel__arrow carousel__arrow--right"
+      id="carouselRight"
+      aria-label="Scroll right"
+    >
+      &#8250;
+    </button>
+  </div>
+</div>
+{% endblock %}

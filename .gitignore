@@ -1,0 +1,7 @@
+instance
+__pycache__
+adobe_illustrator/
+
+# Excel and csv files
+data/*.xlsx
+data/*.csv

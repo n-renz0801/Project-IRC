@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}SGOD PMES{% endblock %}</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/index.css') }}"
+    />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="app-header__top">
+        <a href="{{ url_for('home') }}" class="app-header__title">
+          <span class="app-header__acronym">SGOD PMES</span>
+          <span class="app-header__full"
+            >SGOD Performance Monitoring and Evaluation System</span
+          >
+        </a>
+        <button
+          class="nav-toggle"
+          id="navToggle"
+          aria-label="Toggle navigation"
+        >
+          &#9776;
+        </button>
+      </div>
+
+      <nav class="navbar" id="navbar">
+        <a
+          href="{{ url_for('home') }}"
+          class="navbar__link {% if active_tab is none %}navbar__link--active{% endif %}"
+        >
+          Home
+        </a>
+        {% for tab in tabs %}
+        <a
+          href="{{ url_for('view_tab', tab_id=tab.id) }}"
+          class="navbar__link {% if active_tab and active_tab.id == tab.id %}navbar__link--active{% endif %}"
+          title="{{ tab.name }}"
+        >
+          {{ tab.short }}
+        </a>
+        {% endfor %}
+      </nav>
+    </header>
+
+    <main class="content">{% block content %}{% endblock %}</main>
+
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+  </body>
+</html>
