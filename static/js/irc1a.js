@@ -14,6 +14,14 @@
 
   let extractedData = null;
 
+  // Format a rating input's value to exactly 3 decimal places (e.g. "4" -> "4.000")
+  function formatToThreeDecimals(input) {
+    if (!input || input.value === "") return;
+    const num = parseFloat(input.value);
+    if (Number.isNaN(num)) return;
+    input.value = num.toFixed(3);
+  }
+
   uploadBtn.addEventListener("click", () => fileInput.click());
 
   uploadArea.addEventListener("dragover", (e) => {
@@ -103,11 +111,15 @@
       "</th></tr></thead><tbody>";
 
     for (let i = 1; i <= 10; i++) {
-      const val =
+      const rawVal =
         ratings[i] && ratings[i][monthKey] ? ratings[i][monthKey] : "";
+      const val =
+        rawVal !== "" && !Number.isNaN(parseFloat(rawVal))
+          ? parseFloat(rawVal).toFixed(3)
+          : "";
       html += `<tr>
         <td style="text-align:left">${i}. ${indicatorLabels[i]}</td>
-        <td><input type="number" class="preview-rating" data-indicator="${i}" data-month="${monthKey}" value="${val}" min="1" max="5" step="0.01" /></td>
+        <td><input type="number" class="preview-rating" data-indicator="${i}" data-month="${monthKey}" value="${val}" min="1" max="5" step="0.001" /></td>
       </tr>`;
     }
 
@@ -137,6 +149,16 @@
       e.stopPropagation();
     });
 
+  // Format preview modal inputs to 3 decimals when the user leaves the field
+  previewTableContainer.addEventListener(
+    "blur",
+    function (e) {
+      if (!e.target.matches("input.preview-rating")) return;
+      formatToThreeDecimals(e.target);
+    },
+    true, // capture, since blur does not bubble
+  );
+
   modalImport.addEventListener("click", function (e) {
     e.stopPropagation();
     const inputs = previewTableContainer.querySelectorAll(".preview-rating");
@@ -148,7 +170,10 @@
         const tableInput = document.querySelector(
           `#irc1a-table tbody tr[data-indicator="${indicator}"] input[data-month="${month}"]`,
         );
-        if (tableInput) tableInput.value = value;
+        if (tableInput) {
+          tableInput.value = value;
+          formatToThreeDecimals(tableInput);
+        }
       }
     });
 
@@ -345,6 +370,22 @@
     recalcBars();
     recalcLowest();
   });
+
+  // Format each rating cell to exactly 3 decimal places once the user
+  // leaves the field (blur), so "4" becomes "4.000" without disrupting typing.
+  table.addEventListener(
+    "blur",
+    (e) => {
+      if (!e.target.matches("input.irc1a-rating")) return;
+      formatToThreeDecimals(e.target);
+    },
+    true, // capture, since blur does not bubble
+  );
+
+  // Format any pre-filled values (e.g. loaded from the server) on page load
+  table
+    .querySelectorAll("tbody input.irc1a-rating")
+    .forEach((input) => formatToThreeDecimals(input));
 
   recalcAll();
 })();
