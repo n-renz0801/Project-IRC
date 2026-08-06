@@ -8,10 +8,13 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css"
     />
+    <!-- Base styles (header, navbar, layout) -->
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/index.css') }}"
+      href="{{ url_for('static', filename='css/base.css') }}"
     />
+    <!-- Page-specific styles (inserted by child templates) -->
+    {% block extra_css %}{% endblock %}
   </head>
   <body>
     <header class="app-header">
@@ -53,5 +56,6 @@
     <main class="content">{% block content %}{% endblock %}</main>
 
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+    {% block extra_js %}{% endblock %}
   </body>
 </html>

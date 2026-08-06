@@ -1,0 +1,223 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════════════════════════════ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BRAND PALETTE (single source of truth — never redeclare)
+═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --navy: #0033a0;
+  --navy-dark: #00247a;
+  --navy-deep: #001550;
+  --gold: #fcd116;
+  --gold-dark: #d4a900;
+  --white: #ffffff;
+  --off-white: #f4f6fb;
+  --text: #1a1a2e;
+  --text-light: #5a6a8a;
+  --border: #d0d8ec;
+  --shadow: rgba(0, 51, 160, 0.12);
+
+  --header-height: 104px;
+}
+
+body {
+  margin: 0;
+  background: var(--off-white);
+  color: var(--text);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HEADER & NAVBAR
+═══════════════════════════════════════════════════════════════════════════ */
+
+.app-header {
+  background: var(--navy-deep);
+  color: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-header__top {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.app-header__title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--white);
+}
+
+.app-header__acronym {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.5px;
+  color: var(--gold);
+}
+
+.app-header__full {
+  font-size: 0.85rem;
+  color: #c7d0ea;
+}
+
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--white);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+/* ---------- Navbar (centered tabs) ---------- */
+.navbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  padding: 0 20px;
+  background: var(--navy);
+  height: 48px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  flex-wrap: nowrap;
+}
+
+.navbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.navbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.navbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.navbar__link {
+  color: #dbe4fa;
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 14px 14px;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.navbar__link:hover {
+  color: var(--white);
+  border-bottom-color: rgba(255, 255, 255, 0.4);
+}
+
+.navbar__link--active {
+  background: transparent;
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTENT AREA
+═══════════════════════════════════════════════════════════════════════════ */
+
+.content {
+  padding: 30px 150px;
+}
+
+.page-hero h1 {
+  font-size: 1.6rem;
+  margin: 0 0 14px;
+  color: var(--navy-deep);
+}
+
+.page-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 0 16px;
+}
+
+.page-instruction {
+  color: var(--text-light);
+  margin: 0 0 24px;
+  font-size: 0.95rem;
+}
+
+.content__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.content__header h1 {
+  font-size: 1.4rem;
+  margin: 0;
+  color: var(--navy-deep);
+}
+
+.content__badge {
+  background: var(--gold);
+  color: var(--navy-deep);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.content__body {
+  background: transparent;
+  border: none;
+  padding: 0;
+  min-height: 300px;
+}
+
+.placeholder-text {
+  color: var(--text-light);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 860px) {
+  .nav-toggle {
+    display: block;
+  }
+
+  .navbar {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    justify-content: flex-start;
+  }
+
+  .navbar.navbar--open {
+    display: flex;
+  }
+
+  .content {
+    padding: 20px;
+  }
+}

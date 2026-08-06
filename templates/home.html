@@ -1,5 +1,10 @@
 {% extends "base.html" %} {% block title %}Home - SGOD PMES{% endblock %} {%
-block content %}
+block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/home.css') }}"
+/>
+{% endblock %} {% block content %}
 <div class="page-hero">
   <h1>Welcome to SGOD PMES!</h1>
 </div>
