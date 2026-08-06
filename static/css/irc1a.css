@@ -1,5 +1,15 @@
 /* IRC1a - Monthly Customers Feedback Rating - CSS Stylesheet */
 
+/* Hide page scrollbar but keep scroll functionality (mousewheel/keyboard/touch still work) */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+}
+
+html::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge (Chromium) */
+}
+
 .irc1a-panel {
   padding: 24px 0;
 }
@@ -114,12 +124,14 @@
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   overflow-x: auto;
+  overflow-y: visible;
   margin-bottom: 32px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .irc1a-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -127,9 +139,6 @@
 .irc1a-table thead {
   background: #f5f7fa;
   border-bottom: 2px solid #d0d0d0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .irc1a-table thead th {
@@ -139,6 +148,7 @@
   color: #333;
   white-space: nowrap;
   border-right: 1px solid #e8e8e8;
+  background: #f5f7fa; /* ensure each th has an opaque background while stuck, so tbody rows don't show through */
 }
 
 .irc1a-table thead th:last-child {
@@ -146,18 +156,26 @@
 }
 
 .irc1a-indicator-col {
-  min-width: 200px;
+  width: 220px;
   text-align: left;
 }
 
 .irc1a-rowavg-col {
-  min-width: 85px;
+  width: 85px;
   text-align: center;
 }
 
 .irc1a-rowbar-col {
-  min-width: 120px;
+  width: 120px;
   text-align: center;
+}
+
+/* Fixed-width month columns so inputs never grow/shrink with content */
+.irc1a-table
+  th:not(.irc1a-indicator-col):not(.irc1a-rowavg-col):not(.irc1a-rowbar-col),
+.irc1a-table
+  td:not(.irc1a-indicator-col):not(.irc1a-rowavg-cell):not(.irc1a-rowbar-cell) {
+  width: 60px;
 }
 
 .irc1a-table tbody tr {
@@ -188,7 +206,9 @@
 
 .irc1a-table tbody input[type="number"] {
   width: 100%;
-  padding: 6px 8px;
+  max-width: 60px;
+  box-sizing: border-box;
+  padding: 6px 4px;
   border: 1px solid #d8d8d8;
   border-radius: 4px;
   font-size: 13px;
@@ -202,6 +222,18 @@
   outline: none;
   border-color: #4a6fa5;
   box-shadow: 0 0 4px rgba(74, 111, 165, 0.2);
+}
+
+/* Remove number input spinner arrows */
+.irc1a-table tbody input[type="number"]::-webkit-outer-spin-button,
+.irc1a-table tbody input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.irc1a-table tbody input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .irc1a-table tfoot {
@@ -517,7 +549,7 @@
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .irc1a-indicator-col {
-    min-width: 150px;
+    width: 150px;
   }
 
   .irc1a-bottom-row {
@@ -526,6 +558,13 @@
 
   .irc1a-remarks-section {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .irc1a-table thead {
+    top: auto;
+    position: static;
   }
 }
 
