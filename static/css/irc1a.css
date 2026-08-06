@@ -22,43 +22,53 @@
   line-height: 1.5;
 }
 
+/* Bottom Row: Upload | Lowest | Remarks, side by side */
+.irc1a-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.4fr;
+  gap: 20px;
+  align-items: start;
+}
+
 /* File Upload Section */
 .irc1a-upload-section {
-  margin-bottom: 32px;
+  margin-bottom: 0;
 }
 
 .irc1a-upload-card {
   background: linear-gradient(135deg, #f0f4f9 0%, #e8ecf3 100%);
   border: 2px solid #d0d8e8;
   border-radius: 12px;
-  padding: 24px;
+  padding: 16px;
   text-align: center;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .irc1a-upload-icon {
-  font-size: 40px;
-  margin-bottom: 12px;
+  font-size: 26px;
+  margin-bottom: 8px;
 }
 
 .irc1a-upload-card h3 {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   color: #1a1a1a;
 }
 
 .irc1a-upload-hint {
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
-  margin: 0 0 16px 0;
+  margin: 0 0 12px 0;
 }
 
 .irc1a-upload-area {
   background: white;
   border: 2px dashed #a8b8d8;
   border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 12px;
+  padding: 14px 10px;
+  margin-bottom: 10px;
   transition: all 0.3s ease;
 }
 
@@ -71,15 +81,15 @@
   background: #4a6fa5;
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s ease;
   display: inline-flex;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .irc1a-upload-btn:hover {
@@ -87,15 +97,15 @@
 }
 
 .irc1a-upload-text {
-  font-size: 12px;
+  font-size: 11px;
   color: #888;
   margin: 0;
 }
 
 .irc1a-upload-note {
-  font-size: 11px;
+  font-size: 10px;
   color: #999;
-  margin: 12px 0 0 0;
+  margin: 10px 0 0 0;
 }
 
 /* Main Table */
@@ -279,13 +289,15 @@
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 32px;
+  padding: 20px;
+  margin-bottom: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .irc1a-lowest-section h3 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   margin: 0 0 8px 0;
   color: #1a1a1a;
@@ -333,12 +345,14 @@
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 24px;
+  padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .irc1a-remarks-field {
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .irc1a-remarks-field:last-child {
@@ -366,6 +380,7 @@
     border-color 0.2s ease,
     box-shadow 0.2s ease;
   color: #333;
+  box-sizing: border-box;
 }
 
 .irc1a-remarks-textarea:focus {
@@ -504,6 +519,14 @@
   .irc1a-indicator-col {
     min-width: 150px;
   }
+
+  .irc1a-bottom-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .irc1a-remarks-section {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 768px) {
@@ -520,8 +543,16 @@
     padding: 8px 6px;
   }
 
+  .irc1a-bottom-row {
+    grid-template-columns: 1fr;
+  }
+
+  .irc1a-remarks-section {
+    grid-column: auto;
+  }
+
   .irc1a-upload-card {
-    padding: 16px;
+    padding: 14px;
   }
 
   .irc1a-remarks-section {

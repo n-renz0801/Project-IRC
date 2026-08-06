@@ -15,27 +15,6 @@ block content %}
     </p>
   </div>
 
-  <!-- File Upload Section -->
-  <div class="irc1a-upload-section">
-    <div class="irc1a-upload-card">
-      <div class="irc1a-upload-icon">📄</div>
-      <h3>Import Ratings from File</h3>
-      <p class="irc1a-upload-hint">
-        Upload a PDF file with TA ratings to auto-populate the table below.
-      </p>
-      <div class="irc1a-upload-area" id="uploadArea">
-        <input type="file" id="fileInput" accept=".pdf" style="display: none" />
-        <button type="button" class="irc1a-upload-btn" id="uploadBtn">
-          <i class="ti ti-upload" style="margin-right: 6px"></i> Choose PDF File
-        </button>
-        <p class="irc1a-upload-text">or drag and drop a PDF here</p>
-      </div>
-      <p class="irc1a-upload-note">
-        Supported: PDF files with consistent rating structure
-      </p>
-    </div>
-  </div>
-
   <!-- Main Table -->
   <div class="irc1a-table-wrapper">
     <table id="irc1a-table" class="irc1a-table">
@@ -1480,84 +1459,116 @@ block content %}
     </table>
   </div>
 
-  <div class="irc1a-lowest-section">
-    <h3>Three Lowest TA Indicators</h3>
-    <p class="irc1a-subtitle">
-      Based on each indicator's average rating across all months.
-    </p>
-    <ol id="irc1a-lowest-list" class="irc1a-lowest-list">
-      <li class="irc1a-lowest-placeholder">
-        Enter ratings above to see results.
-      </li>
-    </ol>
-  </div>
+  <!-- Bottom row: Upload | Three Lowest | Remarks — three columns side by side -->
+  <div class="irc1a-bottom-row">
+    <!-- File Upload Section -->
+    <div class="irc1a-upload-section">
+      <div class="irc1a-upload-card">
+        <div class="irc1a-upload-icon"><i class="ti ti-file-upload"></i></div>
+        <h3>Import from File</h3>
+        <p class="irc1a-upload-hint">
+          Upload a PDF with TA ratings to auto-populate the table.
+        </p>
+        <div class="irc1a-upload-area" id="uploadArea">
+          <input
+            type="file"
+            id="fileInput"
+            accept=".pdf"
+            style="display: none"
+          />
+          <button type="button" class="irc1a-upload-btn" id="uploadBtn">
+            <i class="ti ti-upload" style="margin-right: 6px"></i> Choose PDF
+          </button>
+          <p class="irc1a-upload-text">or drag and drop here</p>
+        </div>
+        <p class="irc1a-upload-note">
+          PDF files with consistent structure only
+        </p>
+      </div>
+    </div>
 
-  <div class="irc1a-remarks-section">
-    <div class="irc1a-remarks-field">
-      <label for="irc1a-positive" class="irc1a-remarks-label"
-        >Positive Aspect</label
-      >
-      <textarea
-        id="irc1a-positive"
-        name="irc1a_positive"
-        class="irc1a-remarks-textarea"
-        rows="4"
-        placeholder="Describe a positive aspect observed..."
-      ></textarea>
+    <!-- Three Lowest TA Indicators Section -->
+    <div class="irc1a-lowest-section">
+      <h3>Three Lowest TA Indicators</h3>
+      <p class="irc1a-subtitle">
+        Based on each indicator's average rating across all months.
+      </p>
+      <ol id="irc1a-lowest-list" class="irc1a-lowest-list">
+        <li class="irc1a-lowest-placeholder">
+          Enter ratings above to see results.
+        </li>
+      </ol>
     </div>
-    <div class="irc1a-remarks-field">
-      <label for="irc1a-ofi" class="irc1a-remarks-label"
-        >Opportunity for Improvement (OFI)</label
-      >
-      <textarea
-        id="irc1a-ofi"
-        name="irc1a_ofi"
-        class="irc1a-remarks-textarea"
-        rows="4"
-        placeholder="Describe an opportunity for improvement, if applicable..."
-      ></textarea>
+
+    <!-- Remarks Section -->
+    <div class="irc1a-remarks-section">
+      <div class="irc1a-remarks-field">
+        <label for="irc1a-positive" class="irc1a-remarks-label"
+          >Positive Aspect</label
+        >
+        <textarea
+          id="irc1a-positive"
+          name="irc1a_positive"
+          class="irc1a-remarks-textarea"
+          rows="4"
+          placeholder="Describe a positive aspect observed..."
+        ></textarea>
+      </div>
+      <div class="irc1a-remarks-field">
+        <label for="irc1a-ofi" class="irc1a-remarks-label"
+          >Opportunity for Improvement (OFI)</label
+        >
+        <textarea
+          id="irc1a-ofi"
+          name="irc1a_ofi"
+          class="irc1a-remarks-textarea"
+          rows="4"
+          placeholder="Describe an opportunity for improvement, if applicable..."
+        ></textarea>
+      </div>
     </div>
+  </div>
+  <!-- /.irc1a-bottom-row -->
+
+  <!-- Preview Modal -->
+  <div id="previewModal" class="irc1a-modal" style="display: none">
+    <div class="irc1a-modal-content">
+      <div class="irc1a-modal-header">
+        <h2>Review Extracted Data</h2>
+        <button type="button" class="irc1a-modal-close" id="modalClose">
+          &times;
+        </button>
+      </div>
+      <div class="irc1a-modal-body">
+        <p class="irc1a-modal-hint">
+          Please review the extracted ratings below. You can edit any value
+          before importing.
+        </p>
+        <div
+          id="previewTableContainer"
+          class="irc1a-preview-table-container"
+        ></div>
+      </div>
+      <div class="irc1a-modal-footer">
+        <button
+          type="button"
+          class="irc1a-modal-btn irc1a-modal-btn-cancel"
+          id="modalCancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="irc1a-modal-btn irc1a-modal-btn-import"
+          id="modalImport"
+        >
+          Import Data
+        </button>
+      </div>
+    </div>
+    <div class="irc1a-modal-overlay" id="modalOverlay"></div>
   </div>
 </section>
-
-<!-- Preview Modal -->
-<div id="previewModal" class="irc1a-modal" style="display: none">
-  <div class="irc1a-modal-content">
-    <div class="irc1a-modal-header">
-      <h2>Review Extracted Data</h2>
-      <button type="button" class="irc1a-modal-close" id="modalClose">
-        &times;
-      </button>
-    </div>
-    <div class="irc1a-modal-body">
-      <p class="irc1a-modal-hint">
-        Please review the extracted ratings below. You can edit any value before
-        importing.
-      </p>
-      <div
-        id="previewTableContainer"
-        class="irc1a-preview-table-container"
-      ></div>
-    </div>
-    <div class="irc1a-modal-footer">
-      <button
-        type="button"
-        class="irc1a-modal-btn irc1a-modal-btn-cancel"
-        id="modalCancel"
-      >
-        Cancel
-      </button>
-      <button
-        type="button"
-        class="irc1a-modal-btn irc1a-modal-btn-import"
-        id="modalImport"
-      >
-        Import Data
-      </button>
-    </div>
-  </div>
-  <div class="irc1a-modal-overlay" id="modalOverlay"></div>
-</div>
 
 <script src="{{ url_for('static', filename='js/irc1a.js') }}"></script>
 
