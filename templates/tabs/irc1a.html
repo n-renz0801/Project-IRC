@@ -10,6 +10,28 @@ block content %}
     </p>
   </div>
 
+  <!-- File Upload Section -->
+  <div class="irc1a-upload-section">
+    <div class="irc1a-upload-card">
+      <div class="irc1a-upload-icon">📄</div>
+      <h3>Import Ratings from File</h3>
+      <p class="irc1a-upload-hint">
+        Upload a PDF file with TA ratings to auto-populate the table below.
+      </p>
+      <div class="irc1a-upload-area" id="uploadArea">
+        <input type="file" id="fileInput" accept=".pdf" style="display: none" />
+        <button type="button" class="irc1a-upload-btn" id="uploadBtn">
+          <i class="ti ti-upload" style="margin-right: 6px"></i> Choose PDF File
+        </button>
+        <p class="irc1a-upload-text">or drag and drop a PDF here</p>
+      </div>
+      <p class="irc1a-upload-note">
+        Supported: PDF files with consistent rating structure
+      </p>
+    </div>
+  </div>
+
+  <!-- Main Table -->
   <div class="irc1a-table-wrapper">
     <table id="irc1a-table" class="irc1a-table">
       <thead>
@@ -28,6 +50,7 @@ block content %}
           <th>Nov</th>
           <th>Dec</th>
           <th class="irc1a-rowavg-col">Average</th>
+          <th class="irc1a-rowbar-col">Rating Snapshot</th>
         </tr>
       </thead>
 
@@ -156,6 +179,15 @@ block content %}
           </td>
           <td class="irc1a-rowavg-cell">
             <span class="irc1a-row-avg" data-indicator="1">&mdash;</span>
+          </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" data-indicator="1">
+              <div
+                class="irc1a-bar-fill"
+                data-indicator="1"
+                style="width: 0%"
+              ></div>
+            </div>
           </td>
         </tr>
 
@@ -286,6 +318,15 @@ block content %}
           <td class="irc1a-rowavg-cell">
             <span class="irc1a-row-avg" data-indicator="2">&mdash;</span>
           </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" data-indicator="2">
+              <div
+                class="irc1a-bar-fill"
+                data-indicator="2"
+                style="width: 0%"
+              ></div>
+            </div>
+          </td>
         </tr>
 
         <tr data-indicator="3">
@@ -415,6 +456,15 @@ block content %}
           <td class="irc1a-rowavg-cell">
             <span class="irc1a-row-avg" data-indicator="3">&mdash;</span>
           </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" data-indicator="3">
+              <div
+                class="irc1a-bar-fill"
+                data-indicator="3"
+                style="width: 0%"
+              ></div>
+            </div>
+          </td>
         </tr>
 
         <tr data-indicator="4">
@@ -543,6 +593,15 @@ block content %}
           </td>
           <td class="irc1a-rowavg-cell">
             <span class="irc1a-row-avg" data-indicator="4">&mdash;</span>
+          </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" data-indicator="4">
+              <div
+                class="irc1a-bar-fill"
+                data-indicator="4"
+                style="width: 0%"
+              ></div>
+            </div>
           </td>
         </tr>
 
@@ -674,6 +733,15 @@ block content %}
           <td class="irc1a-rowavg-cell">
             <span class="irc1a-row-avg" data-indicator="5">&mdash;</span>
           </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" data-indicator="5">
+              <div
+                class="irc1a-bar-fill"
+                data-indicator="5"
+                style="width: 0%"
+              ></div>
+            </div>
+          </td>
         </tr>
 
         <tr data-indicator="6">
@@ -802,6 +870,15 @@ block content %}
           </td>
           <td class="irc1a-rowavg-cell">
             <span class="irc1a-row-avg" data-indicator="6">&mdash;</span>
+          </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" data-indicator="6">
+              <div
+                class="irc1a-bar-fill"
+                data-indicator="6"
+                style="width: 0%"
+              ></div>
+            </div>
           </td>
         </tr>
 
@@ -933,6 +1010,15 @@ block content %}
           <td class="irc1a-rowavg-cell">
             <span class="irc1a-row-avg" data-indicator="7">&mdash;</span>
           </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" data-indicator="7">
+              <div
+                class="irc1a-bar-fill"
+                data-indicator="7"
+                style="width: 0%"
+              ></div>
+            </div>
+          </td>
         </tr>
 
         <tr data-indicator="8">
@@ -1061,6 +1147,15 @@ block content %}
           </td>
           <td class="irc1a-rowavg-cell">
             <span class="irc1a-row-avg" data-indicator="8">&mdash;</span>
+          </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" data-indicator="8">
+              <div
+                class="irc1a-bar-fill"
+                data-indicator="8"
+                style="width: 0%"
+              ></div>
+            </div>
           </td>
         </tr>
 
@@ -1191,6 +1286,15 @@ block content %}
           <td class="irc1a-rowavg-cell">
             <span class="irc1a-row-avg" data-indicator="9">&mdash;</span>
           </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" data-indicator="9">
+              <div
+                class="irc1a-bar-fill"
+                data-indicator="9"
+                style="width: 0%"
+              ></div>
+            </div>
+          </td>
         </tr>
 
         <tr data-indicator="10">
@@ -1320,6 +1424,15 @@ block content %}
           <td class="irc1a-rowavg-cell">
             <span class="irc1a-row-avg" data-indicator="10">&mdash;</span>
           </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" data-indicator="10">
+              <div
+                class="irc1a-bar-fill"
+                data-indicator="10"
+                style="width: 0%"
+              ></div>
+            </div>
+          </td>
         </tr>
       </tbody>
 
@@ -1339,6 +1452,7 @@ block content %}
           <td><span class="irc1a-avg" data-month="nov">&mdash;</span></td>
           <td><span class="irc1a-avg" data-month="dec">&mdash;</span></td>
           <td class="irc1a-rowavg-cell">&mdash;</td>
+          <td class="irc1a-rowbar-cell">&mdash;</td>
         </tr>
         <tr class="irc1a-descriptive-row">
           <td class="irc1a-indicator-col">Descriptive Value</td>
@@ -1355,6 +1469,7 @@ block content %}
           <td><span class="irc1a-desc" data-month="nov">&mdash;</span></td>
           <td><span class="irc1a-desc" data-month="dec">&mdash;</span></td>
           <td class="irc1a-rowavg-cell">&mdash;</td>
+          <td class="irc1a-rowbar-cell">&mdash;</td>
         </tr>
       </tfoot>
     </table>
@@ -1385,7 +1500,6 @@ block content %}
         placeholder="Describe a positive aspect observed..."
       ></textarea>
     </div>
-
     <div class="irc1a-remarks-field">
       <label for="irc1a-ofi" class="irc1a-remarks-label"
         >Opportunity for Improvement (OFI)</label
@@ -1401,9 +1515,468 @@ block content %}
   </div>
 </section>
 
+<!-- Preview Modal -->
+<div id="previewModal" class="irc1a-modal" style="display: none">
+  <div class="irc1a-modal-content">
+    <div class="irc1a-modal-header">
+      <h2>Review Extracted Data</h2>
+      <button type="button" class="irc1a-modal-close" id="modalClose">
+        &times;
+      </button>
+    </div>
+    <div class="irc1a-modal-body">
+      <p class="irc1a-modal-hint">
+        Please review the extracted ratings below. You can edit any value before
+        importing.
+      </p>
+      <div
+        id="previewTableContainer"
+        class="irc1a-preview-table-container"
+      ></div>
+    </div>
+    <div class="irc1a-modal-footer">
+      <button
+        type="button"
+        class="irc1a-modal-btn irc1a-modal-btn-cancel"
+        id="modalCancel"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="irc1a-modal-btn irc1a-modal-btn-import"
+        id="modalImport"
+      >
+        Import Data
+      </button>
+    </div>
+  </div>
+  <div class="irc1a-modal-overlay" id="modalOverlay"></div>
+</div>
+
+<style>
+  .irc1a-upload-section {
+    margin-bottom: 24px;
+  }
+
+  .irc1a-upload-card {
+    background: var(--off-white);
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    text-align: center;
+  }
+
+  .irc1a-upload-icon {
+    font-size: 2.8rem;
+    margin-bottom: 12px;
+  }
+
+  .irc1a-upload-card h3 {
+    margin: 0 0 8px;
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+
+  .irc1a-upload-hint {
+    margin: 0 0 16px;
+    color: var(--text-light);
+    font-size: 0.9rem;
+  }
+
+  .irc1a-upload-area {
+    margin-bottom: 16px;
+  }
+
+  .irc1a-upload-btn {
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .irc1a-upload-btn:hover {
+    background: var(--navy-dark);
+  }
+
+  .irc1a-upload-text {
+    margin: 8px 0 0;
+    color: var(--text-light);
+    font-size: 0.85rem;
+  }
+
+  .irc1a-upload-note {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 0.8rem;
+  }
+
+  .irc1a-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .irc1a-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+  }
+
+  .irc1a-modal-content {
+    position: relative;
+    z-index: 1001; /* Ensure content is above overlay */
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .irc1a-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .irc1a-modal-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--navy-deep);
+  }
+
+  .irc1a-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: var(--text-light);
+    cursor: pointer;
+  }
+
+  .irc1a-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+  }
+
+  .irc1a-modal-hint {
+    margin: 0 0 16px;
+    font-size: 0.9rem;
+    color: var(--text-light);
+  }
+
+  .irc1a-preview-month-info {
+    background: var(--off-white);
+    border-left: 4px solid var(--navy);
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: var(--navy-deep);
+  }
+
+  .irc1a-preview-table-container {
+    overflow-x: auto;
+  }
+
+  .irc1a-preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .irc1a-preview-table th,
+  .irc1a-preview-table td {
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .irc1a-preview-table th {
+    background: var(--off-white);
+    font-weight: 600;
+    color: var(--navy-deep);
+  }
+
+  .irc1a-preview-table td:first-child,
+  .irc1a-preview-table th:first-child {
+    text-align: left;
+  }
+
+  .irc1a-preview-table input {
+    width: 60px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.85rem;
+  }
+
+  .irc1a-modal-footer {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--white);
+    position: relative;
+    z-index: 1002;
+  }
+
+  .irc1a-modal-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 0.9rem;
+    position: relative;
+    z-index: 1002;
+  }
+
+  .irc1a-modal-btn-cancel {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .irc1a-modal-btn-cancel:hover {
+    background: #c0c8dc;
+  }
+
+  .irc1a-modal-btn-import {
+    background: var(--navy);
+    color: var(--white);
+  }
+
+  .irc1a-modal-btn-import:hover {
+    background: var(--navy-dark);
+  }
+
+  .irc1a-rowbar-col {
+    width: 110px;
+  }
+
+  .irc1a-bar {
+    position: relative;
+    width: 100px;
+    height: 10px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    overflow: hidden;
+  }
+
+  .irc1a-bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    border-radius: 999px;
+    background: #9ca3af;
+    transition:
+      width 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .irc1a-bar-fill.irc1a-band-poor {
+    background: #ef4444;
+  }
+
+  .irc1a-bar-fill.irc1a-band-fair {
+    background: #f59e0b;
+  }
+
+  .irc1a-bar-fill.irc1a-band-satisfactory {
+    background: #3b82f6;
+  }
+
+  .irc1a-bar-fill.irc1a-band-very-satisfactory {
+    background: #22c55e;
+  }
+</style>
+
 <script>
   (function () {
-    // Scoped to this tab only so it doesn't collide with other irc*.html scripts.
+    // --- File upload & extraction ---
+    const fileInput = document.getElementById("fileInput");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const uploadArea = document.getElementById("uploadArea");
+    const previewModal = document.getElementById("previewModal");
+    const modalOverlay = document.getElementById("modalOverlay");
+    const modalClose = document.getElementById("modalClose");
+    const modalCancel = document.getElementById("modalCancel");
+    const modalImport = document.getElementById("modalImport");
+    const previewTableContainer = document.getElementById(
+      "previewTableContainer",
+    );
+
+    let extractedData = null;
+
+    uploadBtn.addEventListener("click", () => fileInput.click());
+
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadArea.style.background = "var(--gold)";
+    });
+
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.style.background = "";
+    });
+
+    uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadArea.style.background = "";
+      const files = e.dataTransfer.files;
+      if (files.length > 0) handleFileUpload(files[0]);
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) handleFileUpload(e.target.files[0]);
+    });
+
+    function handleFileUpload(file) {
+      if (!file.type.includes("pdf")) {
+        alert("Please upload a PDF file.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      uploadBtn.textContent = "Uploading...";
+      uploadBtn.disabled = true;
+
+      fetch("/irc/irc1a/extract", {
+        method: "POST",
+        body: formData,
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          uploadBtn.textContent = "📄 Choose PDF File";
+          uploadBtn.disabled = false;
+
+          if (data.error) {
+            alert("Error: " + data.error);
+            return;
+          }
+
+          // Store the extracted data including month info
+          extractedData = {
+            month: data.month,
+            month_key: data.month_key,
+            extracted_ratings: data.extracted_ratings,
+          };
+          showPreviewModal();
+        })
+        .catch((err) => {
+          uploadBtn.textContent = "📄 Choose PDF File";
+          uploadBtn.disabled = false;
+          alert("Upload failed: " + err.message);
+        });
+    }
+
+    function showPreviewModal() {
+      // extractedData contains: { month_key: "jul", month_name: "July", extracted_ratings: { "1": {jul: 4.0}, ... } }
+      const month = extractedData.month || "Unknown";
+      const monthKey = extractedData.month_key || "unknown";
+      const ratings = extractedData.extracted_ratings || {};
+
+      const indicatorLabels = {
+        1: "Observes the schedule.",
+        2: "Establishes the objectives of the Technical Assistance.",
+        3: "Uses necessary tools/process/procedure for the conduct of TA.",
+        4: "Provide relevant, timely and appropriate Technical Assistance.",
+        5: "Understand the situation of schools in case may be, their needs, aspirations, plans, strength and weaknesses.",
+        6: "Recommends/suggests points for improvement.",
+        7: "Provides constructive feedback and establishes a cordial atmosphere in giving of feedback.",
+        8: "Skills and competencies of the TA provider.",
+        9: "Processes the results of the Technical Assistance.",
+        10: "General view of the provision of the Technical Assistance.",
+      };
+
+      let html = `<div class="irc1a-preview-month-info"><strong>Month:</strong> ${month.toUpperCase()}</div>`;
+      html +=
+        '<table class="irc1a-preview-table"><thead><tr><th>TA Indicator</th><th>' +
+        month.toUpperCase() +
+        "</th></tr></thead><tbody>";
+
+      for (let i = 1; i <= 10; i++) {
+        const val =
+          ratings[i] && ratings[i][monthKey] ? ratings[i][monthKey] : "";
+        html += `<tr>
+        <td style="text-align:left">${i}. ${indicatorLabels[i]}</td>
+        <td><input type="number" class="preview-rating" data-indicator="${i}" data-month="${monthKey}" value="${val}" min="1" max="5" step="0.01" /></td>
+      </tr>`;
+      }
+
+      html += "</tbody></table>";
+      previewTableContainer.innerHTML = html;
+      previewModal.style.display = "flex";
+    }
+
+    function hidePreviewModal() {
+      previewModal.style.display = "none";
+    }
+
+    modalClose.addEventListener("click", hidePreviewModal);
+    modalCancel.addEventListener("click", hidePreviewModal);
+
+    // Close modal when clicking the overlay (outside the content)
+    previewModal.addEventListener("click", function (e) {
+      if (e.target === previewModal || e.target === modalOverlay) {
+        hidePreviewModal();
+      }
+    });
+
+    // Prevent modal close when clicking inside the content
+    document
+      .querySelector(".irc1a-modal-content")
+      .addEventListener("click", function (e) {
+        e.stopPropagation();
+      });
+
+    modalImport.addEventListener("click", function (e) {
+      e.stopPropagation();
+      const inputs = previewTableContainer.querySelectorAll(".preview-rating");
+      inputs.forEach((input) => {
+        const indicator = input.dataset.indicator;
+        const month = input.dataset.month; // This is the month_key from extraction
+        const value = input.value;
+        if (value) {
+          const tableInput = document.querySelector(
+            `#irc1a-table tbody tr[data-indicator="${indicator}"] input[data-month="${month}"]`,
+          );
+          if (tableInput) tableInput.value = value;
+        }
+      });
+
+      // Trigger recalc for all affected months and rows
+      const event = new Event("input", { bubbles: true });
+      document
+        .querySelectorAll("#irc1a-table input.irc1a-rating")
+        .forEach((inp) => inp.dispatchEvent(event));
+
+      hidePreviewModal();
+    });
+
+    // --- Original IRC1a calculation code ---
     const MONTHS = [
       "jan",
       "feb",
@@ -1418,7 +1991,6 @@ block content %}
       "nov",
       "dec",
     ];
-
     const INDICATOR_COUNT = 10;
     const INDICATOR_LABELS = {
       1: "Observes the schedule.",
@@ -1433,17 +2005,30 @@ block content %}
       10: "General view of the provision of the Technical Assistance.",
     };
 
+    const ABSOLUTE_WEIGHT = 85;
+    const RELATIVE_WEIGHT = 15;
+    const FLAT_EPSILON = 0.0001;
+
     const table = document.getElementById("irc1a-table");
-    if (!table) return; // tab not on the page (e.g. not the active tab yet)
+    if (!table) return;
 
     const lowestList = document.getElementById("irc1a-lowest-list");
+    const rowAverages = {};
 
     function descriptiveValue(avg) {
-      if (avg === null) return "\u2014"; // em dash, no data yet
+      if (avg === null) return "—";
       if (avg >= 3.51) return "Very Satisfactory";
       if (avg >= 2.51) return "Satisfactory";
       if (avg >= 1.51) return "Fair";
       return "Poor";
+    }
+
+    function bandClass(avg) {
+      if (avg === null) return null;
+      if (avg >= 3.51) return "irc1a-band-very-satisfactory";
+      if (avg >= 2.51) return "irc1a-band-satisfactory";
+      if (avg >= 1.51) return "irc1a-band-fair";
+      return "irc1a-band-poor";
     }
 
     function average(values) {
@@ -1464,7 +2049,7 @@ block content %}
         `.irc1a-desc[data-month="${month}"]`,
       );
 
-      avgSpan.textContent = avg === null ? "\u2014" : avg.toFixed(2);
+      avgSpan.textContent = avg === null ? "—" : avg.toFixed(3);
       descSpan.textContent = descriptiveValue(avg);
     }
 
@@ -1478,26 +2063,77 @@ block content %}
       const rowAvgSpan = table.querySelector(
         `.irc1a-row-avg[data-indicator="${indicatorId}"]`,
       );
-      rowAvgSpan.textContent = avg === null ? "\u2014" : avg.toFixed(2);
+      rowAvgSpan.textContent = avg === null ? "—" : avg.toFixed(3);
 
+      rowAverages[indicatorId] = avg;
       return avg;
     }
 
-    function recalcLowest() {
-      const rowAverages = [];
+    function recalcBars() {
+      const entries = Object.entries(rowAverages).filter(
+        ([, avg]) => avg !== null && avg !== undefined,
+      );
+      const minV = entries.length
+        ? Math.min(...entries.map(([, v]) => v))
+        : null;
+      const maxV = entries.length
+        ? Math.max(...entries.map(([, v]) => v))
+        : null;
+      const flat = minV === null || maxV === null || maxV - minV < FLAT_EPSILON;
+
       for (let i = 1; i <= INDICATOR_COUNT; i++) {
-        const span = table.querySelector(
-          `.irc1a-row-avg[data-indicator="${i}"]`,
+        const avg = rowAverages[i];
+        const fill = table.querySelector(
+          `.irc1a-bar-fill[data-indicator="${i}"]`,
         );
-        const avg = parseFloat(span.textContent);
-        if (!Number.isNaN(avg)) {
-          rowAverages.push({ id: i, label: INDICATOR_LABELS[i], avg });
+        const bar = table.querySelector(`.irc1a-bar[data-indicator="${i}"]`);
+        if (!fill) continue;
+
+        let pct = 0;
+        if (avg !== null && avg !== undefined) {
+          if (flat) {
+            pct = 100;
+          } else {
+            const absolutePct = ((avg - 1) / 4) * ABSOLUTE_WEIGHT;
+            const relativePct =
+              ((avg - minV) / (maxV - minV)) * RELATIVE_WEIGHT;
+            pct = absolutePct + relativePct;
+          }
+        }
+        fill.style.width = Math.max(2, Math.min(100, pct)) + "%";
+
+        fill.classList.remove(
+          "irc1a-band-poor",
+          "irc1a-band-fair",
+          "irc1a-band-satisfactory",
+          "irc1a-band-very-satisfactory",
+        );
+        const cls = bandClass(avg === undefined ? null : avg);
+        if (cls) fill.classList.add(cls);
+
+        if (bar) {
+          bar.setAttribute(
+            "title",
+            avg === null || avg === undefined
+              ? "No data yet"
+              : `${avg.toFixed(3)} / 5 (${descriptiveValue(avg)})`,
+          );
+        }
+      }
+    }
+
+    function recalcLowest() {
+      const entries = [];
+      for (let i = 1; i <= INDICATOR_COUNT; i++) {
+        const avg = rowAverages[i];
+        if (avg !== null && avg !== undefined) {
+          entries.push({ id: i, label: INDICATOR_LABELS[i], avg });
         }
       }
 
       lowestList.innerHTML = "";
 
-      if (rowAverages.length === 0) {
+      if (entries.length === 0) {
         const li = document.createElement("li");
         li.className = "irc1a-lowest-placeholder";
         li.textContent = "Enter ratings above to see results.";
@@ -1505,15 +2141,13 @@ block content %}
         return;
       }
 
-      rowAverages.sort((a, b) => a.avg - b.avg);
-      const lowestThree = rowAverages.slice(0, 3);
+      entries.sort((a, b) => a.avg - b.avg);
+      const lowestThree = entries.slice(0, 3);
 
       lowestThree.forEach((item) => {
         const li = document.createElement("li");
         li.className = "irc1a-lowest-item";
-        li.innerHTML =
-          `<span class="irc1a-lowest-label">${item.label}</span>` +
-          `<span class="irc1a-lowest-avg">${item.avg.toFixed(2)}</span>`;
+        li.innerHTML = `<span class="irc1a-lowest-label">${item.label}</span><span class="irc1a-lowest-avg">${item.avg.toFixed(3)}</span>`;
         lowestList.appendChild(li);
       });
     }
@@ -1521,6 +2155,7 @@ block content %}
     function recalcAll() {
       MONTHS.forEach(recalcMonth);
       for (let i = 1; i <= INDICATOR_COUNT; i++) recalcRow(i);
+      recalcBars();
       recalcLowest();
     }
 
@@ -1529,10 +2164,10 @@ block content %}
       const row = e.target.closest("tr[data-indicator]");
       recalcMonth(e.target.dataset.month);
       if (row) recalcRow(row.dataset.indicator);
+      recalcBars();
       recalcLowest();
     });
 
-    // Initial pass in case values are pre-filled server-side (e.g. Jinja value=…)
     recalcAll();
   })();
 </script>
