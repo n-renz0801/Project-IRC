@@ -112,9 +112,6 @@
     sped: "SPED",
   };
 
-  // Quick lookup: name -> school record
-  const SCHOOL_BY_NAME = new Map(SCHOOLS.map((s) => [s.name, s]));
-
   /** @type {Record<string, "provided"|"unprovided">} */
   let state = {};
 
@@ -141,10 +138,18 @@
       unprovided: document.getElementById("unprovided-search"),
       provided: document.getElementById("provided-search"),
     };
-    els.providedTotal = document.getElementById("irc2a-provided-count");
-    els.grandTotal = document.getElementById("irc2a-total-count");
     els.levelFilterGroup = document.getElementById("irc2a-level-filters");
     els.dedpToggle = document.getElementById("dedp-filter-toggle");
+
+    els.stats = {
+      dedpElementary: document.getElementById("stat-dedp-elementary"),
+      dedpSecondary: document.getElementById("stat-dedp-secondary"),
+      dedpTotal: document.getElementById("stat-dedp-total"),
+      dedpPct: document.getElementById("stat-dedp-pct"),
+      nonDedpTotal: document.getElementById("stat-nondedp-total"),
+      nonDedpPct: document.getElementById("stat-nondedp-pct"),
+    };
+    els.priorityChart = document.getElementById("irc2a-priority-chart");
   }
 
   function initState() {
@@ -243,13 +248,123 @@
       els.counts[status].textContent = String(buckets[status].length);
     });
 
-    els.providedTotal.textContent = String(buckets.provided.length);
-    els.grandTotal.textContent = String(SCHOOLS.length);
+    updateStats(buckets.provided);
+  }
+
+  function pct(numerator, denominator) {
+    if (denominator === 0) return 0;
+    return Math.round((numerator / denominator) * 1000) / 10; // one decimal
+  }
+
+  function updateStats(providedSchools) {
+    const dedpProvided = providedSchools.filter((s) =>
+      DEDP_PRIORITY.has(s.name),
+    );
+    const nonDedpProvided = providedSchools.filter(
+      (s) => !DEDP_PRIORITY.has(s.name),
+    );
+
+    const dedpElementaryCount = dedpProvided.filter(
+      (s) => s.level === "elementary",
+    ).length;
+    const dedpSecondaryCount = dedpProvided.filter(
+      (s) => s.level === "secondary",
+    ).length;
+
+    const dedpTotalSchools = DEDP_PRIORITY.size;
+    const nonDedpTotalSchools = SCHOOLS.length - DEDP_PRIORITY.size;
+
+    const dedpPct = pct(dedpProvided.length, dedpTotalSchools);
+    const nonDedpPct = pct(nonDedpProvided.length, nonDedpTotalSchools);
+
+    els.stats.dedpElementary.textContent = String(dedpElementaryCount);
+    els.stats.dedpSecondary.textContent = String(dedpSecondaryCount);
+    els.stats.dedpTotal.textContent = `${dedpProvided.length} / ${dedpTotalSchools}`;
+    els.stats.dedpPct.textContent = `${dedpPct}%`;
+    els.stats.nonDedpTotal.textContent = `${nonDedpProvided.length} / ${nonDedpTotalSchools}`;
+    els.stats.nonDedpPct.textContent = `${nonDedpPct}%`;
+
+    renderPriorityChart(dedpPct, nonDedpPct);
+  }
+
+  function renderPriorityChart(dedpPct, nonDedpPct) {
+    if (!els.priorityChart) return;
+
+    const bars = [
+      { label: "DEDP Priority", pct: dedpPct, modifier: "dedp" },
+      { label: "Non-DEDP Priority", pct: nonDedpPct, modifier: "nondedp" },
+    ];
+
+    els.priorityChart.innerHTML = "";
+    const frag = document.createDocumentFragment();
+
+    bars.forEach((b) => {
+      const col = document.createElement("div");
+      col.className = "irc2a-chart-col";
+
+      const barWrap = document.createElement("div");
+      barWrap.className = "irc2a-chart-barwrap";
+      barWrap.title = `${b.label}: ${b.pct}%`;
+
+      const bar = document.createElement("div");
+      bar.className = `irc2a-chart-bar irc2a-chart-bar--${b.modifier}`;
+      bar.style.height = Math.max(2, b.pct) + "%"; // scale is fixed 0-100%
+
+      const valLabel = document.createElement("span");
+      valLabel.className = "irc2a-chart-val";
+      valLabel.textContent = `${b.pct}%`;
+
+      barWrap.appendChild(valLabel);
+      barWrap.appendChild(bar);
+
+      const label = document.createElement("span");
+      label.className = "irc2a-chart-label";
+      label.textContent = b.label;
+
+      col.appendChild(barWrap);
+      col.appendChild(label);
+      frag.appendChild(col);
+    });
+
+    els.priorityChart.appendChild(frag);
   }
 
   function toggleSchool(name) {
     state[name] = state[name] === "unprovided" ? "provided" : "unprovided";
     render(currentFilters());
+  }
+
+  const LEAVE_ANIMATION_MS = 160;
+
+  function animateAndToggle(itemEl, name) {
+    // Guard against double-triggering while already mid-animation.
+    if (itemEl.classList.contains("is-leaving")) return;
+    itemEl.classList.add("is-leaving");
+
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+
+      toggleSchool(name);
+
+      // Play an entrance ("pop back outward") animation for the item that
+      // just landed in its new column.
+      const newItem = els.root.querySelector(
+        `.irc2a-item[data-school="${CSS.escape(name)}"]`,
+      );
+      if (newItem) {
+        newItem.classList.add("is-entering");
+        void newItem.offsetWidth; // force reflow so the shrunk state registers
+        requestAnimationFrame(() => {
+          newItem.classList.remove("is-entering");
+        });
+      }
+    };
+
+    itemEl.addEventListener("transitionend", finish, { once: true });
+    // Fallback in case transitionend never fires (e.g. reduced-motion users).
+    setTimeout(finish, LEAVE_ANIMATION_MS + 60);
   }
 
   function onLevelFilterClick(e) {
@@ -273,7 +388,7 @@
   function onListClick(e) {
     const item = e.target.closest(".irc2a-item");
     if (!item) return;
-    toggleSchool(item.dataset.school);
+    animateAndToggle(item, item.dataset.school);
   }
 
   function onListKeydown(e) {
@@ -281,7 +396,7 @@
     const item = e.target.closest(".irc2a-item");
     if (!item) return;
     e.preventDefault();
-    toggleSchool(item.dataset.school);
+    animateAndToggle(item, item.dataset.school);
   }
 
   function onSearchInput() {

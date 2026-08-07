@@ -43,30 +43,6 @@ html::-webkit-scrollbar {
   line-height: 1.5;
 }
 
-/* ---- summary bar --------------------------------------------------- */
-
-.irc2a-summary {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #eff4f9;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.irc2a-summary-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #185fa5;
-}
-
-.irc2a-summary-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-}
-
 /* ---- filters ---------------------------------------------------------- */
 
 .irc2a-filters {
@@ -303,6 +279,14 @@ html::-webkit-scrollbar {
   display: flex;
   flex-direction: column;
   gap: 6px;
+
+  /* Hide the scrollbar visually — mousewheel/touch scrolling still works */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge/IE */
+}
+
+.irc2a-list::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, new Edge */
 }
 
 .irc2a-empty {
@@ -327,9 +311,38 @@ html::-webkit-scrollbar {
   color: #333;
   cursor: pointer;
   user-select: none;
+  transform: scale(1);
+  opacity: 1;
   transition:
     background-color 0.15s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.16s ease;
+}
+
+/* Click animation: shrink inward as it leaves the current column... */
+.irc2a-item.is-leaving {
+  transform: scale(0.7);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ...then pop back outward to full size once it lands in the new column */
+.irc2a-item.is-entering {
+  transform: scale(0.7);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .irc2a-item {
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .irc2a-item.is-leaving,
+  .irc2a-item.is-entering {
+    transform: none;
+  }
 }
 
 .irc2a-item[data-level="elementary"] {
@@ -405,6 +418,207 @@ html::-webkit-scrollbar {
 
 .irc2a-column[data-status="provided"] .irc2a-item-action::before {
   content: "\2190";
+}
+
+/* ==========================================================================
+   Import | Summary | Chart row
+   ========================================================================== */
+
+.irc2a-panel-row {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+  margin-top: 24px;
+}
+
+.irc2a-panel-row > * {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  padding: 20px;
+}
+
+.irc2a-panel-row h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #1a1a1a;
+}
+
+/* ---- import card (visual only — not yet wired up) --------------------- */
+
+.irc2a-upload-section {
+  padding: 0 !important;
+  display: flex;
+}
+
+.irc2a-upload-card {
+  background: linear-gradient(135deg, #f0f4f9 0%, #e8ecf3 100%);
+  border: 2px solid #d0d8e8;
+  border-radius: 12px;
+  padding: 20px 16px;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.irc2a-upload-icon {
+  font-size: 26px;
+  margin-bottom: 8px;
+}
+
+.irc2a-upload-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  color: #1a1a1a;
+}
+
+.irc2a-upload-hint {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 12px 0;
+}
+
+.irc2a-upload-area {
+  background: white;
+  border: 2px dashed #a8b8d8;
+  border-radius: 8px;
+  padding: 14px 10px;
+  margin-bottom: 10px;
+  transition: all 0.3s ease;
+}
+
+.irc2a-upload-btn {
+  background: #4a6fa5;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.irc2a-upload-text {
+  font-size: 11px;
+  color: #888;
+  margin: 0;
+}
+
+.irc2a-upload-note {
+  font-size: 10px;
+  color: #999;
+  margin: 10px 0 0 0;
+}
+
+/* ---- summary stats ------------------------------------------------------ */
+
+.irc2a-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.irc2a-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.irc2a-stat-card--highlight {
+  background: #eff4f9;
+}
+
+.irc2a-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5b6b80;
+  line-height: 1.3;
+}
+
+.irc2a-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #185fa5;
+}
+
+/* ---- priority bar chart -------------------------------------------------- */
+
+.irc2a-plot-wrapper {
+  margin-top: 8px;
+}
+
+.irc2a-priority-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 16px;
+  height: 200px;
+  border-bottom: 1px solid #e8e8e8;
+  padding-bottom: 4px;
+}
+
+.irc2a-priority-chart .irc2a-chart-col {
+  flex: 1;
+  max-width: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.irc2a-priority-chart .irc2a-chart-barwrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.irc2a-priority-chart .irc2a-chart-val {
+  font-size: 13px;
+  color: #333;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.irc2a-priority-chart .irc2a-chart-bar {
+  width: 65%;
+  min-height: 2px;
+  border-radius: 999px 999px 0 0;
+  transition: height 0.25s ease;
+}
+
+.irc2a-priority-chart .irc2a-chart-bar--dedp {
+  background: #92400e;
+}
+
+.irc2a-priority-chart .irc2a-chart-bar--nondedp {
+  background: #4a6fa5;
+}
+
+.irc2a-priority-chart .irc2a-chart-label {
+  font-size: 12px;
+  color: #666;
+  margin-top: 6px;
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .irc2a-panel-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Responsive */

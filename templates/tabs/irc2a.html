@@ -12,14 +12,6 @@ block content %}
     <p class="irc2a-subtitle">Click a school to move it between columns.</p>
   </div>
 
-  <!-- Summary -->
-  <div class="irc2a-summary">
-    <span class="irc2a-summary-value" id="irc2a-provided-count">0</span>
-    <span class="irc2a-summary-label"
-      >of <span id="irc2a-total-count">0</span> schools provided with TA</span
-    >
-  </div>
-
   <!-- Filters -->
   <div class="irc2a-filters">
     <div
@@ -117,6 +109,77 @@ block content %}
         aria-label="Schools provided with TA"
       ></ul>
       <p class="irc2a-empty" id="provided-empty" hidden>No matching schools.</p>
+    </div>
+  </div>
+  <!-- /.irc2a-columns -->
+
+  <!-- Import | Summary | Chart row -->
+  <div class="irc2a-panel-row">
+    <!-- Import File Section (visual only for now — not yet wired up) -->
+    <div class="irc2a-upload-section">
+      <div class="irc2a-upload-card">
+        <div class="irc2a-upload-icon"><i class="ti ti-file-upload"></i></div>
+        <h3>Import from File</h3>
+        <p class="irc2a-upload-hint">
+          Upload a file with the TA status of each school to auto-populate the
+          board.
+        </p>
+        <div class="irc2a-upload-area" id="irc2aUploadArea">
+          <input
+            type="file"
+            id="irc2aFileInput"
+            accept=".pdf"
+            style="display: none"
+          />
+          <button type="button" class="irc2a-upload-btn" id="irc2aUploadBtn">
+            <i class="ti ti-upload" style="margin-right: 6px"></i> Choose File
+          </button>
+          <p class="irc2a-upload-text">or drag and drop here</p>
+        </div>
+        <p class="irc2a-upload-note">
+          Imported file should follow the correct template/structure to extract
+          data successfully.
+        </p>
+      </div>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="irc2a-stats-section">
+      <h3>DEDP Priority Summary</h3>
+      <div class="irc2a-stats-grid">
+        <div class="irc2a-stat-card">
+          <span class="irc2a-stat-label">DEDP Elementary Provided</span>
+          <span class="irc2a-stat-value" id="stat-dedp-elementary">0</span>
+        </div>
+        <div class="irc2a-stat-card">
+          <span class="irc2a-stat-label">DEDP Secondary Provided</span>
+          <span class="irc2a-stat-value" id="stat-dedp-secondary">0</span>
+        </div>
+        <div class="irc2a-stat-card irc2a-stat-card--highlight">
+          <span class="irc2a-stat-label">Total DEDP Priority Provided</span>
+          <span class="irc2a-stat-value" id="stat-dedp-total">0</span>
+        </div>
+        <div class="irc2a-stat-card irc2a-stat-card--highlight">
+          <span class="irc2a-stat-label">DEDP % Provided</span>
+          <span class="irc2a-stat-value" id="stat-dedp-pct">0%</span>
+        </div>
+        <div class="irc2a-stat-card">
+          <span class="irc2a-stat-label">Total Non-DEDP Provided</span>
+          <span class="irc2a-stat-value" id="stat-nondedp-total">0</span>
+        </div>
+        <div class="irc2a-stat-card">
+          <span class="irc2a-stat-label">Non-DEDP % Provided</span>
+          <span class="irc2a-stat-value" id="stat-nondedp-pct">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Plot Section -->
+    <div class="irc2a-plot-section">
+      <h3>TA Coverage: DEDP vs Non-DEDP</h3>
+      <div class="irc2a-plot-wrapper">
+        <div id="irc2a-priority-chart" class="irc2a-priority-chart"></div>
+      </div>
     </div>
   </div>
 </section>
