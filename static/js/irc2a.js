@@ -170,6 +170,25 @@
     return true;
   }
 
+  // Normalizes a school name for comparison: lowercase, strips accents
+  // (e.g. "Peñafrancia" -> "penafrancia") and collapses anything that isn't
+  // a letter/digit into single spaces. This absorbs the minor punctuation/
+  // spacing/casing differences that show up between how a name is typed in
+  // a PDF report versus the canonical SCHOOLS list here.
+  function normalizeSchoolName(name) {
+    return name
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function findMatchingSchool(extractedName) {
+    const norm = normalizeSchoolName(extractedName);
+    return SCHOOLS.find((s) => normalizeSchoolName(s.name) === norm) || null;
+  }
+
   function makeItem(school, status) {
     const { name, level } = school;
     const isDedp = DEDP_PRIORITY.has(name);
@@ -440,6 +459,211 @@
     });
   }
 
+  // --- Import from PDF -----------------------------------------------------
+
+  let importEls = null;
+  let pendingImport = null; // { monthLabel, entries: [{ pdfName, school, status }] }
+
+  function cacheImportEls() {
+    importEls = {
+      fileInput: document.getElementById("irc2aFileInput"),
+      uploadBtn: document.getElementById("irc2aUploadBtn"),
+      uploadArea: document.getElementById("irc2aUploadArea"),
+      modal: document.getElementById("irc2aPreviewModal"),
+      modalOverlay: document.getElementById("irc2aModalOverlay"),
+      modalClose: document.getElementById("irc2aModalClose"),
+      modalCancel: document.getElementById("irc2aModalCancel"),
+      modalConfirm: document.getElementById("irc2aModalConfirm"),
+      previewBody: document.getElementById("irc2aPreviewBody"),
+      previewMonth: document.getElementById("irc2aPreviewMonth"),
+    };
+  }
+
+  function handleImportFile(file) {
+    const looksLikePdf =
+      file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
+    if (!looksLikePdf) {
+      alert("Please upload a PDF file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const originalLabel = importEls.uploadBtn.innerHTML;
+    importEls.uploadBtn.textContent = "Uploading...";
+    importEls.uploadBtn.disabled = true;
+
+    fetch("/irc/irc2a/extract", { method: "POST", body: formData })
+      .then((res) => res.json())
+      .then((data) => {
+        importEls.uploadBtn.innerHTML = originalLabel;
+        importEls.uploadBtn.disabled = false;
+
+        if (data.error) {
+          alert("Error: " + data.error);
+          return;
+        }
+
+        buildPendingImport(data);
+        showImportModal();
+      })
+      .catch((err) => {
+        importEls.uploadBtn.innerHTML = originalLabel;
+        importEls.uploadBtn.disabled = false;
+        alert("Upload failed: " + err.message);
+      });
+  }
+
+  function buildPendingImport(data) {
+    const monthLabel = data.month
+      ? data.month.charAt(0).toUpperCase() + data.month.slice(1)
+      : "Unknown";
+
+    const entries = (data.schools || []).map((pdfName) => {
+      const matched = findMatchingSchool(pdfName);
+      let status;
+      if (!matched) {
+        status = "not-found";
+      } else if (state[matched.name] === "provided") {
+        status = "already-provided";
+      } else {
+        status = "will-mark";
+      }
+      return { pdfName, school: matched, status };
+    });
+
+    pendingImport = { monthLabel, entries };
+  }
+
+  function importStatusLabel(status) {
+    switch (status) {
+      case "will-mark":
+        return "Will be marked as Provided";
+      case "already-provided":
+        return "Already Provided with TA";
+      case "not-found":
+      default:
+        return "Not found in system";
+    }
+  }
+
+  function showImportModal() {
+    if (!pendingImport) return;
+
+    importEls.previewMonth.textContent = pendingImport.monthLabel;
+    importEls.previewBody.innerHTML = "";
+
+    const frag = document.createDocumentFragment();
+
+    pendingImport.entries.forEach((entry, idx) => {
+      const row = document.createElement("tr");
+      row.className = `irc2a-preview-row irc2a-preview-row--${entry.status}`;
+
+      const checkTd = document.createElement("td");
+      if (entry.status === "will-mark" || entry.status === "already-provided") {
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = true;
+        checkbox.className = "irc2a-preview-checkbox";
+        checkbox.dataset.idx = String(idx);
+        checkTd.appendChild(checkbox);
+      }
+      row.appendChild(checkTd);
+
+      const nameTd = document.createElement("td");
+      nameTd.textContent = entry.school ? entry.school.name : entry.pdfName;
+      row.appendChild(nameTd);
+
+      const statusTd = document.createElement("td");
+      const badge = document.createElement("span");
+      badge.className = `irc2a-preview-badge irc2a-preview-badge--${entry.status}`;
+      badge.textContent = importStatusLabel(entry.status);
+      badge.dataset.idx = String(idx);
+      statusTd.appendChild(badge);
+      row.appendChild(statusTd);
+
+      frag.appendChild(row);
+    });
+
+    importEls.previewBody.appendChild(frag);
+
+    const importableCount = pendingImport.entries.filter(
+      (e) => e.status === "will-mark" || e.status === "already-provided",
+    ).length;
+    importEls.modalConfirm.disabled = importableCount === 0;
+    importEls.modalConfirm.textContent =
+      importableCount > 0 ? `Import (${importableCount})` : "Nothing to import";
+
+    importEls.modal.style.display = "flex";
+  }
+
+  function hideImportModal() {
+    importEls.modal.style.display = "none";
+  }
+
+  function confirmImport() {
+    if (!pendingImport) return;
+
+    const checkedIdxs = new Set(
+      Array.from(
+        importEls.previewBody.querySelectorAll(
+          ".irc2a-preview-checkbox:checked",
+        ),
+      ).map((cb) => Number(cb.dataset.idx)),
+    );
+
+    pendingImport.entries.forEach((entry, idx) => {
+      // "already-provided" schools get set to "provided" again here too —
+      // harmless, since they already are — so that including them in the
+      // import (checkbox checked) visibly does what the user asked: retain
+      // them in the Provided with TA column. "not-found" entries have
+      // nothing in the system to apply to, so they're skipped regardless.
+      const isMatchedEntry =
+        entry.status === "will-mark" || entry.status === "already-provided";
+      if (isMatchedEntry && checkedIdxs.has(idx) && entry.school) {
+        state[entry.school.name] = "provided";
+      }
+    });
+
+    pendingImport = null;
+    hideImportModal();
+    render(currentFilters());
+  }
+
+  function initImportUpload() {
+    cacheImportEls();
+    if (!importEls.uploadBtn || !importEls.fileInput) return;
+
+    importEls.uploadBtn.addEventListener("click", () =>
+      importEls.fileInput.click(),
+    );
+
+    importEls.uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      importEls.uploadArea.classList.add("is-dragover");
+    });
+    importEls.uploadArea.addEventListener("dragleave", () => {
+      importEls.uploadArea.classList.remove("is-dragover");
+    });
+    importEls.uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      importEls.uploadArea.classList.remove("is-dragover");
+      const files = e.dataTransfer.files;
+      if (files.length > 0) handleImportFile(files[0]);
+    });
+
+    importEls.fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) handleImportFile(e.target.files[0]);
+      importEls.fileInput.value = ""; // allow re-uploading the same file
+    });
+
+    importEls.modalClose.addEventListener("click", hideImportModal);
+    importEls.modalCancel.addEventListener("click", hideImportModal);
+    importEls.modalOverlay.addEventListener("click", hideImportModal);
+    importEls.modalConfirm.addEventListener("click", confirmImport);
+  }
+
   function init() {
     cacheEls();
     if (!els.root) return; // not on this page
@@ -447,6 +671,7 @@
     initState();
     render();
     updatePanelHeight();
+    initImportUpload();
 
     els.lists.unprovided.addEventListener("click", onListClick);
     els.lists.provided.addEventListener("click", onListClick);

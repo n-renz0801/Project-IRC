@@ -115,7 +115,7 @@ block content %}
 
   <!-- Import | Summary | Chart row -->
   <div class="irc2a-panel-row">
-    <!-- Import File Section (visual only for now — not yet wired up) -->
+    <!-- Import File Section -->
     <div class="irc2a-upload-section">
       <div class="irc2a-upload-card">
         <div class="irc2a-upload-icon"><i class="ti ti-file-upload"></i></div>
@@ -181,6 +181,54 @@ block content %}
         <div id="irc2a-priority-chart" class="irc2a-priority-chart"></div>
       </div>
     </div>
+  </div>
+  <!-- /.irc2a-panel-row -->
+
+  <!-- Import Preview Modal -->
+  <div id="irc2aPreviewModal" class="irc2a-modal" style="display: none">
+    <div class="irc2a-modal-content">
+      <div class="irc2a-modal-header">
+        <h2>Review Extracted Schools</h2>
+        <button type="button" class="irc2a-modal-close" id="irc2aModalClose">
+          &times;
+        </button>
+      </div>
+      <div class="irc2a-modal-body">
+        <p class="irc2a-modal-hint">
+          Extracted from the <strong id="irc2aPreviewMonth">&mdash;</strong>
+          report. Uncheck any school you don't want to import, then confirm.
+        </p>
+        <div class="irc2a-preview-table-wrap">
+          <table class="irc2a-preview-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>School</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="irc2aPreviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="irc2a-modal-footer">
+        <button
+          type="button"
+          class="irc2a-modal-btn irc2a-modal-btn-cancel"
+          id="irc2aModalCancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="irc2a-modal-btn irc2a-modal-btn-confirm"
+          id="irc2aModalConfirm"
+        >
+          Import
+        </button>
+      </div>
+    </div>
+    <div class="irc2a-modal-overlay" id="irc2aModalOverlay"></div>
   </div>
 </section>
 

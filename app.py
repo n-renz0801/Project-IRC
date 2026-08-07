@@ -49,6 +49,74 @@ GROUPS = [
     ]},
 ]
 
+# Shared by every "extract month from header" route, since every one of these
+# monthly PDFs uses the same "TECHNICAL ASSISTANCE FEEDBACK RESULTS (MONTH)"
+# header format.
+MONTH_HEADER_PATTERN = r"TECHNICAL ASSISTANCE FEEDBACK RESULTS\s*\(?([A-Za-z]+)\)?"
+MONTH_MAP = {
+    'january': 'jan', 'february': 'feb', 'march': 'mar', 'april': 'apr',
+    'may': 'may', 'june': 'jun', 'july': 'jul', 'august': 'aug',
+    'september': 'sep', 'october': 'oct', 'november': 'nov', 'december': 'dec'
+}
+
+
+def _extract_month(full_text):
+    """Returns (month_name, month_key) parsed from the report header, or
+    (None, None) if it couldn't be found/recognized."""
+    month_match = re.search(MONTH_HEADER_PATTERN, full_text)
+    if not month_match:
+        return None, None
+
+    month_name = month_match.group(1).strip().lower()
+    month_key = MONTH_MAP.get(month_name)
+    return month_name, month_key
+
+
+def _parse_numbered_school_list(section_text):
+    """Parses a numbered list of school names that may wrap across lines.
+
+    Handles both layouts seen in these PDFs:
+      "1 Apia Integrated School"                    (number + name, one line)
+      "1\\nAntipolo National Science and\\nTechnology HS"  (number alone on
+      its own line, with the name wrapping across the following lines until
+      the next number)
+
+    Numbers are expected to increase by 1 each time (1, 2, 3, ...) — this is
+    what lets the parser tell "this line starts a new entry" apart from
+    "this line is a continuation of the current school's name", even though
+    both cases can be plain text lines.
+    """
+    lines = [ln.strip() for ln in section_text.split("\n") if ln.strip()]
+
+    num_pattern = re.compile(r"^(\d{1,3})\b\s*(.*)$")
+    expected = 1
+    current_name_parts = []
+    have_entry = False
+    schools = []
+
+    def finalize():
+        name = " ".join(current_name_parts).strip()
+        name = re.sub(r"\s+", " ", name)
+        if name:
+            schools.append(name)
+
+    for line in lines:
+        m = num_pattern.match(line)
+        if m and int(m.group(1)) == expected:
+            if have_entry:
+                finalize()
+            expected += 1
+            have_entry = True
+            rest = m.group(2).strip()
+            current_name_parts = [rest] if rest else []
+        else:
+            current_name_parts.append(line)
+
+    if have_entry:
+        finalize()
+
+    return schools
+
 
 @app.route("/")
 def home():
@@ -91,22 +159,11 @@ def extract_irc1a_pdf():
                 full_text += page.extract_text() + "\n"
         
         # Extract month from header
-        month_pattern = r"TECHNICAL ASSISTANCE FEEDBACK RESULTS\s*\(?([A-Za-z]+)\)?"
-        month_match = re.search(month_pattern, full_text)
-        
-        if not month_match:
+        month_name, month_key = _extract_month(full_text)
+
+        if not month_name:
             return jsonify({"error": "Could not find month in PDF header"}), 400
-        
-        month_name = month_match.group(1).strip().lower()
-        
-        # Map month names to keys
-        month_map = {
-            'january': 'jan', 'february': 'feb', 'march': 'mar', 'april': 'apr',
-            'may': 'may', 'june': 'jun', 'july': 'jul', 'august': 'aug',
-            'september': 'sep', 'october': 'oct', 'november': 'nov', 'december': 'dec'
-        }
-        
-        month_key = month_map.get(month_name)
+
         if not month_key:
             return jsonify({"error": f"Unknown month: {month_name}"}), 400
         
@@ -172,21 +229,11 @@ def extract_irc1b_pdf():
                 full_text += page.extract_text() + "\n"
 
         # Extract month from header (same pattern as irc1a)
-        month_pattern = r"TECHNICAL ASSISTANCE FEEDBACK RESULTS\s*\(?([A-Za-z]+)\)?"
-        month_match = re.search(month_pattern, full_text)
+        month_name, month_key = _extract_month(full_text)
 
-        if not month_match:
+        if not month_name:
             return jsonify({"error": "Could not find month in PDF header"}), 400
 
-        month_name = month_match.group(1).strip().lower()
-
-        month_map = {
-            'january': 'jan', 'february': 'feb', 'march': 'mar', 'april': 'apr',
-            'may': 'may', 'june': 'jun', 'july': 'jul', 'august': 'aug',
-            'september': 'sep', 'october': 'oct', 'november': 'nov', 'december': 'dec'
-        }
-
-        month_key = month_map.get(month_name)
         if not month_key:
             return jsonify({"error": f"Unknown month: {month_name}"}), 400
 
@@ -208,6 +255,76 @@ def extract_irc1b_pdf():
             "month": month_name,
             "month_key": month_key,
             "customers": customers
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
+
+
+@app.route("/irc/irc2a/extract", methods=["POST"])
+def extract_irc2a_pdf():
+    """Extract the "Schools Provided with TA" list from a monthly PDF.
+
+    Expected PDF structure:
+    - Header: "TECHNICAL ASSISTANCE FEEDBACK RESULTS\n(MONTH)"
+    - A "Schools Provided with TA" section containing a numbered list of
+      school names (1, 2, 3, ... in order). A school's name may wrap onto
+      the following line(s) before the next number starts — this is handled,
+      see _parse_numbered_school_list.
+
+    Returns the month and the raw list of school names extracted from that
+    section. Matching those names against the system's known school list,
+    and actually marking schools as provided, is left to the frontend —
+    it's the one source of truth for which schools exist and their current
+    status.
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+    if not file.filename.endswith(".pdf"):
+        return jsonify({"error": "Only PDF files are supported"}), 400
+
+    try:
+        with pdfplumber.open(file) as pdf:
+            full_text = ""
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    full_text += page_text + "\n"
+
+        # Extract month from header (same pattern as irc1a/irc1b)
+        month_name, month_key = _extract_month(full_text)
+
+        if not month_name:
+            return jsonify({"error": "Could not find month in PDF header"}), 400
+
+        if not month_key:
+            return jsonify({"error": f"Unknown month: {month_name}"}), 400
+
+        # Isolate the "Schools Provided with TA" section, up to whatever
+        # comes right after it in the PDF (the signature block, if present).
+        section_match = re.search(
+            r"Schools Provided with TA(.*?)(?:Prepared by:|$)",
+            full_text,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if not section_match:
+            return jsonify({
+                "error": "Could not find a 'Schools Provided with TA' section in the PDF."
+            }), 400
+
+        schools = _parse_numbered_school_list(section_match.group(1))
+
+        if not schools:
+            return jsonify({
+                "error": "Found the 'Schools Provided with TA' section but could not extract any school names from it."
+            }), 400
+
+        return jsonify({
+            "month": month_name,
+            "month_key": month_key,
+            "schools": schools,
         }), 200
 
     except Exception as e:
