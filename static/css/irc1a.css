@@ -1,13 +1,12 @@
 /* IRC1a - Monthly Customers Feedback Rating - CSS Stylesheet */
 
-/* Hide page scrollbar but keep scroll functionality (mousewheel/keyboard/touch still work) */
 html {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 html::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge (Chromium) */
+  display: none;
 }
 
 .irc1a-panel {
@@ -32,7 +31,6 @@ html::-webkit-scrollbar {
   line-height: 1.5;
 }
 
-/* Bottom Row: Upload | Lowest | Remarks, side by side */
 .irc1a-bottom-row {
   display: grid;
   grid-template-columns: 1fr 1.2fr 1.4fr;
@@ -40,7 +38,6 @@ html::-webkit-scrollbar {
   align-items: start;
 }
 
-/* File Upload Section */
 .irc1a-upload-section {
   margin-bottom: 0;
 }
@@ -118,15 +115,18 @@ html::-webkit-scrollbar {
   margin: 10px 0 0 0;
 }
 
-/* Main Table */
+/* ------------------------------------------------------------------
+   Main Table — Refined Corporate, dark header
+------------------------------------------------------------------ */
+
 .irc1a-table-wrapper {
   background: white;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow-x: auto;
   overflow-y: visible;
   margin-bottom: 32px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .irc1a-table {
@@ -137,18 +137,18 @@ html::-webkit-scrollbar {
 }
 
 .irc1a-table thead {
-  background: #f5f7fa;
-  border-bottom: 2px solid #d0d0d0;
+  background: #1f2937;
+  border-bottom: 3px solid #4a6fa5;
 }
 
 .irc1a-table thead th {
-  padding: 12px 8px;
+  padding: 13px 8px;
   text-align: left;
   font-weight: 600;
-  color: #333;
+  color: #f3f4f6;
   white-space: nowrap;
-  border-right: 1px solid #e8e8e8;
-  background: #f5f7fa; /* ensure each th has an opaque background while stuck, so tbody rows don't show through */
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1f2937;
 }
 
 .irc1a-table thead th:last-child {
@@ -170,7 +170,6 @@ html::-webkit-scrollbar {
   text-align: center;
 }
 
-/* Fixed-width month columns so inputs never grow/shrink with content */
 .irc1a-table
   th:not(.irc1a-indicator-col):not(.irc1a-rowavg-col):not(.irc1a-rowbar-col),
 .irc1a-table
@@ -209,22 +208,25 @@ html::-webkit-scrollbar {
   max-width: 60px;
   box-sizing: border-box;
   padding: 6px 4px;
-  border: 1px solid #d8d8d8;
-  border-radius: 4px;
+  border: 1px solid #e2e5ea;
+  border-radius: 6px;
   font-size: 13px;
   text-align: center;
+  background: #fbfbfc;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   transition:
     border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .irc1a-table tbody input[type="number"]:focus {
   outline: none;
   border-color: #4a6fa5;
-  box-shadow: 0 0 4px rgba(74, 111, 165, 0.2);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
 }
 
-/* Remove number input spinner arrows */
 .irc1a-table tbody input[type="number"]::-webkit-outer-spin-button,
 .irc1a-table tbody input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -269,11 +271,15 @@ html::-webkit-scrollbar {
   text-align: center;
 }
 
-/* Row Average Display */
+/* Row Average — pill badge instead of plain text */
 .irc1a-row-avg {
-  font-weight: 500;
-  color: #2d5a8a;
+  display: inline-block;
+  font-weight: 600;
+  color: #185fa5;
+  background: #e6f1fb;
   font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
 }
 
 /* Rating Snapshot Bar */
@@ -281,7 +287,7 @@ html::-webkit-scrollbar {
   position: relative;
   width: 100%;
   height: 8px;
-  border-radius: 4px;
+  border-radius: 999px;
   background: #e8eef5;
   overflow: hidden;
   border: 1px solid #d8dce8;
@@ -292,7 +298,7 @@ html::-webkit-scrollbar {
   left: 0;
   top: 0;
   height: 100%;
-  border-radius: 4px;
+  border-radius: 999px;
   background: #888;
   transition:
     width 0.25s ease,
@@ -320,10 +326,10 @@ html::-webkit-scrollbar {
 .irc1a-lowest-section {
   background: white;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 20px;
   margin-bottom: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   height: 100%;
   box-sizing: border-box;
 }
@@ -376,9 +382,9 @@ html::-webkit-scrollbar {
 .irc1a-remarks-section {
   background: white;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   height: 100%;
   box-sizing: border-box;
 }
@@ -402,15 +408,18 @@ html::-webkit-scrollbar {
 .irc1a-remarks-textarea {
   width: 100%;
   padding: 12px;
-  border: 1px solid #d8d8d8;
-  border-radius: 6px;
+  border: 1px solid #e2e5ea;
+  border-radius: 8px;
   font-family: inherit;
   font-size: 13px;
   line-height: 1.6;
   resize: vertical;
+  background: #fbfbfc;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   transition:
     border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    background 0.2s ease;
   color: #333;
   box-sizing: border-box;
 }
@@ -418,7 +427,8 @@ html::-webkit-scrollbar {
 .irc1a-remarks-textarea:focus {
   outline: none;
   border-color: #4a6fa5;
-  box-shadow: 0 0 4px rgba(74, 111, 165, 0.2);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
 }
 
 .irc1a-remarks-textarea::placeholder {
@@ -505,6 +515,52 @@ html::-webkit-scrollbar {
 .irc1a-preview-table-container {
   max-height: 400px;
   overflow-y: auto;
+}
+
+.irc1a-preview-month-info {
+  font-size: 13px;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.irc1a-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.irc1a-preview-table thead {
+  background: #1f2937;
+}
+
+.irc1a-preview-table thead th {
+  color: #f3f4f6;
+  text-align: left;
+  padding: 10px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.irc1a-preview-table th,
+.irc1a-preview-table td {
+  border: 1px solid #e0e0e0;
+  padding: 8px;
+}
+
+.irc1a-preview-table input {
+  width: 100px;
+  padding: 6px;
+  border: 1px solid #e2e5ea;
+  border-radius: 6px;
+  background: #fbfbfc;
+}
+
+.irc1a-preview-table input:focus {
+  outline: none;
+  border-color: #4a6fa5;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
 }
 
 .irc1a-modal-footer {

@@ -1,13 +1,12 @@
 /* IRC1b - Number of Customers Served - CSS Stylesheet */
 
-/* Hide page scrollbar but keep scroll functionality (mousewheel/keyboard/touch still work) */
 html {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 html::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge (Chromium) */
+  display: none;
 }
 
 .irc1b-panel {
@@ -32,15 +31,13 @@ html::-webkit-scrollbar {
   line-height: 1.5;
 }
 
-/* Bottom Row: Upload | Chart, side by side */
 .irc1b-bottom-row {
   display: grid;
-  grid-template-columns: 0.9fr 3.5fr;
+  grid-template-columns: 1fr 1.3fr;
   gap: 20px;
   align-items: start;
 }
 
-/* File Upload Section */
 .irc1b-upload-section {
   margin-bottom: 0;
 }
@@ -118,15 +115,18 @@ html::-webkit-scrollbar {
   margin: 10px 0 0 0;
 }
 
-/* Main Table */
+/* ------------------------------------------------------------------
+   Main Table — Refined Corporate, dark header
+------------------------------------------------------------------ */
+
 .irc1b-table-wrapper {
   background: white;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow-x: auto;
   overflow-y: visible;
   margin-bottom: 32px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .irc1b-table {
@@ -137,18 +137,18 @@ html::-webkit-scrollbar {
 }
 
 .irc1b-table thead {
-  background: #f5f7fa;
-  border-bottom: 2px solid #d0d0d0;
+  background: #1f2937;
+  border-bottom: 3px solid #4a6fa5;
 }
 
 .irc1b-table thead th {
-  padding: 12px 8px;
+  padding: 13px 8px;
   text-align: left;
   font-weight: 600;
-  color: #333;
+  color: #f3f4f6;
   white-space: nowrap;
-  border-right: 1px solid #e8e8e8;
-  background: #f5f7fa;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1f2937;
 }
 
 .irc1b-table thead th:last-child {
@@ -165,7 +165,6 @@ html::-webkit-scrollbar {
   text-align: center;
 }
 
-/* Fixed-width month columns so inputs never grow/shrink with content */
 .irc1b-table th:not(.irc1b-label-col):not(.irc1b-total-col),
 .irc1b-table td:not(.irc1b-label-col):not(.irc1b-total-cell) {
   width: 60px;
@@ -203,22 +202,25 @@ html::-webkit-scrollbar {
   max-width: 60px;
   box-sizing: border-box;
   padding: 6px 4px;
-  border: 1px solid #d8d8d8;
-  border-radius: 4px;
+  border: 1px solid #e2e5ea;
+  border-radius: 6px;
   font-size: 13px;
   text-align: center;
+  background: #fbfbfc;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   transition:
     border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .irc1b-table tbody input[type="number"]:focus {
   outline: none;
   border-color: #4a6fa5;
-  box-shadow: 0 0 4px rgba(74, 111, 165, 0.2);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
 }
 
-/* Remove number input spinner arrows */
 .irc1b-table tbody input[type="number"]::-webkit-outer-spin-button,
 .irc1b-table tbody input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -230,19 +232,28 @@ html::-webkit-scrollbar {
   appearance: textfield;
 }
 
+/* Total — pill badge instead of plain text */
 .irc1b-total-cell {
+  text-align: center;
+}
+
+.irc1b-total-cell #irc1b-total {
+  display: inline-block;
   font-weight: 600;
-  color: #2d5a8a;
-  font-size: 14px;
+  color: #185fa5;
+  background: #e6f1fb;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 999px;
 }
 
 /* Chart Section */
 .irc1b-chart-section {
   background: white;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   height: 100%;
   box-sizing: border-box;
 }
@@ -295,7 +306,7 @@ html::-webkit-scrollbar {
   width: 60%;
   min-height: 2px;
   background: #4a6fa5;
-  border-radius: 3px 3px 0 0;
+  border-radius: 999px 999px 0 0;
   transition: height 0.25s ease;
 }
 
@@ -324,7 +335,7 @@ html::-webkit-scrollbar {
 .irc1b-total-stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #2d5a8a;
+  color: #185fa5;
 }
 
 /* Modal Styles */
@@ -418,36 +429,43 @@ html::-webkit-scrollbar {
 .irc1b-preview-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.irc1b-preview-table thead {
+  background: #1f2937;
 }
 
 .irc1b-preview-table th,
 .irc1b-preview-table td {
-  border: 1px solid #e8e8e8;
+  border: 1px solid #e0e0e0;
   padding: 10px 8px;
 }
 
 .irc1b-preview-table th {
-  background: #f5f7fa;
+  color: #f3f4f6;
   text-align: left;
   font-weight: 600;
-  color: #333;
+  font-size: 13px;
 }
 
 .irc1b-preview-table input[type="number"] {
   width: 100px;
   padding: 6px 4px;
-  border: 1px solid #d8d8d8;
-  border-radius: 4px;
+  border: 1px solid #e2e5ea;
+  border-radius: 6px;
   font-size: 13px;
   text-align: center;
+  background: #fbfbfc;
   box-sizing: border-box;
 }
 
 .irc1b-preview-table input[type="number"]:focus {
   outline: none;
   border-color: #4a6fa5;
-  box-shadow: 0 0 4px rgba(74, 111, 165, 0.2);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
 }
 
 .irc1b-modal-footer {

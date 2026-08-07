@@ -1,9 +1,79 @@
 {% extends "base.html" %} {% block title %}IRC2a - SGOD PMES{% endblock %} {%
 block content %}
-<div class="content__header">
-  <h1>Individual Report Card No. 2a</h1>
-  <span class="content__badge">IRC2a</span>
-</div>
 
-<div class="content__body"></div>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/irc2a.css') }}"
+/>
+
+<section id="irc2a-tab" class="tab-panel irc2a-panel">
+  <div class="irc2a-header">
+    <h2>IRC2a &mdash; Number of Schools Provided with TA</h2>
+    <p class="irc2a-subtitle">Click a school to move it between columns.</p>
+  </div>
+
+  <!-- Summary -->
+  <div class="irc2a-summary">
+    <span class="irc2a-summary-value" id="irc2a-provided-count">0</span>
+    <span class="irc2a-summary-label"
+      >of <span id="irc2a-total-count">0</span> schools provided with TA</span
+    >
+  </div>
+
+  <!-- Two-column board -->
+  <div class="irc2a-columns">
+    <div class="irc2a-column" data-status="unprovided">
+      <div class="irc2a-column-header">
+        <h3>Not Yet Provided with TA</h3>
+        <span class="irc2a-count-badge" id="unprovided-count">0</span>
+      </div>
+      <div class="irc2a-search-wrap">
+        <input
+          type="search"
+          class="irc2a-search"
+          id="unprovided-search"
+          placeholder="Search schools..."
+          autocomplete="off"
+        />
+      </div>
+      <ul
+        class="irc2a-list"
+        id="unprovided-list"
+        aria-label="Schools not yet provided with TA"
+      ></ul>
+      <p class="irc2a-empty" id="unprovided-empty" hidden>
+        No matching schools.
+      </p>
+    </div>
+
+    <div class="irc2a-divider" aria-hidden="true">
+      <i class="ti ti-arrows-left-right"></i>
+    </div>
+
+    <div class="irc2a-column" data-status="provided">
+      <div class="irc2a-column-header">
+        <h3>Provided with TA</h3>
+        <span class="irc2a-count-badge" id="provided-count">0</span>
+      </div>
+      <div class="irc2a-search-wrap">
+        <input
+          type="search"
+          class="irc2a-search"
+          id="provided-search"
+          placeholder="Search schools..."
+          autocomplete="off"
+        />
+      </div>
+      <ul
+        class="irc2a-list"
+        id="provided-list"
+        aria-label="Schools provided with TA"
+      ></ul>
+      <p class="irc2a-empty" id="provided-empty" hidden>No matching schools.</p>
+    </div>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/irc2a.js') }}"></script>
+
 {% endblock %}
