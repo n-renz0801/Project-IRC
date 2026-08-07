@@ -20,6 +20,53 @@ block content %}
     >
   </div>
 
+  <!-- Filters -->
+  <div class="irc2a-filters">
+    <div
+      class="irc2a-filter-chips"
+      role="group"
+      aria-label="Filter by school level"
+      id="irc2a-level-filters"
+    >
+      <button type="button" class="irc2a-chip is-active" data-level="all">
+        All Levels
+      </button>
+      <button
+        type="button"
+        class="irc2a-chip irc2a-chip--elementary"
+        data-level="elementary"
+      >
+        <span class="irc2a-chip-dot"></span>Elementary
+      </button>
+      <button
+        type="button"
+        class="irc2a-chip irc2a-chip--secondary"
+        data-level="secondary"
+      >
+        <span class="irc2a-chip-dot"></span>Secondary
+      </button>
+      <button
+        type="button"
+        class="irc2a-chip irc2a-chip--integrated"
+        data-level="integrated"
+      >
+        <span class="irc2a-chip-dot"></span>Integrated
+      </button>
+      <button
+        type="button"
+        class="irc2a-chip irc2a-chip--sped"
+        data-level="sped"
+      >
+        <span class="irc2a-chip-dot"></span>SPED
+      </button>
+    </div>
+
+    <label class="irc2a-dedp-toggle">
+      <input type="checkbox" id="dedp-filter-toggle" />
+      <span class="irc2a-badge irc2a-badge--dedp">DEDP Priority only</span>
+    </label>
+  </div>
+
   <!-- Two-column board -->
   <div class="irc2a-columns">
     <div class="irc2a-column" data-status="unprovided">

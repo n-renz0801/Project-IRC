@@ -1,5 +1,17 @@
 /* IRC2a - Number of Schools Provided with TA - CSS Stylesheet */
 
+.irc2a-panel {
+  --irc2a-elementary: rgb(180, 83, 9);
+  --irc2a-secondary: rgb(4, 120, 87);
+  --irc2a-integrated: rgb(37, 99, 235);
+  --irc2a-sped: rgb(190, 24, 147);
+
+  --irc2a-elementary-tint: rgba(180, 83, 9, 0.1);
+  --irc2a-secondary-tint: rgba(4, 120, 87, 0.1);
+  --irc2a-integrated-tint: rgba(37, 99, 235, 0.1);
+  --irc2a-sped-tint: rgba(190, 24, 147, 0.1);
+}
+
 html {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -53,6 +65,141 @@ html::-webkit-scrollbar {
   font-size: 13px;
   font-weight: 600;
   color: #333;
+}
+
+/* ---- filters ---------------------------------------------------------- */
+
+.irc2a-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.irc2a-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.irc2a-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e2e5ea;
+  background: white;
+  color: #555;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.irc2a-chip:hover {
+  border-color: #4a6fa5;
+}
+
+.irc2a-chip.is-active {
+  background: #1f2937;
+  border-color: #1f2937;
+  color: white;
+}
+
+.irc2a-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.irc2a-chip--elementary .irc2a-chip-dot {
+  background: var(--irc2a-elementary);
+}
+
+.irc2a-chip--secondary .irc2a-chip-dot {
+  background: var(--irc2a-secondary);
+}
+
+.irc2a-chip--integrated .irc2a-chip-dot {
+  background: var(--irc2a-integrated);
+}
+
+.irc2a-chip--sped .irc2a-chip-dot {
+  background: var(--irc2a-sped);
+}
+
+.irc2a-chip.is-active .irc2a-chip-dot {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 1px;
+}
+
+.irc2a-dedp-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.irc2a-dedp-toggle input {
+  accent-color: #92400e;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* ---- badges (DEDP priority — colored to match the school's level) ------ */
+
+.irc2a-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+/* Default (used standalone, e.g. the filter-toggle label) */
+.irc2a-badge--dedp {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* When attached to a school item, take on that school's level color */
+.irc2a-item[data-level="elementary"] .irc2a-badge--dedp {
+  background: var(--irc2a-elementary);
+  color: #fff;
+}
+
+.irc2a-item[data-level="secondary"] .irc2a-badge--dedp {
+  background: var(--irc2a-secondary);
+  color: #fff;
+}
+
+.irc2a-item[data-level="integrated"] .irc2a-badge--dedp {
+  background: var(--irc2a-integrated);
+  color: #fff;
+}
+
+.irc2a-item[data-level="sped"] .irc2a-badge--dedp {
+  background: var(--irc2a-sped);
+  color: #fff;
+}
+
+.irc2a-badge--dedp::before {
+  content: "\2605"; /* star */
+  font-size: 10px;
 }
 
 /* ---- columns layout -------------------------------------------------- */
@@ -173,6 +320,7 @@ html::-webkit-scrollbar {
   gap: 8px;
   padding: 9px 12px;
   border: 1px solid #e8e8e8;
+  border-left: 3px solid #e8e8e8;
   border-radius: 6px;
   background: #fafbfc;
   font-size: 13px;
@@ -184,9 +332,59 @@ html::-webkit-scrollbar {
     border-color 0.15s ease;
 }
 
-.irc2a-item:hover {
-  background: #f0f5ff;
-  border-color: #4a6fa5;
+.irc2a-item[data-level="elementary"] {
+  border-left-color: var(--irc2a-elementary);
+}
+
+.irc2a-item[data-level="secondary"] {
+  border-left-color: var(--irc2a-secondary);
+}
+
+.irc2a-item[data-level="integrated"] {
+  border-left-color: var(--irc2a-integrated);
+}
+
+.irc2a-item[data-level="sped"] {
+  border-left-color: var(--irc2a-sped);
+}
+
+.irc2a-item[data-level="elementary"]:hover {
+  background: var(--irc2a-elementary-tint);
+  border-color: var(--irc2a-elementary);
+}
+
+.irc2a-item[data-level="secondary"]:hover {
+  background: var(--irc2a-secondary-tint);
+  border-color: var(--irc2a-secondary);
+}
+
+.irc2a-item[data-level="integrated"]:hover {
+  background: var(--irc2a-integrated-tint);
+  border-color: var(--irc2a-integrated);
+}
+
+.irc2a-item[data-level="sped"]:hover {
+  background: var(--irc2a-sped-tint);
+  border-color: var(--irc2a-sped);
+}
+
+.irc2a-item.is-hidden-by-filter {
+  display: none;
+}
+
+.irc2a-item-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.irc2a-item .irc2a-badge--dedp {
+  flex-shrink: 0;
+}
+
+.irc2a-item-action {
+  flex-shrink: 0;
 }
 
 .irc2a-item:focus-visible {
