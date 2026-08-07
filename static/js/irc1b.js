@@ -28,6 +28,8 @@
     dec: "Dec",
   };
 
+  const MIN_MONTHS_FOR_AVERAGE = 1; // average only shows once MORE than this many months have data
+
   const table = document.getElementById("irc1b-table");
   if (!table) return;
 
@@ -37,63 +39,105 @@
 
   function getValues() {
     const values = {};
+    const hasData = {};
     MONTHS.forEach((m) => {
       const input = table.querySelector(
         `input.irc1b-customers[data-month="${m}"]`,
       );
-      const num = parseFloat(input.value);
+      const raw = input.value;
+      hasData[m] = raw !== ""; // a month "has data" if the field isn't blank
+      const num = parseFloat(raw);
       values[m] = Number.isNaN(num) ? 0 : num;
     });
-    return values;
+    return { values, hasData };
   }
 
-  function recalcTotal() {
-    const values = getValues();
+  function recalcTotal(values) {
     const total = MONTHS.reduce((sum, m) => sum + values[m], 0);
     totalSpan.textContent = total.toLocaleString();
     totalStatValue.textContent = total.toLocaleString();
-    return { values, total };
+    return total;
   }
 
-  function renderChart(values) {
+  // Rounds to the nearest whole number — customer counts should not show decimals
+  function formatAverage(avg) {
+    return Math.round(avg).toLocaleString();
+  }
+
+  function renderChart(values, hasData) {
     const max = Math.max(1, ...MONTHS.map((m) => values[m]));
+
+    // Average is computed only from months that have data entered
+    const filledMonths = MONTHS.filter((m) => hasData[m]);
+    const filledCount = filledMonths.length;
+    const showAverage = filledCount > MIN_MONTHS_FOR_AVERAGE;
+    const avg = showAverage
+      ? filledMonths.reduce((sum, m) => sum + values[m], 0) / filledCount
+      : 0;
+
     chartEl.innerHTML = "";
+
+    // Row 1: bars track (relative container — everything below is
+    // positioned as a % of THIS element, so bars and the avg line
+    // share the exact same coordinate system)
+    const barsTrack = document.createElement("div");
+    barsTrack.className = "irc1b-chart-bars";
+
+    // Row 2: month labels, aligned under bars via matching flex/gap
+    const labelsRow = document.createElement("div");
+    labelsRow.className = "irc1b-chart-labels";
 
     MONTHS.forEach((m) => {
       const val = values[m];
       const pct = val > 0 ? Math.max(2, (val / max) * 100) : 0;
 
-      const col = document.createElement("div");
-      col.className = "irc1b-chart-col";
-
-      const barWrap = document.createElement("div");
-      barWrap.className = "irc1b-chart-barwrap";
-      barWrap.title = `${MONTH_LABELS[m]}: ${val.toLocaleString()}`;
-
-      const bar = document.createElement("div");
-      bar.className = "irc1b-chart-bar";
-      bar.style.height = pct + "%";
+      const colBar = document.createElement("div");
+      colBar.className = "irc1b-chart-col-bar";
+      colBar.title = `${MONTH_LABELS[m]}: ${val.toLocaleString()}`;
 
       const valLabel = document.createElement("span");
       valLabel.className = "irc1b-chart-val";
       valLabel.textContent = val > 0 ? val.toLocaleString() : "";
 
-      barWrap.appendChild(valLabel);
-      barWrap.appendChild(bar);
+      const bar = document.createElement("div");
+      bar.className = "irc1b-chart-bar";
+      bar.style.height = pct + "%";
+
+      colBar.appendChild(valLabel);
+      colBar.appendChild(bar);
+      barsTrack.appendChild(colBar);
 
       const label = document.createElement("span");
       label.className = "irc1b-chart-label";
       label.textContent = MONTH_LABELS[m];
-
-      col.appendChild(barWrap);
-      col.appendChild(label);
-      chartEl.appendChild(col);
+      labelsRow.appendChild(label);
     });
+
+    if (showAverage) {
+      const fraction = max > 0 ? Math.min(1, avg / max) : 0;
+      const bottomPct = fraction * 100;
+
+      const line = document.createElement("div");
+      line.className = "irc1b-chart-avg-line";
+      line.style.bottom = bottomPct + "%";
+
+      const label = document.createElement("div");
+      label.className = "irc1b-chart-avg-label";
+      label.style.bottom = bottomPct + "%";
+      label.textContent = "Avg: " + formatAverage(avg);
+
+      barsTrack.appendChild(line);
+      barsTrack.appendChild(label);
+    }
+
+    chartEl.appendChild(barsTrack);
+    chartEl.appendChild(labelsRow);
   }
 
   function recalcAll() {
-    const { values } = recalcTotal();
-    renderChart(values);
+    const { values, hasData } = getValues();
+    recalcTotal(values);
+    renderChart(values, hasData);
   }
 
   table.addEventListener("input", (e) => {

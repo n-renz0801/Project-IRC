@@ -269,30 +269,36 @@ html::-webkit-scrollbar {
   margin-top: 16px;
 }
 
+/* ------------------------------------------------------------------
+   Chart — two-row structure: bars track (relative, % based) + labels
+------------------------------------------------------------------ */
+
 .irc1b-chart {
+  display: flex;
+  flex-direction: column;
+  height: 200px;
+}
+
+/* The bars track: everything (bars + avg line) is positioned as a
+   percentage of THIS element's height, so alignment is exact. */
+.irc1b-chart-bars {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  height: 200px;
   border-bottom: 1px solid #e8e8e8;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 
-.irc1b-chart-col {
+.irc1b-chart-col-bar {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   height: 100%;
-}
-
-.irc1b-chart-barwrap {
-  flex: 1;
-  width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: flex-end;
+  align-items: center;
 }
 
 .irc1b-chart-val {
@@ -310,10 +316,44 @@ html::-webkit-scrollbar {
   transition: height 0.25s ease;
 }
 
+/* Average indicator line — positioned with bottom:%, same basis as bars */
+.irc1b-chart-avg-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px dashed #e2635a;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.irc1b-chart-avg-label {
+  position: absolute;
+  right: 2px;
+  transform: translateY(-100%);
+  font-size: 10px;
+  font-weight: 700;
+  color: #e2635a;
+  background: white;
+  padding: 1px 6px;
+  border: 1px solid #e2635a;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.irc1b-chart-labels {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
 .irc1b-chart-label {
+  flex: 1;
+  text-align: center;
   font-size: 12px;
   color: #666;
-  margin-top: 6px;
 }
 
 .irc1b-total-stat {
