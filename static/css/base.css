@@ -221,3 +221,62 @@ body {
     padding: 20px;
   }
 }
+
+/* ---------------------------------------------------------------------
+   Global cursor & selection behavior
+   - Default cursor is always the plain arrow, everywhere.
+   - Only genuinely clickable elements get the pointer (hand) cursor.
+   - Editable fields (inputs/textareas) keep the text-caret cursor and
+     remain selectable, since you need that to actually type/edit/copy.
+   - Everything else is non-selectable so plain text doesn't highlight
+     on click-drag or accidental double-click.
+--------------------------------------------------------------------- */
+
+* {
+  cursor: default;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Clickable elements: pointer cursor */
+a,
+button,
+[type="button"],
+[type="submit"],
+[type="reset"],
+[role="button"],
+label[for],
+.irc1a-upload-btn,
+.irc1a-modal-btn,
+.irc1a-modal-close,
+.irc1a-upload-area,
+.irc1b-upload-btn,
+.irc1b-modal-btn,
+.irc1b-modal-close,
+.irc1b-upload-area,
+.tab-link,
+.content__badge,
+select {
+  cursor: pointer;
+}
+
+/* Editable fields: text-caret cursor, and allow normal text selection
+   inside them so typing, selecting, cut/copy/paste all still work. */
+input,
+textarea {
+  cursor: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Disabled/readonly fields shouldn't look editable */
+input:disabled,
+textarea:disabled,
+input[readonly],
+textarea[readonly] {
+  cursor: default;
+}

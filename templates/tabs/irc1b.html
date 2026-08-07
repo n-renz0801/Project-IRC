@@ -1,9 +1,249 @@
 {% extends "base.html" %} {% block title %}IRC1b - SGOD PMES{% endblock %} {%
 block content %}
-<div class="content__header">
-  <h1>Individual Report Card No. 1b</h1>
-  <span class="content__badge">IRC1b</span>
-</div>
 
-<div class="content__body"></div>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/irc1b.css') }}"
+/>
+
+<section id="irc1b-tab" class="tab-panel irc1b-panel">
+  <div class="irc1b-header">
+    <h2>IRC1b &mdash; Number of Customers Served</h2>
+    <p class="irc1b-subtitle">
+      Indicate the number of customers served for each month.
+    </p>
+  </div>
+
+  <!-- Main Table -->
+  <div class="irc1b-table-wrapper">
+    <table id="irc1b-table" class="irc1b-table">
+      <thead>
+        <tr>
+          <th class="irc1b-label-col">Indicator</th>
+          <th>Jan</th>
+          <th>Feb</th>
+          <th>Mar</th>
+          <th>Apr</th>
+          <th>May</th>
+          <th>Jun</th>
+          <th>Jul</th>
+          <th>Aug</th>
+          <th>Sep</th>
+          <th>Oct</th>
+          <th>Nov</th>
+          <th>Dec</th>
+          <th class="irc1b-total-col">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="irc1b-label-col">No. of Customers Served</td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="jan"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="feb"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="mar"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="apr"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="may"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="jun"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="jul"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="aug"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="sep"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="oct"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="nov"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td>
+            <input
+              type="number"
+              class="irc1b-customers"
+              data-month="dec"
+              min="0"
+              step="1"
+            />
+          </td>
+          <td class="irc1b-total-cell">
+            <span id="irc1b-total">0</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Bottom row: Upload | Chart -->
+  <div class="irc1b-bottom-row">
+    <!-- File Upload Section -->
+    <div class="irc1b-upload-section">
+      <div class="irc1b-upload-card">
+        <div class="irc1b-upload-icon"><i class="ti ti-file-upload"></i></div>
+        <h3>Import from File</h3>
+        <p class="irc1b-upload-hint">
+          Upload a PDF with the number of customers served to auto-populate the
+          table.
+        </p>
+        <div class="irc1b-upload-area" id="uploadArea">
+          <input
+            type="file"
+            id="fileInput"
+            accept=".pdf"
+            style="display: none"
+          />
+          <button type="button" class="irc1b-upload-btn" id="uploadBtn">
+            <i class="ti ti-upload" style="margin-right: 6px"></i> Choose PDF
+          </button>
+          <p class="irc1b-upload-text">or drag and drop here</p>
+        </div>
+        <p class="irc1b-upload-note">
+          Imported PDF should follow the correct template/structure to extract
+          data successfully.
+        </p>
+      </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="irc1b-chart-section">
+      <h3>Monthly Customers Served</h3>
+
+      <div class="irc1b-chart-wrapper">
+        <div id="irc1b-chart" class="irc1b-chart"></div>
+      </div>
+
+      <div class="irc1b-total-stat">
+        <span class="irc1b-total-stat-label"
+          >Total Customers Served (Year)</span
+        >
+        <span id="irc1b-total-stat-value" class="irc1b-total-stat-value"
+          >0</span
+        >
+      </div>
+    </div>
+  </div>
+  <!-- /.irc1b-bottom-row -->
+
+  <!-- Preview Modal -->
+  <div id="previewModal" class="irc1b-modal" style="display: none">
+    <div class="irc1b-modal-content">
+      <div class="irc1b-modal-header">
+        <h2>Review Extracted Data</h2>
+        <button type="button" class="irc1b-modal-close" id="modalClose">
+          &times;
+        </button>
+      </div>
+      <div class="irc1b-modal-body">
+        <p class="irc1b-modal-hint">
+          Please review the extracted value below. You can edit it before
+          importing.
+        </p>
+        <div
+          id="previewTableContainer"
+          class="irc1b-preview-table-container"
+        ></div>
+      </div>
+      <div class="irc1b-modal-footer">
+        <button
+          type="button"
+          class="irc1b-modal-btn irc1b-modal-btn-cancel"
+          id="modalCancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="irc1b-modal-btn irc1b-modal-btn-import"
+          id="modalImport"
+        >
+          Import Data
+        </button>
+      </div>
+    </div>
+    <div class="irc1b-modal-overlay" id="modalOverlay"></div>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/irc1b.js') }}"></script>
+
 {% endblock %}

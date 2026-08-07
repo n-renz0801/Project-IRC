@@ -148,6 +148,71 @@ def extract_irc1a_pdf():
         return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
 
 
+@app.route("/irc/irc1b/extract", methods=["POST"])
+def extract_irc1b_pdf():
+    """Extract the number of customers served from a monthly PDF.
+
+    Expected PDF structure:
+    - Header: "TECHNICAL ASSISTANCE FEEDBACK RESULTS\n(MONTH)"
+    - A line containing "No. of Customers: N" (N may include commas, e.g. "1,234")
+
+    Returns the customer count for the single month specified in the header.
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+    if not file.filename.endswith(".pdf"):
+        return jsonify({"error": "Only PDF files are supported"}), 400
+
+    try:
+        with pdfplumber.open(file) as pdf:
+            full_text = ""
+            for page in pdf.pages:
+                full_text += page.extract_text() + "\n"
+
+        # Extract month from header (same pattern as irc1a)
+        month_pattern = r"TECHNICAL ASSISTANCE FEEDBACK RESULTS\s*\(?([A-Za-z]+)\)?"
+        month_match = re.search(month_pattern, full_text)
+
+        if not month_match:
+            return jsonify({"error": "Could not find month in PDF header"}), 400
+
+        month_name = month_match.group(1).strip().lower()
+
+        month_map = {
+            'january': 'jan', 'february': 'feb', 'march': 'mar', 'april': 'apr',
+            'may': 'may', 'june': 'jun', 'july': 'jul', 'august': 'aug',
+            'september': 'sep', 'october': 'oct', 'november': 'nov', 'december': 'dec'
+        }
+
+        month_key = month_map.get(month_name)
+        if not month_key:
+            return jsonify({"error": f"Unknown month: {month_name}"}), 400
+
+        # Extract "No. of Customers: N" — allow commas in the number (e.g. "1,234")
+        customers_pattern = r"No\.\s*of\s*Customers\s*:?\s*([\d,]+)"
+        customers_match = re.search(customers_pattern, full_text, re.IGNORECASE)
+
+        if not customers_match:
+            return jsonify({
+                "error": "Could not find 'No. of Customers:' in the PDF. Please ensure the PDF has the correct format."
+            }), 400
+
+        try:
+            customers = int(customers_match.group(1).replace(",", ""))
+        except ValueError:
+            return jsonify({"error": "Could not parse the number of customers"}), 400
+
+        return jsonify({
+            "month": month_name,
+            "month_key": month_key,
+            "customers": customers
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
+
 
 def not_found(e):
     return render_template("404.html", tabs=TABS, active_tab=None), 404
