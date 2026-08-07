@@ -286,7 +286,7 @@ html::-webkit-scrollbar {
   list-style: none;
   margin: 0;
   padding: 10px;
-  max-height: 260px;
+  max-height: 210px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -596,23 +596,35 @@ html::-webkit-scrollbar {
 
 /* ---- priority bar chart -------------------------------------------------- */
 
+/* This section is a flex column so irc2a-plot-wrapper (and, in turn, the
+   chart itself) can stretch to fill all the leftover height below the
+   heading — instead of the chart being stuck at a fixed 130px regardless
+   of how tall the card actually is. */
+.irc2a-plot-section {
+  display: flex;
+  flex-direction: column;
+}
+
 .irc2a-plot-wrapper {
   margin-top: 6px;
+  flex: 1;
+  display: flex;
+  min-height: 0;
 }
 
 .irc2a-priority-chart {
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
-  gap: 14px;
-  height: 130px;
+  flex: 1;
+  width: 100%;
   border-bottom: 1px solid #e8e8e8;
   padding-bottom: 4px;
 }
 
 .irc2a-priority-chart .irc2a-chart-col {
   flex: 1;
-  max-width: 90px;
+  max-width: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -638,7 +650,7 @@ html::-webkit-scrollbar {
 .irc2a-priority-chart .irc2a-chart-bar {
   width: 65%;
   min-height: 2px;
-  border-radius: 999px 999px 0 0;
+  border-radius: 10px 10px 0 0;
   transition: height 0.25s ease;
 }
 
@@ -660,6 +672,13 @@ html::-webkit-scrollbar {
 @media (max-width: 1100px) {
   .irc2a-panel-row {
     grid-template-columns: 1fr;
+  }
+
+  /* On the stacked mobile layout the chart card no longer needs to match
+     a sibling's stretched height, so give it a sane fixed height instead
+     of an unbounded flex-grow. */
+  .irc2a-plot-wrapper {
+    min-height: 160px;
   }
 }
 
@@ -735,6 +754,14 @@ html::-webkit-scrollbar {
   padding: 20px 22px;
   overflow-y: auto;
   flex: 1;
+
+  /* Hide the scrollbar visually — mousewheel/touch scrolling still works */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge/IE */
+}
+
+.irc2a-modal-body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, new Edge */
 }
 
 .irc2a-modal-hint {
@@ -752,6 +779,14 @@ html::-webkit-scrollbar {
   overflow-y: auto;
   border: 1px solid #e8e8e8;
   border-radius: 8px;
+
+  /* Hide the scrollbar visually — mousewheel/touch scrolling still works */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge/IE */
+}
+
+.irc2a-preview-table-wrap::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, new Edge */
 }
 
 .irc2a-preview-table {

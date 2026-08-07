@@ -536,12 +536,17 @@
     pendingImport = { monthLabel, entries };
   }
 
+  // `status` here is the DISPLAY status (i.e. it already accounts for
+  // whether the row's checkbox is currently checked) — not necessarily the
+  // entry's original computed status.
   function importStatusLabel(status) {
     switch (status) {
       case "will-mark":
         return "Will be marked as Provided";
       case "already-provided":
         return "Already Provided with TA";
+      case "excluded":
+        return "Will not be imported";
       case "not-found":
       default:
         return "Not found in system";
@@ -559,6 +564,7 @@
     pendingImport.entries.forEach((entry, idx) => {
       const row = document.createElement("tr");
       row.className = `irc2a-preview-row irc2a-preview-row--${entry.status}`;
+      row.dataset.idx = String(idx);
 
       const checkTd = document.createElement("td");
       if (entry.status === "will-mark" || entry.status === "already-provided") {
@@ -588,18 +594,53 @@
 
     importEls.previewBody.appendChild(frag);
 
-    const importableCount = pendingImport.entries.filter(
-      (e) => e.status === "will-mark" || e.status === "already-provided",
-    ).length;
-    importEls.modalConfirm.disabled = importableCount === 0;
-    importEls.modalConfirm.textContent =
-      importableCount > 0 ? `Import (${importableCount})` : "Nothing to import";
-
+    updateConfirmButton();
     importEls.modal.style.display = "flex";
   }
 
   function hideImportModal() {
     importEls.modal.style.display = "none";
+  }
+
+  // Fired whenever a checkbox in the preview table is checked/unchecked.
+  // Flips that row's badge between its real status and "excluded", and
+  // refreshes the Import button's count.
+  function onPreviewCheckboxChange(e) {
+    const checkbox = e.target.closest(".irc2a-preview-checkbox");
+    if (!checkbox || !pendingImport) return;
+
+    const idx = Number(checkbox.dataset.idx);
+    const entry = pendingImport.entries[idx];
+    if (!entry) return;
+
+    const row = checkbox.closest("tr");
+    const badge = row ? row.querySelector(".irc2a-preview-badge") : null;
+
+    const displayStatus = checkbox.checked ? entry.status : "excluded";
+
+    if (badge) {
+      badge.className = `irc2a-preview-badge irc2a-preview-badge--${displayStatus}`;
+      badge.textContent = importStatusLabel(displayStatus);
+    }
+    if (row) {
+      row.classList.toggle("is-excluded", !checkbox.checked);
+    }
+
+    updateConfirmButton();
+  }
+
+  // Recomputes how many rows are currently checked and reflects that count
+  // (and enabled/disabled state) on the Import button. Called on initial
+  // modal open and again on every checkbox change.
+  function updateConfirmButton() {
+    if (!pendingImport || !importEls) return;
+    const checkedCount = importEls.previewBody.querySelectorAll(
+      ".irc2a-preview-checkbox:checked",
+    ).length;
+
+    importEls.modalConfirm.disabled = checkedCount === 0;
+    importEls.modalConfirm.textContent =
+      checkedCount > 0 ? `Import (${checkedCount})` : "Nothing to import";
   }
 
   function confirmImport() {
@@ -662,6 +703,10 @@
     importEls.modalCancel.addEventListener("click", hideImportModal);
     importEls.modalOverlay.addEventListener("click", hideImportModal);
     importEls.modalConfirm.addEventListener("click", confirmImport);
+
+    // Event delegation: handles checkboxes that are (re)created every time
+    // showImportModal() rebuilds the table body.
+    importEls.previewBody.addEventListener("change", onPreviewCheckboxChange);
   }
 
   function init() {
