@@ -33,7 +33,7 @@ html::-webkit-scrollbar {
 
 .irc1b-bottom-row {
   display: grid;
-  grid-template-columns: 1fr 1.3fr;
+  grid-template-columns: 0.9fr 3.5fr;
   gap: 20px;
   align-items: start;
 }

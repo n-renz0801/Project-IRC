@@ -334,7 +334,10 @@
     render(currentFilters());
   }
 
-  const LEAVE_ANIMATION_MS = 160;
+  // Kept short and eased (no overshoot) so the move reads as a quick,
+  // subtle shrink-out / grow-back-in rather than a bounce.
+  const LEAVE_ANIMATION_MS = 120;
+  const ENTER_ANIMATION_MS = 150; // must match the @keyframes duration in CSS
 
   function animateAndToggle(itemEl, name) {
     // Guard against double-triggering while already mid-animation.
@@ -348,23 +351,36 @@
 
       toggleSchool(name);
 
-      // Play an entrance ("pop back outward") animation for the item that
-      // just landed in its new column.
+      // Play a subtle entrance ("grow back outward") animation for the item
+      // that just landed in its new column — works the same whichever
+      // direction it moved (unprovided → provided, or provided → unprovided).
       const newItem = els.root.querySelector(
         `.irc2a-item[data-school="${CSS.escape(name)}"]`,
       );
       if (newItem) {
+        // The item reappears at its alphabetical position, which — especially
+        // in the long "Not Yet Provided" list — is often scrolled out of
+        // view. Bring it into view first so the entrance animation below is
+        // actually visible, regardless of which column it lands in.
+        newItem.scrollIntoView({ block: "nearest" });
+
+        // is-entering triggers a real @keyframes animation (see CSS), which
+        // starts reliably the instant the class is applied — no forced
+        // reflow / rAF timing games needed.
         newItem.classList.add("is-entering");
-        void newItem.offsetWidth; // force reflow so the shrunk state registers
-        requestAnimationFrame(() => {
-          newItem.classList.remove("is-entering");
+        const clearEntering = () => newItem.classList.remove("is-entering");
+        newItem.addEventListener("animationend", clearEntering, {
+          once: true,
         });
+        // Fallback in case animationend never fires (e.g. reduced-motion
+        // users, where the animation is set to `none`).
+        setTimeout(clearEntering, ENTER_ANIMATION_MS + 40);
       }
     };
 
     itemEl.addEventListener("transitionend", finish, { once: true });
     // Fallback in case transitionend never fires (e.g. reduced-motion users).
-    setTimeout(finish, LEAVE_ANIMATION_MS + 60);
+    setTimeout(finish, LEAVE_ANIMATION_MS + 40);
   }
 
   function onLevelFilterClick(e) {
@@ -403,12 +419,34 @@
     render(currentFilters());
   }
 
+  function updatePanelHeight() {
+    if (!els.root) return;
+    const top = els.root.getBoundingClientRect().top + window.scrollY;
+    const bottomGap = 12; // small breathing room from the very bottom of the screen
+    const available = window.innerHeight - top - bottomGap;
+    // Measuring the real space (instead of assuming 100vh) is what lets
+    // irc2a-panel-row sit right at the visible bottom of the screen no
+    // matter what's above this section (navbar, page header, etc.) in
+    // base.html.
+    els.root.style.minHeight = Math.max(available, 0) + "px";
+  }
+
+  let resizeRaf = null;
+  function onWindowResize() {
+    if (resizeRaf) return;
+    resizeRaf = requestAnimationFrame(() => {
+      resizeRaf = null;
+      updatePanelHeight();
+    });
+  }
+
   function init() {
     cacheEls();
     if (!els.root) return; // not on this page
 
     initState();
     render();
+    updatePanelHeight();
 
     els.lists.unprovided.addEventListener("click", onListClick);
     els.lists.provided.addEventListener("click", onListClick);
@@ -420,6 +458,8 @@
 
     els.levelFilterGroup.addEventListener("click", onLevelFilterClick);
     els.dedpToggle.addEventListener("change", onDedpToggleChange);
+
+    window.addEventListener("resize", onWindowResize);
   }
 
   document.addEventListener("DOMContentLoaded", init);
