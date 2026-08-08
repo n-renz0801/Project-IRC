@@ -1,9 +1,139 @@
 {% extends "base.html" %} {% block title %}IRC2b - SGOD PMES{% endblock %} {%
 block content %}
-<div class="content__header">
-  <h1>Individual Report Card No. 2b</h1>
-  <span class="content__badge">IRC2b</span>
-</div>
 
-<div class="content__body"></div>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/irc2b.css') }}"
+/>
+
+{% set months = [ ("jan", "Jan"), ("feb", "Feb"), ("mar", "Mar"), ("apr",
+"Apr"), ("may", "May"), ("jun", "Jun"), ("jul", "Jul"), ("aug", "Aug"), ("sep",
+"Sep"), ("oct", "Oct"), ("nov", "Nov"), ("dec", "Dec") ] %} {% set
+elementary_schools = [ "Bagong Nayon I ES", "Bagong Nayon II ES", "Bagong Nayon
+IV ES", "Cupang ES", "Dela Paz ES", "Jesus S. Cabarrus ES", "Juan Sumulong ES",
+"Kaysakat ES", "Lores ES", "Mambugan I ES", "Mambugan II ES", "Mayamot ES",
+"Muntindilaw ES", "Peace Village ES", "Peñafrancia ES", "Rizza ES", "San Antonio
+Village ES", "San Isidro ES", "Tanza ES" ] %} {% set secondary_schools = [
+"Antipolo NHS", "Bagong Nayon II NHS", "Dalig NHS", "Mambugan NHS", "Maximo L.
+Gatlabayan MNHS", "San Isidro NHS", "San Jose NHS" ] %} {% macro
+render_table(schools, section_id, section_label) %}
+<div class="irc2b-table-wrapper">
+  <table
+    id="irc2b-table-{{ section_id }}"
+    class="irc2b-table"
+    data-section="{{ section_id }}"
+  >
+    <thead>
+      <tr>
+        <th class="irc2b-label-col">{{ section_label }} School</th>
+        {% for key, label in months %}
+        <th>{{ label }}</th>
+        {% endfor %}
+        <th class="irc2b-total-col">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="irc2b-select-all-row">
+        <td class="irc2b-label-col irc2b-select-all-label">
+          <i class="ti ti-checks"></i> Select All
+        </td>
+        {% for key, label in months %}
+        <td>
+          <input
+            type="checkbox"
+            class="irc2b-select-all-check"
+            data-section="{{ section_id }}"
+            data-month="{{ key }}"
+            aria-label="Select all {{ label }} for {{ section_label }}"
+          />
+        </td>
+        {% endfor %}
+        <td class="irc2b-total-cell">&mdash;</td>
+      </tr>
+      {% for school in schools %} {% set row_idx = loop.index0 %}
+      <tr data-row-index="{{ row_idx }}">
+        <td class="irc2b-label-col">
+          <span class="irc2b-school-num">{{ loop.index }}.</span>
+          {{ school }}
+        </td>
+        {% for key, label in months %}
+        <td>
+          <input
+            type="checkbox"
+            class="irc2b-check"
+            data-section="{{ section_id }}"
+            data-row="{{ row_idx }}"
+            data-month="{{ key }}"
+            id="{{ section_id }}-{{ row_idx }}-{{ key }}"
+          />
+        </td>
+        {% endfor %}
+        <td class="irc2b-total-cell">
+          <span
+            class="irc2b-row-total"
+            data-section="{{ section_id }}"
+            data-row="{{ row_idx }}"
+            >0</span
+          >
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+<section id="irc2b-tab" class="tab-panel irc2b-panel">
+  <div class="irc2b-header">
+    <div class="irc2b-header-text">
+      <h2>IRC2b &mdash; Frequency of TA Provided to DEDP Priority Schools</h2>
+      <p class="irc2b-subtitle">
+        Check the box for every month a school was provided with Technical
+        Assistance. The Total column tallies how many months TA was given for
+        the year.
+      </p>
+    </div>
+    <button type="button" id="irc2b-reset-btn" class="irc2b-reset-btn">
+      <i class="ti ti-refresh"></i> Clear All
+    </button>
+  </div>
+
+  <div class="irc2b-summary-row">
+    <div class="irc2b-summary-card">
+      <span class="irc2b-summary-label">Elementary Schools</span>
+      <span class="irc2b-summary-value">{{ elementary_schools|length }}</span>
+    </div>
+    <div class="irc2b-summary-card">
+      <span class="irc2b-summary-label">Secondary Schools</span>
+      <span class="irc2b-summary-value">{{ secondary_schools|length }}</span>
+    </div>
+    <div class="irc2b-summary-card irc2b-summary-card-accent">
+      <span class="irc2b-summary-label">Total TA Provided (Elementary)</span>
+      <span class="irc2b-summary-value" id="irc2b-elementary-grand-total"
+        >0</span
+      >
+    </div>
+    <div class="irc2b-summary-card irc2b-summary-card-accent">
+      <span class="irc2b-summary-label">Total TA Provided (Secondary)</span>
+      <span class="irc2b-summary-value" id="irc2b-secondary-grand-total"
+        >0</span
+      >
+    </div>
+    <div class="irc2b-summary-card irc2b-summary-card-highlight">
+      <span class="irc2b-summary-label">Overall Total TA Provided</span>
+      <span class="irc2b-summary-value" id="irc2b-overall-grand-total">0</span>
+    </div>
+  </div>
+
+  <h3 class="irc2b-section-title">
+    <i class="ti ti-building-community"></i> Elementary
+  </h3>
+  {{ render_table(elementary_schools, "elementary", "Elementary") }}
+
+  <h3 class="irc2b-section-title"><i class="ti ti-school"></i> Secondary</h3>
+  {{ render_table(secondary_schools, "secondary", "Secondary") }}
+</section>
+
+<script src="{{ url_for('static', filename='js/irc2b.js') }}"></script>
+
 {% endblock %}
