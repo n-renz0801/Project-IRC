@@ -5,3 +5,5 @@ adobe_illustrator/
 # Excel and csv files
 data/*.xlsx
 data/*.csv
+# Microsoft Office temporary/lock files
+~$*
