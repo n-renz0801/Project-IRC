@@ -1,9 +1,338 @@
 {% extends "base.html" %} {% block title %}IRC3 - SGOD PMES{% endblock %} {%
 block content %}
-<div class="content__header">
-  <h1>Individual Report Card No. 3</h1>
-  <span class="content__badge">IRC3</span>
-</div>
 
-<div class="content__body"></div>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/irc3.css') }}"
+/>
+
+{% set DEDP_TOTAL = 26 %} {% set NONDEDP_TOTAL = 41 %} {% set GRAND_TOTAL = 67
+%}
+
+<section id="irc3-tab" class="tab-panel irc3-panel">
+  <div class="irc3-header">
+    <div class="irc3-header-text">
+      <h2>IRC3 &mdash; Status of TA Provision to Schools</h2>
+      <p class="irc3-subtitle">
+        Based on the results of IRC2, indicate the number of schools provided
+        with Technical Assistance. Scores and remaining figures are computed
+        automatically.
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= DASHBOARD ================= -->
+  <div class="irc3-dashboard">
+    <div class="irc3-stat-card irc3-stat-card-dedp">
+      <div class="irc3-stat-icon-ghost">
+        <i class="ti ti-map-pin-check" aria-hidden="true"></i>
+      </div>
+      <div class="irc3-stat-header">
+        <div class="irc3-stat-icon-badge">
+          <i class="ti ti-map-pin-check" aria-hidden="true"></i>
+        </div>
+        <span class="irc3-stat-label">DEDP Priority</span>
+      </div>
+      <span class="irc3-stat-percent-big" id="irc3-dedp-percent">0%</span>
+      <span class="irc3-stat-caption">
+        <span id="irc3-dedp-count">0</span> of {{ DEDP_TOTAL }} schools
+      </span>
+    </div>
+
+    <div class="irc3-stat-card irc3-stat-card-nondedp">
+      <div class="irc3-stat-icon-ghost">
+        <i class="ti ti-map-pin" aria-hidden="true"></i>
+      </div>
+      <div class="irc3-stat-header">
+        <div class="irc3-stat-icon-badge">
+          <i class="ti ti-map-pin" aria-hidden="true"></i>
+        </div>
+        <span class="irc3-stat-label">Non-DEDP Priority</span>
+      </div>
+      <span class="irc3-stat-percent-big" id="irc3-nondedp-percent">0%</span>
+      <span class="irc3-stat-caption">
+        <span id="irc3-nondedp-count">0</span> of {{ NONDEDP_TOTAL }} schools
+      </span>
+    </div>
+
+    <div class="irc3-dashboard-chart-section">
+      <h3>DEDP vs Non-DEDP Priority</h3>
+      <div class="irc3-dashboard-chart">
+        <div class="irc3-dashboard-chart-col">
+          <span
+            class="irc3-dashboard-chart-val irc3-dashboard-chart-val-dedp"
+            id="irc3-dedp-bar-val"
+            >0%</span
+          >
+          <div class="irc3-dashboard-chart-bar-track">
+            <div
+              class="irc3-dashboard-chart-bar irc3-bar-dedp"
+              id="irc3-dedp-bar"
+              style="height: 0%"
+            ></div>
+          </div>
+          <span
+            class="irc3-dashboard-chart-label irc3-dashboard-chart-label-dedp"
+            ><i class="ti ti-map-pin-check" aria-hidden="true"></i> DEDP</span
+          >
+        </div>
+        <div class="irc3-dashboard-chart-col">
+          <span
+            class="irc3-dashboard-chart-val irc3-dashboard-chart-val-nondedp"
+            id="irc3-nondedp-bar-val"
+            >0%</span
+          >
+          <div class="irc3-dashboard-chart-bar-track">
+            <div
+              class="irc3-dashboard-chart-bar irc3-bar-nondedp"
+              id="irc3-nondedp-bar"
+              style="height: 0%"
+            ></div>
+          </div>
+          <span
+            class="irc3-dashboard-chart-label irc3-dashboard-chart-label-nondedp"
+            ><i class="ti ti-map-pin" aria-hidden="true"></i> Non-DEDP</span
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PROVISION + SCORE TABLE ================= -->
+  <h3 class="irc3-section-title">
+    <i class="ti ti-clipboard-check"></i> TA Provision &amp; OPCR/IPCR Score
+    (Efficiency)
+  </h3>
+
+  <div class="irc3-legend">
+    <span class="irc3-legend-title"
+      >Rating basis (% of target schools provided with TA):</span
+    >
+    <div class="irc3-legend-items">
+      <span class="irc3-legend-chip irc3-score-5"
+        >5 &middot; 96&ndash;100%</span
+      >
+      <span class="irc3-legend-chip irc3-score-4">4 &middot; 91&ndash;95%</span>
+      <span class="irc3-legend-chip irc3-score-3">3 &middot; 86&ndash;90%</span>
+      <span class="irc3-legend-chip irc3-score-2">2 &middot; 81&ndash;85%</span>
+      <span class="irc3-legend-chip irc3-score-1"
+        >1 &middot; 80% and below</span
+      >
+    </div>
+  </div>
+
+  <div class="irc3-table-wrapper">
+    <table id="irc3-provision-table" class="irc3-table">
+      <thead>
+        <tr>
+          <th class="irc3-label-col">Category</th>
+          <th>Provided with TA</th>
+          <th>Total Schools</th>
+          <th>Percentage</th>
+          <th>OPCR/IPCR Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="irc3-label-col">
+            Number of DEDP Priority Schools (Elem &amp; Sec) Provided with TA
+          </td>
+          <td class="irc3-input-cell">
+            <input
+              type="number"
+              id="irc3-dedp-ta"
+              class="irc3-input"
+              min="0"
+              max="{{ DEDP_TOTAL }}"
+              step="1"
+              value="0"
+              data-base="{{ DEDP_TOTAL }}"
+            />
+          </td>
+          <td class="irc3-static-cell">{{ DEDP_TOTAL }}</td>
+          <td class="irc3-static-cell">
+            <span class="irc3-percent-badge" id="irc3-dedp-ta-percent">0%</span>
+          </td>
+          <td class="irc3-static-cell">
+            <span class="irc3-score-badge" id="irc3-dedp-ta-score"
+              >&ndash;</span
+            >
+          </td>
+        </tr>
+        <tr>
+          <td class="irc3-label-col">
+            Number of Non-DEDP Priority Schools (Elem &amp; Sec) Provided with
+            TA
+          </td>
+          <td class="irc3-input-cell">
+            <input
+              type="number"
+              id="irc3-nondedp-ta"
+              class="irc3-input"
+              min="0"
+              max="{{ NONDEDP_TOTAL }}"
+              step="1"
+              value="0"
+              data-base="{{ NONDEDP_TOTAL }}"
+            />
+          </td>
+          <td class="irc3-static-cell">{{ NONDEDP_TOTAL }}</td>
+          <td class="irc3-static-cell">
+            <span class="irc3-percent-badge" id="irc3-nondedp-ta-percent"
+              >0%</span
+            >
+          </td>
+          <td class="irc3-static-cell">
+            <span class="irc3-score-badge" id="irc3-nondedp-ta-score"
+              >&ndash;</span
+            >
+          </td>
+        </tr>
+        <tr class="irc3-total-row">
+          <td class="irc3-label-col">
+            Total No. of Schools Provided with TA (Elem &amp; Sec)
+          </td>
+          <td class="irc3-static-cell">
+            <span class="irc3-auto-value" id="irc3-total-ta">0</span>
+          </td>
+          <td class="irc3-static-cell">{{ GRAND_TOTAL }}</td>
+          <td class="irc3-static-cell">
+            <span class="irc3-percent-badge" id="irc3-total-ta-percent"
+              >0%</span
+            >
+          </td>
+          <td class="irc3-static-cell">
+            <span class="irc3-score-badge" id="irc3-total-ta-score"
+              >&ndash;</span
+            >
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ================= NOT PROVIDED TABLE ================= -->
+  <h3 class="irc3-section-title">
+    <i class="ti ti-alert-circle"></i> Schools Not Provided with TA
+  </h3>
+
+  <div class="irc3-table-wrapper">
+    <table class="irc3-table irc3-table-compact">
+      <thead>
+        <tr>
+          <th class="irc3-label-col">Category</th>
+          <th>Not Provided with TA</th>
+          <th>Total Schools</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="irc3-label-col">
+            Number of DEDP Priority Schools not provided with TA
+          </td>
+          <td class="irc3-static-cell">
+            <span
+              class="irc3-auto-value irc3-auto-value-warn"
+              id="irc3-dedp-not-provided"
+              >{{ DEDP_TOTAL }}</span
+            >
+          </td>
+          <td class="irc3-static-cell">{{ DEDP_TOTAL }}</td>
+        </tr>
+        <tr>
+          <td class="irc3-label-col">
+            Number of Non-DEDP Priority Schools not provided with TA
+          </td>
+          <td class="irc3-static-cell">
+            <span
+              class="irc3-auto-value irc3-auto-value-warn"
+              id="irc3-nondedp-not-provided"
+              >{{ NONDEDP_TOTAL }}</span
+            >
+          </td>
+          <td class="irc3-static-cell">{{ NONDEDP_TOTAL }}</td>
+        </tr>
+        <tr class="irc3-total-row">
+          <td class="irc3-label-col">
+            Total No. of Schools not provided with TA
+          </td>
+          <td class="irc3-static-cell">
+            <span
+              class="irc3-auto-value irc3-auto-value-warn"
+              id="irc3-total-not-provided"
+              >{{ GRAND_TOTAL }}</span
+            >
+          </td>
+          <td class="irc3-static-cell">{{ GRAND_TOTAL }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ================= TARGET TABLE ================= -->
+  <h3 class="irc3-section-title">
+    <i class="ti ti-target-arrow"></i> Target for TA Provision
+  </h3>
+
+  <div class="irc3-table-wrapper">
+    <table class="irc3-table irc3-table-compact">
+      <thead>
+        <tr>
+          <th class="irc3-label-col">Category</th>
+          <th>Target No. of Schools</th>
+          <th>Total Schools</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="irc3-label-col">
+            Target No. of DEDP Priority Schools that will be provided with TA
+          </td>
+          <td class="irc3-input-cell">
+            <input
+              type="number"
+              id="irc3-dedp-target"
+              class="irc3-input"
+              min="0"
+              max="{{ DEDP_TOTAL }}"
+              step="1"
+              value="0"
+            />
+          </td>
+          <td class="irc3-static-cell">{{ DEDP_TOTAL }}</td>
+        </tr>
+        <tr>
+          <td class="irc3-label-col">
+            Target No. of Non-DEDP Priority Schools that will be provided with
+            TA
+          </td>
+          <td class="irc3-input-cell">
+            <input
+              type="number"
+              id="irc3-nondedp-target"
+              class="irc3-input"
+              min="0"
+              max="{{ NONDEDP_TOTAL }}"
+              step="1"
+              value="0"
+            />
+          </td>
+          <td class="irc3-static-cell">{{ NONDEDP_TOTAL }}</td>
+        </tr>
+        <tr class="irc3-total-row">
+          <td class="irc3-label-col">
+            Total target No. of Schools that will be provided with TA
+          </td>
+          <td class="irc3-static-cell">
+            <span class="irc3-auto-value" id="irc3-total-target">0</span>
+          </td>
+          <td class="irc3-static-cell">{{ GRAND_TOTAL }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/irc3.js') }}"></script>
+
 {% endblock %}
