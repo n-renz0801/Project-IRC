@@ -3,87 +3,155 @@
 (function () {
   "use strict";
 
-  // Minimum recommended objectives per activity (per the form instructions).
   const MIN_OBJECTIVES = 3;
 
+  // Same master school list used in IRC2a, kept in sync so a school name
+  // typed/selected here matches what IRC2a already tracks. Only the name is
+  // needed on this tab.
+  const SCHOOLS = [
+    "Antipolo City Senior High School",
+    "Antipolo City SPED Center",
+    "Antipolo National Science and Technology HS",
+    "Antipolo NHS",
+    "Apia Integrated School",
+    "Bagong Nayon I ES",
+    "Bagong Nayon II ES",
+    "Bagong Nayon II NHS",
+    "Bagong Nayon IV ES",
+    "Binayoyo Integrated School",
+    "Cabading ES",
+    "Calawis ES",
+    "Calawis NHS",
+    "Canumay ES",
+    "Canumay NHS",
+    "Cupang ES",
+    "Cupang ES Annex",
+    "Cupang NHS",
+    "Dalig ES",
+    "Dalig NHS",
+    "Dela Paz ES",
+    "Dela Paz NHS",
+    "Inuman ES",
+    "Isaias S. Tapales ES",
+    "Jesus S. Cabarrus ES",
+    "Juan Sumulong ES",
+    "Kaila ES",
+    "Kaysakat ES",
+    "Kaysakat NHS",
+    "Knights of Columbus ES",
+    "Libis ES",
+    "Lores ES",
+    "Mambugan I ES",
+    "Mambugan II ES",
+    "Mambugan NHS",
+    "Marcelino M. Santos NHS",
+    "Maximo L. Gatlabayan MNHS",
+    "Mayamot ES",
+    "Mayamot NHS",
+    "Muntindilaw ES",
+    "Muntindilaw NHS",
+    "Nazarene Ville ES",
+    "Old Boso-Boso ES",
+    "Old Boso-Boso NHS",
+    "Paglitaw ES",
+    "Pantay ES",
+    "Peace Village ES",
+    "Peñafrancia ES",
+    "Peñafrancia ES Annex",
+    "Rizza ES",
+    "Rizza NHS",
+    "San Antonio Village ES",
+    "San Isidro ES",
+    "San Isidro NHS",
+    "San Jose NHS",
+    "San Joseph ES",
+    "San Juan NHS",
+    "San Luis ES",
+    "San Roque NHS",
+    "San Ysiro ES",
+    "Sapinit ES",
+    "Sta. Cruz ES",
+    "Sumilang ES",
+    "Taguete ES",
+    "Tanza ES",
+    "Teofila Z. Rovero MES",
+    "Upper Kilingan ES",
+  ]
+    .slice()
+    .sort((a, b) => a.localeCompare(b));
+
   /**
-   * In-memory state.
-   * entries: Array<{
-   *   id: string,
+   * Single-activity state (only one activity per plan).
+   * {
    *   activity: string,
-   *   objectives: Array<{ id: string, text: string }>,
-   *   school: null,          // logic to be specified later
-   *   schedule: string,      // "Jan" .. "Dec" or ""
+   *   objectives: Array<{ id, text }>,
+   *   groups: Array<{ id, schools: string[], schedule: string }>,
    *   taReceiver: string,
    *   movs: string,
-   * }>
+   * }
    */
-  let entries = [];
+  let data = {
+    activity: "",
+    objectives: [],
+    groups: [],
+    taReceiver: "",
+    movs: "",
+  };
+
   let uidCounter = 0;
-
   const els = {};
-
-  function cacheEls() {
-    els.root = document.getElementById("irc4-tab");
-    els.entriesContainer = document.getElementById("irc4Entries");
-    els.empty = document.getElementById("irc4Empty");
-    els.addEntryBtn = document.getElementById("irc4AddEntryBtn");
-    els.countBadge = document.getElementById("irc4EntryCount");
-    els.entryTemplate = document.getElementById("irc4-entry-template");
-    els.objectiveTemplate = document.getElementById("irc4-objective-template");
-  }
 
   function genId(prefix) {
     uidCounter += 1;
     return `${prefix}-${Date.now().toString(36)}-${uidCounter}`;
   }
 
-  // Converts a zero-based index into an alphabetic label: 0 -> a, 1 -> b,
-  // ..., 25 -> z, 26 -> aa, 27 -> bb, ... (spreadsheet-column style, but
-  // doubled letters rather than aa/ab/ac so it stays readable as a running
-  // "next letter set" once the alphabet is exhausted).
   function letterLabel(index) {
     const letter = String.fromCharCode(97 + (index % 26)); // 'a'..'z'
     const repeat = Math.floor(index / 26) + 1;
     return letter.repeat(repeat);
   }
 
-  // ---- rendering: entry cards ---------------------------------------------
+  function cacheEls() {
+    els.root = document.getElementById("irc4-tab");
 
-  function updateEntryCount() {
-    const n = entries.length;
-    els.countBadge.textContent = `${n} ${n === 1 ? "activity" : "activities"}`;
-    els.empty.hidden = n !== 0;
-    els.entriesContainer.hidden = n === 0;
+    els.activity = document.getElementById("irc4Activity");
+    els.taReceiver = document.getElementById("irc4TaReceiver");
+    els.movs = document.getElementById("irc4Movs");
+
+    els.objectivesList = document.getElementById("irc4ObjectivesList");
+    els.addObjectiveBtn = document.getElementById("irc4AddObjectiveBtn");
+    els.objectivesWarning = document.getElementById("irc4ObjectivesWarning");
+
+    els.groupsList = document.getElementById("irc4GroupsList");
+    els.groupsEmpty = document.getElementById("irc4GroupsEmpty");
+    els.addGroupBtn = document.getElementById("irc4AddGroupBtn");
+
+    els.objectiveTemplate = document.getElementById("irc4-objective-template");
+    els.groupTemplate = document.getElementById("irc4-group-template");
+    els.chipTemplate = document.getElementById("irc4-chip-template");
   }
 
-  function updateEntryNumbers() {
-    els.entriesContainer
-      .querySelectorAll(".irc4-entry")
-      .forEach((card, idx) => {
-        card.querySelector(".irc4-entry-number").textContent =
-          `Activity #${idx + 1}`;
+  function autoGrow(textarea) {
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }
+
+  // ============================================================
+  // Objectives
+  // ============================================================
+
+  function relabelObjectives() {
+    els.objectivesList
+      .querySelectorAll(".irc4-objective-item")
+      .forEach((li, idx) => {
+        li.querySelector(".irc4-objective-label").textContent =
+          `${letterLabel(idx)}.`;
       });
   }
 
-  function buildEntryNode(entry) {
-    const frag = els.entryTemplate.content.cloneNode(true);
-    const card = frag.querySelector(".irc4-entry");
-    card.dataset.id = entry.id;
-
-    card.querySelector('[data-field="activity"]').value = entry.activity;
-    card.querySelector('[data-field="taReceiver"]').value = entry.taReceiver;
-    card.querySelector('[data-field="movs"]').value = entry.movs;
-    card.querySelector('[data-field="schedule"]').value = entry.schedule;
-
-    const list = card.querySelector('[data-role="objectives-list"]');
-    entry.objectives.forEach((obj) => {
-      list.appendChild(buildObjectiveNode(obj));
-    });
-    relabelObjectives(list);
-    updateObjectivesWarning(card, entry);
-
-    return card;
+  function updateObjectivesWarning() {
+    els.objectivesWarning.hidden = data.objectives.length >= MIN_OBJECTIVES;
   }
 
   function buildObjectiveNode(obj) {
@@ -94,206 +162,280 @@
     return li;
   }
 
-  function relabelObjectives(listEl) {
-    listEl.querySelectorAll(".irc4-objective-item").forEach((li, idx) => {
-      li.querySelector(".irc4-objective-label").textContent =
-        `${letterLabel(idx)}.`;
-    });
-  }
-
-  function updateObjectivesWarning(cardEl, entry) {
-    const warning = cardEl.querySelector('[data-role="objectives-warning"]');
-    warning.hidden = entry.objectives.length >= MIN_OBJECTIVES;
-  }
-
-  // ---- entry CRUD ----------------------------------------------------------
-
-  function createEmptyEntry() {
-    const entry = {
-      id: genId("entry"),
-      activity: "",
-      objectives: [],
-      school: null, // logic to be specified in a later prompt
-      schedule: "",
-      taReceiver: "",
-      movs: "",
-    };
-    // Start every new activity with the recommended minimum of three
-    // objective fields already present, ready to type into.
-    for (let i = 0; i < MIN_OBJECTIVES; i++) {
-      entry.objectives.push({ id: genId("obj"), text: "" });
-    }
-    return entry;
-  }
-
-  function addEntry() {
-    const entry = createEmptyEntry();
-    entries.push(entry);
-
-    const node = buildEntryNode(entry);
-    els.entriesContainer.appendChild(node);
-
-    updateEntryNumbers();
-    updateEntryCount();
-
-    // Bring the freshly added card into view and focus its first field.
-    node.scrollIntoView({ behavior: "smooth", block: "center" });
-    const firstField = node.querySelector('[data-field="activity"]');
-    if (firstField) firstField.focus();
-  }
-
-  function deleteEntry(entryId) {
-    const idx = entries.findIndex((e) => e.id === entryId);
-    if (idx === -1) return;
-
-    entries.splice(idx, 1);
-
-    const node = els.entriesContainer.querySelector(
-      `.irc4-entry[data-id="${CSS.escape(entryId)}"]`,
-    );
-    if (node) node.remove();
-
-    updateEntryNumbers();
-    updateEntryCount();
-  }
-
-  function findEntry(entryId) {
-    return entries.find((e) => e.id === entryId) || null;
-  }
-
-  // ---- objective CRUD --------------------------------------------------
-
-  function addObjective(entryId) {
-    const entry = findEntry(entryId);
-    if (!entry) return;
-
+  function addObjective() {
     const obj = { id: genId("obj"), text: "" };
-    entry.objectives.push(obj);
+    data.objectives.push(obj);
 
-    const card = els.entriesContainer.querySelector(
-      `.irc4-entry[data-id="${CSS.escape(entryId)}"]`,
-    );
-    if (!card) return;
-
-    const list = card.querySelector('[data-role="objectives-list"]');
     const li = buildObjectiveNode(obj);
-    list.appendChild(li);
-    relabelObjectives(list);
-    updateObjectivesWarning(card, entry);
+    els.objectivesList.appendChild(li);
+    relabelObjectives();
+    updateObjectivesWarning();
 
     const textarea = li.querySelector(".irc4-objective-input");
     if (textarea) textarea.focus();
   }
 
-  function deleteObjective(entryId, objId) {
-    const entry = findEntry(entryId);
-    if (!entry) return;
-
-    const idx = entry.objectives.findIndex((o) => o.id === objId);
+  function removeObjective(objId) {
+    const idx = data.objectives.findIndex((o) => o.id === objId);
     if (idx === -1) return;
-    entry.objectives.splice(idx, 1);
+    data.objectives.splice(idx, 1);
 
-    const card = els.entriesContainer.querySelector(
-      `.irc4-entry[data-id="${CSS.escape(entryId)}"]`,
-    );
-    if (!card) return;
-
-    const list = card.querySelector('[data-role="objectives-list"]');
-    const li = list.querySelector(
+    const li = els.objectivesList.querySelector(
       `.irc4-objective-item[data-obj-id="${CSS.escape(objId)}"]`,
     );
     if (li) li.remove();
 
-    relabelObjectives(list);
-    updateObjectivesWarning(card, entry);
+    relabelObjectives();
+    updateObjectivesWarning();
   }
 
-  // Grows a textarea to fit its content (used for both the activity/
-  // receiver/MOV fields and the per-objective inputs).
-  function autoGrow(textarea) {
-    textarea.style.height = "auto";
-    textarea.style.height = `${textarea.scrollHeight}px`;
+  function onObjectivesClick(e) {
+    const removeBtn = e.target.closest(".irc4-objective-remove");
+    if (!removeBtn) return;
+    const li = removeBtn.closest(".irc4-objective-item");
+    if (li) removeObjective(li.dataset.objId);
   }
 
-  // ---- event delegation --------------------------------------------------
+  function onObjectivesInput(e) {
+    const input = e.target.closest(".irc4-objective-input");
+    if (!input) return;
+    const li = input.closest(".irc4-objective-item");
+    const obj = data.objectives.find((o) => o.id === li.dataset.objId);
+    if (obj) obj.text = input.value;
+    autoGrow(input);
+  }
 
-  function onEntriesClick(e) {
-    const deleteBtn = e.target.closest(".irc4-entry-delete");
-    if (deleteBtn) {
-      const card = deleteBtn.closest(".irc4-entry");
+  // ============================================================
+  // School + Schedule groups
+  // ============================================================
+
+  // Every school currently assigned to any group, across the whole plan —
+  // used to keep a school from being picked into two groups at once.
+  function assignedSchoolsSet() {
+    const set = new Set();
+    data.groups.forEach((g) => g.schools.forEach((s) => set.add(s)));
+    return set;
+  }
+
+  function relabelGroups() {
+    els.groupsList.querySelectorAll(".irc4-group").forEach((card, idx) => {
+      card.querySelector(".irc4-group-label").textContent = `Group ${idx + 1}`;
+    });
+  }
+
+  function updateGroupsEmptyState() {
+    els.groupsEmpty.hidden = data.groups.length !== 0;
+  }
+
+  // Rebuilds the <option> list of every group's school <select> based on
+  // the current assignment pool, preserving each select's own placeholder.
+  function refreshAllSchoolSelects() {
+    const assigned = assignedSchoolsSet();
+    els.groupsList
+      .querySelectorAll('[data-role="school-select"]')
+      .forEach((select) => {
+        const previousValue = select.value;
+        select.innerHTML = "";
+
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Select a school\u2026";
+        select.appendChild(placeholder);
+
+        SCHOOLS.filter((name) => !assigned.has(name)).forEach((name) => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+
+        // Keep the select on its previous choice if still valid (it won't
+        // be, since a just-added school becomes assigned — this simply
+        // avoids surprises if called for other reasons).
+        select.value =
+          SCHOOLS.includes(previousValue) && !assigned.has(previousValue)
+            ? previousValue
+            : "";
+      });
+  }
+
+  function buildChipNode(groupId, schoolName) {
+    const frag = els.chipTemplate.content.cloneNode(true);
+    const chip = frag.querySelector(".irc4-school-chip");
+    chip.dataset.school = schoolName;
+    chip.querySelector(".irc4-school-chip-name").textContent = schoolName;
+    return chip;
+  }
+
+  function updateGroupSchoolsUI(card, group) {
+    const chipsContainer = card.querySelector('[data-role="school-chips"]');
+    const emptyHint = card.querySelector('[data-role="school-empty-hint"]');
+
+    chipsContainer.innerHTML = "";
+    group.schools.forEach((name) => {
+      chipsContainer.appendChild(buildChipNode(group.id, name));
+    });
+    emptyHint.hidden = group.schools.length !== 0;
+  }
+
+  function buildGroupNode(group) {
+    const frag = els.groupTemplate.content.cloneNode(true);
+    const card = frag.querySelector(".irc4-group");
+    card.dataset.groupId = group.id;
+    card.querySelector('[data-role="schedule-select"]').value = group.schedule;
+    updateGroupSchoolsUI(card, group);
+    return card;
+  }
+
+  function addGroup() {
+    const group = { id: genId("group"), schools: [], schedule: "" };
+    data.groups.push(group);
+
+    const node = buildGroupNode(group);
+    els.groupsList.appendChild(node);
+
+    relabelGroups();
+    updateGroupsEmptyState();
+    refreshAllSchoolSelects();
+
+    node.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function removeGroup(groupId) {
+    const idx = data.groups.findIndex((g) => g.id === groupId);
+    if (idx === -1) return;
+    data.groups.splice(idx, 1);
+
+    const card = els.groupsList.querySelector(
+      `.irc4-group[data-group-id="${CSS.escape(groupId)}"]`,
+    );
+    if (card) card.remove();
+
+    relabelGroups();
+    updateGroupsEmptyState();
+    refreshAllSchoolSelects(); // frees up any schools that group had
+  }
+
+  function findGroup(groupId) {
+    return data.groups.find((g) => g.id === groupId) || null;
+  }
+
+  function addSchoolToGroup(groupId) {
+    const group = findGroup(groupId);
+    if (!group) return;
+
+    const card = els.groupsList.querySelector(
+      `.irc4-group[data-group-id="${CSS.escape(groupId)}"]`,
+    );
+    if (!card) return;
+
+    const select = card.querySelector('[data-role="school-select"]');
+    const schoolName = select.value;
+    if (!schoolName) return; // nothing chosen
+
+    if (!group.schools.includes(schoolName)) {
+      group.schools.push(schoolName);
+    }
+
+    updateGroupSchoolsUI(card, group);
+    refreshAllSchoolSelects(); // remove the newly-assigned school everywhere
+  }
+
+  function removeSchoolFromGroup(groupId, schoolName) {
+    const group = findGroup(groupId);
+    if (!group) return;
+
+    const idx = group.schools.indexOf(schoolName);
+    if (idx === -1) return;
+    group.schools.splice(idx, 1);
+
+    const card = els.groupsList.querySelector(
+      `.irc4-group[data-group-id="${CSS.escape(groupId)}"]`,
+    );
+    if (card) updateGroupSchoolsUI(card, group);
+
+    refreshAllSchoolSelects(); // school becomes available again
+  }
+
+  function onGroupsClick(e) {
+    const removeGroupBtn = e.target.closest(".irc4-group-remove");
+    if (removeGroupBtn) {
+      const card = removeGroupBtn.closest(".irc4-group");
       if (!card) return;
-      const label = card.querySelector(".irc4-entry-number").textContent;
-      if (confirm(`Remove ${label}? This cannot be undone.`)) {
-        deleteEntry(card.dataset.id);
+      const label = card.querySelector(".irc4-group-label").textContent;
+      if (confirm(`Remove ${label} and its selected schools?`)) {
+        removeGroup(card.dataset.groupId);
       }
       return;
     }
 
-    const addObjBtn = e.target.closest(".irc4-add-objective-btn");
-    if (addObjBtn) {
-      const card = addObjBtn.closest(".irc4-entry");
-      if (card) addObjective(card.dataset.id);
+    const addSchoolBtn = e.target.closest('[data-role="school-add"]');
+    if (addSchoolBtn) {
+      const card = addSchoolBtn.closest(".irc4-group");
+      if (card) addSchoolToGroup(card.dataset.groupId);
       return;
     }
 
-    const removeObjBtn = e.target.closest(".irc4-objective-remove");
-    if (removeObjBtn) {
-      const card = removeObjBtn.closest(".irc4-entry");
-      const li = removeObjBtn.closest(".irc4-objective-item");
-      if (card && li) deleteObjective(card.dataset.id, li.dataset.objId);
+    const chipRemoveBtn = e.target.closest(".irc4-chip-remove");
+    if (chipRemoveBtn) {
+      const card = chipRemoveBtn.closest(".irc4-group");
+      const chip = chipRemoveBtn.closest(".irc4-school-chip");
+      if (card && chip) {
+        removeSchoolFromGroup(card.dataset.groupId, chip.dataset.school);
+      }
       return;
     }
   }
 
-  function onEntriesInput(e) {
-    const card = e.target.closest(".irc4-entry");
+  function onGroupsChange(e) {
+    const scheduleSelect = e.target.closest('[data-role="schedule-select"]');
+    if (!scheduleSelect) return;
+    const card = scheduleSelect.closest(".irc4-group");
     if (!card) return;
-    const entry = findEntry(card.dataset.id);
-    if (!entry) return;
-
-    // Objective text field
-    const objInput = e.target.closest(".irc4-objective-input");
-    if (objInput) {
-      const li = objInput.closest(".irc4-objective-item");
-      const obj = entry.objectives.find((o) => o.id === li.dataset.objId);
-      if (obj) obj.text = objInput.value;
-      autoGrow(objInput);
-      return;
-    }
-
-    // Plain textarea fields (activity / taReceiver / movs)
-    const field = e.target.dataset.field;
-    if (field && field in entry) {
-      entry[field] = e.target.value;
-      if (e.target.tagName === "TEXTAREA") autoGrow(e.target);
-    }
+    const group = findGroup(card.dataset.groupId);
+    if (group) group.schedule = scheduleSelect.value;
   }
 
-  function onEntriesChange(e) {
-    // Select fields (schedule) fire "change", not "input".
-    const select = e.target.closest('select[data-field="schedule"]');
-    if (!select) return;
-    const card = select.closest(".irc4-entry");
-    if (!card) return;
-    const entry = findEntry(card.dataset.id);
-    if (entry) entry.schedule = select.value;
+  // ============================================================
+  // Plain fields (activity / TA receiver / MOV's)
+  // ============================================================
+
+  function onPlainFieldInput(e) {
+    const field = e.target.dataset.plainField;
+    if (!field) return;
+    data[field] = e.target.value;
+    autoGrow(e.target);
   }
+
+  // ============================================================
+  // Init
+  // ============================================================
 
   function init() {
     cacheEls();
     if (!els.root) return; // not on this page
 
-    entries = [];
-    updateEntryCount();
+    els.activity.dataset.plainField = "activity";
+    els.taReceiver.dataset.plainField = "taReceiver";
+    els.movs.dataset.plainField = "movs";
 
-    els.addEntryBtn.addEventListener("click", addEntry);
-    els.entriesContainer.addEventListener("click", onEntriesClick);
-    els.entriesContainer.addEventListener("input", onEntriesInput);
-    els.entriesContainer.addEventListener("change", onEntriesChange);
+    [els.activity, els.taReceiver, els.movs].forEach((el) =>
+      el.addEventListener("input", onPlainFieldInput),
+    );
 
-    // Start with one activity card ready to go, same spirit as a blank
-    // first row in a form.
-    addEntry();
+    els.addObjectiveBtn.addEventListener("click", addObjective);
+    els.objectivesList.addEventListener("click", onObjectivesClick);
+    els.objectivesList.addEventListener("input", onObjectivesInput);
+
+    els.addGroupBtn.addEventListener("click", addGroup);
+    els.groupsList.addEventListener("click", onGroupsClick);
+    els.groupsList.addEventListener("change", onGroupsChange);
+
+    // Start with the recommended minimum of three objective fields ready
+    // to type into, and one school/schedule group ready to fill out.
+    for (let i = 0; i < MIN_OBJECTIVES; i++) addObjective();
+    updateGroupsEmptyState();
+    addGroup();
   }
 
   document.addEventListener("DOMContentLoaded", init);

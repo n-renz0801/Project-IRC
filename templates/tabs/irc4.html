@@ -14,138 +14,99 @@ block content %}
     </p>
   </div>
 
-  <div class="irc4-toolbar">
-    <button type="button" class="irc4-add-btn" id="irc4AddEntryBtn">
-      <i class="ti ti-plus"></i> Add Activity
-    </button>
-    <span class="irc4-count-badge" id="irc4EntryCount">0 activities</span>
-  </div>
+  <div class="irc4-entry" id="irc4Entry">
+    <div class="irc4-entry-grid">
+      <!-- 1. Activity -->
+      <div class="irc4-field irc4-field--activity">
+        <label
+          >1. Activity
+          <span class="irc4-field-hint"
+            >(Specify the activity and project title)</span
+          ></label
+        >
+        <textarea
+          class="irc4-textarea"
+          id="irc4Activity"
+          rows="3"
+          placeholder="Describe the activity and project title..."
+        ></textarea>
+      </div>
 
-  <div class="irc4-entries" id="irc4Entries"></div>
-
-  <div class="irc4-empty-state" id="irc4Empty">
-    <i class="ti ti-clipboard-list"></i>
-    <p>No activities yet.</p>
-    <p class="irc4-empty-hint">
-      Click &ldquo;Add Activity&rdquo; to start building the catch-up plan.
-    </p>
-  </div>
-
-  <!-- Reusable template for a single TA Catch-up entry card -->
-  <template id="irc4-entry-template">
-    <div class="irc4-entry" data-id="">
-      <div class="irc4-entry-header">
-        <span class="irc4-entry-number">Activity #1</span>
+      <!-- 2. Objectives -->
+      <div class="irc4-field irc4-field--objectives">
+        <label
+          >2. Objective/s
+          <span class="irc4-field-hint"
+            >(List down at least three specific objectives)</span
+          ></label
+        >
+        <ol class="irc4-objectives-list" id="irc4ObjectivesList"></ol>
         <button
           type="button"
-          class="irc4-entry-delete"
-          title="Remove this activity"
+          class="irc4-add-objective-btn"
+          id="irc4AddObjectiveBtn"
         >
-          <i class="ti ti-trash"></i>
+          <i class="ti ti-plus"></i> Add Objective
+        </button>
+        <p class="irc4-objectives-warning" id="irc4ObjectivesWarning" hidden>
+          At least three objectives are recommended.
+        </p>
+      </div>
+
+      <!-- 3 & 4. School + Schedule of TA, grouped -->
+      <div class="irc4-field irc4-field--groups">
+        <label
+          >3. School &amp; 4. Schedule of TA
+          <span class="irc4-field-hint"
+            >(Select the schools to be provided with TA, then set their
+            schedule. Add another group for a different set of schools and
+            month.)</span
+          ></label
+        >
+
+        <div class="irc4-groups-list" id="irc4GroupsList"></div>
+
+        <p class="irc4-groups-empty" id="irc4GroupsEmpty" hidden>
+          No groups yet. Click &ldquo;Add Group&rdquo; to select schools and set
+          their TA schedule.
+        </p>
+
+        <button type="button" class="irc4-add-group-btn" id="irc4AddGroupBtn">
+          <i class="ti ti-plus"></i> Add Group
         </button>
       </div>
 
-      <div class="irc4-entry-grid">
-        <div class="irc4-field irc4-field--activity">
-          <label
-            >1. Activity
-            <span class="irc4-field-hint"
-              >(Specify the activity and project title)</span
-            ></label
-          >
-          <textarea
-            class="irc4-textarea"
-            data-field="activity"
-            rows="3"
-            placeholder="Describe the activity and project title..."
-          ></textarea>
-        </div>
+      <!-- 5. TA Receiver -->
+      <div class="irc4-field irc4-field--receiver">
+        <label
+          >5. TA Receiver
+          <span class="irc4-field-hint"
+            >(Identify the individuals who will be provided with TA)</span
+          ></label
+        >
+        <textarea
+          class="irc4-textarea"
+          id="irc4TaReceiver"
+          rows="3"
+          placeholder="Names / positions of the TA receivers..."
+        ></textarea>
+      </div>
 
-        <div class="irc4-field irc4-field--objectives">
-          <label
-            >2. Objective/s
-            <span class="irc4-field-hint"
-              >(List down at least three specific objectives)</span
-            ></label
-          >
-          <ol class="irc4-objectives-list" data-role="objectives-list"></ol>
-          <button type="button" class="irc4-add-objective-btn">
-            <i class="ti ti-plus"></i> Add Objective
-          </button>
-          <p
-            class="irc4-objectives-warning"
-            data-role="objectives-warning"
-            hidden
-          >
-            At least three objectives are recommended.
-          </p>
-        </div>
-
-        <div class="irc4-field irc4-field--school">
-          <label
-            >3. School
-            <span class="irc4-field-hint"
-              >(Identify the schools that will be provided with TA per
-              Month)</span
-            ></label
-          >
-          <div class="irc4-school-placeholder" data-role="school-placeholder">
-            <i class="ti ti-tools"></i>
-            <span>School selection logic coming soon</span>
-          </div>
-        </div>
-
-        <div class="irc4-field irc4-field--schedule">
-          <label>4. Schedule of TA</label>
-          <select class="irc4-select" data-field="schedule">
-            <option value="">Select month&hellip;</option>
-            <option value="Jan">January</option>
-            <option value="Feb">February</option>
-            <option value="Mar">March</option>
-            <option value="Apr">April</option>
-            <option value="May">May</option>
-            <option value="Jun">June</option>
-            <option value="Jul">July</option>
-            <option value="Aug">August</option>
-            <option value="Sep">September</option>
-            <option value="Oct">October</option>
-            <option value="Nov">November</option>
-            <option value="Dec">December</option>
-          </select>
-        </div>
-
-        <div class="irc4-field irc4-field--receiver">
-          <label
-            >5. TA Receiver
-            <span class="irc4-field-hint"
-              >(Identify the individuals who will be provided with TA)</span
-            ></label
-          >
-          <textarea
-            class="irc4-textarea"
-            data-field="taReceiver"
-            rows="3"
-            placeholder="Names / positions of the TA receivers..."
-          ></textarea>
-        </div>
-
-        <div class="irc4-field irc4-field--movs">
-          <label
-            >6. MOV&rsquo;s
-            <span class="irc4-field-hint"
-              >(List down the evidences)</span
-            ></label
-          >
-          <textarea
-            class="irc4-textarea"
-            data-field="movs"
-            rows="3"
-            placeholder="Means of verification..."
-          ></textarea>
-        </div>
+      <!-- 6. MOV's -->
+      <div class="irc4-field irc4-field--movs">
+        <label
+          >6. MOV&rsquo;s
+          <span class="irc4-field-hint">(List down the evidences)</span></label
+        >
+        <textarea
+          class="irc4-textarea"
+          id="irc4Movs"
+          rows="3"
+          placeholder="Means of verification..."
+        ></textarea>
       </div>
     </div>
-  </template>
+  </div>
 
   <!-- Reusable template for a single objective list item -->
   <template id="irc4-objective-template">
@@ -164,6 +125,73 @@ block content %}
         <i class="ti ti-x"></i>
       </button>
     </li>
+  </template>
+
+  <!-- Reusable template for a School + Schedule group -->
+  <template id="irc4-group-template">
+    <div class="irc4-group" data-group-id="">
+      <div class="irc4-group-header">
+        <span class="irc4-group-label">Group 1</span>
+        <button
+          type="button"
+          class="irc4-group-remove"
+          title="Remove this group"
+        >
+          <i class="ti ti-trash"></i>
+        </button>
+      </div>
+
+      <div class="irc4-group-body">
+        <div class="irc4-group-schools">
+          <label class="irc4-group-sublabel">Schools</label>
+          <div class="irc4-school-picker">
+            <select class="irc4-school-select" data-role="school-select">
+              <option value="">Select a school&hellip;</option>
+            </select>
+            <button
+              type="button"
+              class="irc4-school-add-btn"
+              data-role="school-add"
+            >
+              <i class="ti ti-plus"></i> Add
+            </button>
+          </div>
+          <div class="irc4-school-chips" data-role="school-chips"></div>
+          <p class="irc4-group-empty-hint" data-role="school-empty-hint">
+            No schools added yet.
+          </p>
+        </div>
+
+        <div class="irc4-group-schedule">
+          <label class="irc4-group-sublabel">Schedule of TA</label>
+          <select class="irc4-select" data-role="schedule-select">
+            <option value="">Select month&hellip;</option>
+            <option value="Jan">January</option>
+            <option value="Feb">February</option>
+            <option value="Mar">March</option>
+            <option value="Apr">April</option>
+            <option value="May">May</option>
+            <option value="Jun">June</option>
+            <option value="Jul">July</option>
+            <option value="Aug">August</option>
+            <option value="Sep">September</option>
+            <option value="Oct">October</option>
+            <option value="Nov">November</option>
+            <option value="Dec">December</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Reusable template for a school chip -->
+  <template id="irc4-chip-template">
+    <span class="irc4-school-chip" data-school="">
+      <span class="irc4-school-chip-name"></span>
+      <button type="button" class="irc4-chip-remove" title="Remove">
+        &times;
+      </button>
+    </span>
   </template>
 </section>
 
