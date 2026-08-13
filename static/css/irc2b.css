@@ -621,7 +621,7 @@ html::-webkit-scrollbar {
 }
 
 /* ------------------------------------------------------------------
-   Monthly line chart — one per section, below its table
+   Monthly/Quarterly line chart — one per section, below its table
 ------------------------------------------------------------------ */
 
 .irc2b-linechart-wrapper {
@@ -644,11 +644,17 @@ html::-webkit-scrollbar {
 
 .irc2b-linechart-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 6px 12px;
   margin-bottom: 8px;
+}
+
+.irc2b-linechart-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .irc2b-linechart-title {
@@ -677,6 +683,51 @@ html::-webkit-scrollbar {
   color: #888;
 }
 
+/* ---- Monthly/Quarterly segmented toggle ---- */
+.irc2b-chart-toggle {
+  display: inline-flex;
+  background: #f1f2f4;
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.irc2b-chart-toggle-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #6b7280;
+  padding: 5px 13px;
+  border-radius: 999px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.irc2b-chart-toggle-btn:hover {
+  color: #374151;
+}
+
+.irc2b-chart-toggle-btn-active {
+  background: #1f2937;
+  color: #fff;
+}
+
+.irc2b-chart-toggle-btn-active:hover {
+  color: #fff;
+}
+
+.irc2b-linechart-wrapper-elementary .irc2b-chart-toggle-btn-active {
+  background: var(--irc2b-elementary);
+}
+
+.irc2b-linechart-wrapper-secondary .irc2b-chart-toggle-btn-active {
+  background: var(--irc2b-secondary);
+}
+
 .irc2b-linechart {
   width: 100%;
   height: auto;
@@ -698,9 +749,10 @@ html::-webkit-scrollbar {
   fill: #9aa5b1;
 }
 
-.irc2b-linechart-month-label {
+.irc2b-linechart-x-label {
   font-size: 9.5px;
   fill: #8a93a0;
+  text-anchor: middle;
 }
 
 .irc2b-linechart-path {
@@ -708,6 +760,7 @@ html::-webkit-scrollbar {
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
+  transition: d 0.25s ease;
 }
 
 .irc2b-linechart-path-elementary {

@@ -124,13 +124,37 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
 "ti-school" %}
 <div class="irc2b-linechart-wrapper irc2b-linechart-wrapper-{{ section_id }}">
   <div class="irc2b-linechart-header">
-    <span class="irc2b-linechart-title irc2b-linechart-title-{{ section_id }}">
-      <i class="ti {{ icon }}" aria-hidden="true"></i>
-      Monthly Trend &mdash; {{ section_label }}
-    </span>
-    <span class="irc2b-linechart-caption"
-      >Schools provided with TA, per month</span
+    <div class="irc2b-linechart-title-group">
+      <span
+        class="irc2b-linechart-title irc2b-linechart-title-{{ section_id }}"
+      >
+        <i class="ti {{ icon }}" aria-hidden="true"></i>
+        {{ section_label }} Trend
+      </span>
+      <span class="irc2b-linechart-caption"
+        >Schools provided with TA, per month</span
+      >
+    </div>
+    <div
+      class="irc2b-chart-toggle"
+      role="group"
+      aria-label="{{ section_label }} chart interval toggle"
     >
+      <button
+        type="button"
+        class="irc2b-chart-toggle-btn irc2b-chart-toggle-btn-active"
+        data-chart-mode="monthly"
+      >
+        Monthly
+      </button>
+      <button
+        type="button"
+        class="irc2b-chart-toggle-btn"
+        data-chart-mode="quarterly"
+      >
+        Quarterly
+      </button>
+    </div>
   </div>
   <svg
     class="irc2b-linechart"
@@ -158,18 +182,7 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
       {{ schools|length }}
     </text>
 
-    {% set ns = namespace(i=0) %} {% for q_key, q_months in quarters %} {% for
-    key, label in q_months %}
-    <text
-      class="irc2b-linechart-month-label"
-      x="{{ 44 + ns.i * (696 / 11) }}"
-      y="182"
-      text-anchor="middle"
-    >
-      {{ label }}
-    </text>
-    {% set ns.i = ns.i + 1 %} {% endfor %} {% endfor %}
-
+    <g id="irc2b-{{ section_id }}-xaxis-group"></g>
     <g id="irc2b-{{ section_id }}-line-group"></g>
   </svg>
 </div>
