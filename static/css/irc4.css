@@ -1,0 +1,393 @@
+/* IRC4 - TA Catch-up Plan - CSS Stylesheet */
+
+.irc4-panel {
+  --irc4-accent: #4a6fa5;
+  --irc4-accent-dark: #3d5a8a;
+  --irc4-header-bg: #1f2937;
+  --irc4-border: #e0e0e0;
+  --irc4-field-border: #e2e5ea;
+}
+
+.irc4-panel {
+  padding: 16px 0 40px;
+}
+
+.irc4-header {
+  margin-bottom: 14px;
+}
+
+.irc4-header h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #1a1a1a;
+}
+
+.irc4-subtitle {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ---- toolbar ------------------------------------------------------------ */
+
+.irc4-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.irc4-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--irc4-accent);
+  color: white;
+  border: none;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.irc4-add-btn:hover {
+  background: var(--irc4-accent-dark);
+}
+
+.irc4-count-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #185fa5;
+  background: #e6f1fb;
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+
+/* ---- empty state --------------------------------------------------------- */
+
+.irc4-empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: #999;
+  border: 2px dashed #d0d8e8;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.irc4-empty-state i {
+  font-size: 28px;
+  color: #a8b8d8;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.irc4-empty-state p {
+  margin: 2px 0;
+  font-size: 13.5px;
+}
+
+.irc4-empty-hint {
+  font-size: 12px !important;
+  color: #b0b0b0;
+}
+
+/* ---- entries list --------------------------------------------------------- */
+
+.irc4-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- entry card ------------------------------------------------------- */
+
+.irc4-entry {
+  background: white;
+  border: 1px solid var(--irc4-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.irc4-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--irc4-header-bg);
+  border-bottom: 3px solid var(--irc4-accent);
+}
+
+.irc4-entry-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f3f4f6;
+}
+
+.irc4-entry-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #f3f4f6;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc4-entry-delete:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+/* ---- field grid --------------------------------------------------------- */
+
+.irc4-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+  padding: 16px;
+}
+
+/* Layout: activity + objectives get more room; school / schedule share a
+   row; receiver + movs share the last row. */
+.irc4-field--activity {
+  grid-column: span 3;
+}
+.irc4-field--objectives {
+  grid-column: span 3;
+}
+.irc4-field--school {
+  grid-column: span 3;
+}
+.irc4-field--schedule {
+  grid-column: span 3;
+}
+.irc4-field--receiver {
+  grid-column: span 3;
+}
+.irc4-field--movs {
+  grid-column: span 3;
+}
+
+@media (max-width: 980px) {
+  .irc4-entry-grid {
+    grid-template-columns: 1fr;
+  }
+  .irc4-field--activity,
+  .irc4-field--objectives,
+  .irc4-field--school,
+  .irc4-field--schedule,
+  .irc4-field--receiver,
+  .irc4-field--movs {
+    grid-column: span 1;
+  }
+}
+
+.irc4-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.irc4-field > label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+  line-height: 1.35;
+}
+
+.irc4-field-hint {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #888;
+  margin-top: 1px;
+}
+
+/* ---- text inputs --------------------------------------------------------- */
+
+.irc4-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 64px;
+  padding: 8px 10px;
+  border: 1px solid var(--irc4-field-border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.45;
+  background: #fbfbfc;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.irc4-textarea:focus {
+  outline: none;
+  border-color: var(--irc4-accent);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+}
+
+.irc4-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--irc4-field-border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fbfbfc;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+}
+
+.irc4-select:focus {
+  outline: none;
+  border-color: var(--irc4-accent);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+}
+
+/* ---- objectives list ------------------------------------------------- */
+
+.irc4-objectives-list {
+  list-style: none;
+  margin: 0 0 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.irc4-objective-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.irc4-objective-label {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--irc4-accent);
+  padding-top: 8px;
+  min-width: 1.4em;
+}
+
+.irc4-objective-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 1px solid var(--irc4-field-border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.4;
+  background: #fbfbfc;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.irc4-objective-input:focus {
+  outline: none;
+  border-color: var(--irc4-accent);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+}
+
+.irc4-objective-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid var(--irc4-field-border);
+  color: #999;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.irc4-objective-remove:hover {
+  background: #fee2e2;
+  border-color: #f5b5b5;
+  color: #991b1b;
+}
+
+.irc4-add-objective-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: white;
+  border: 1px dashed #a8b8d8;
+  color: var(--irc4-accent);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc4-add-objective-btn:hover {
+  background: #eff4f9;
+  border-color: var(--irc4-accent);
+}
+
+.irc4-objectives-warning {
+  font-size: 11px;
+  color: #92400e;
+  margin: 4px 0 0 0;
+}
+
+/* ---- school placeholder (logic TBD) ------------------------------------- */
+
+.irc4-school-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 64px;
+  padding: 8px 12px;
+  border: 1px dashed #d0d8e8;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #a0a8b8;
+  font-size: 12.5px;
+  font-style: italic;
+}
+
+.irc4-school-placeholder i {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .irc4-header h2 {
+    font-size: 20px;
+  }
+}
