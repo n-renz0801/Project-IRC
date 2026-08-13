@@ -31,7 +31,28 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
           {{ q_key }}
         </th>
         {% endfor %}
-        <th class="irc2b-total-col" rowspan="2">Total<br />(Quarters)</th>
+        <th
+          class="irc2b-total-col irc2b-total-col-clickable"
+          rowspan="2"
+          role="button"
+          tabindex="0"
+          title="Showing distinct quarters reached (click to switch to total months)"
+        >
+          <span class="irc2b-total-header-label"
+            >Total<br />(<span class="irc2b-total-mode-text">Quarters</span
+            >)</span
+          >
+          <span class="irc2b-total-toggle-icon-wrap">
+            <i
+              class="ti ti-arrows-exchange irc2b-total-toggle-icon-default"
+              aria-hidden="true"
+            ></i>
+            <i
+              class="ti ti-click irc2b-total-toggle-icon-hover"
+              aria-hidden="true"
+            ></i>
+          </span>
+        </th>
       </tr>
       <tr class="irc2b-month-row">
         {% for q_key, q_months in quarters %} {% for key, label in q_months %}
@@ -66,6 +87,8 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
             class="irc2b-row-total"
             data-section="{{ section_id }}"
             data-row="{{ row_idx }}"
+            data-quarters-total="0"
+            data-months-total="0"
             >0</span
           >
         </td>
@@ -95,6 +118,60 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
       </tr>
     </tfoot>
   </table>
+</div>
+
+{% set icon = "ti-building-community" if section_id == "elementary" else
+"ti-school" %}
+<div class="irc2b-linechart-wrapper irc2b-linechart-wrapper-{{ section_id }}">
+  <div class="irc2b-linechart-header">
+    <span class="irc2b-linechart-title irc2b-linechart-title-{{ section_id }}">
+      <i class="ti {{ icon }}" aria-hidden="true"></i>
+      Monthly Trend &mdash; {{ section_label }}
+    </span>
+    <span class="irc2b-linechart-caption"
+      >Schools provided with TA, per month</span
+    >
+  </div>
+  <svg
+    class="irc2b-linechart"
+    viewBox="0 0 760 200"
+    xmlns="http://www.w3.org/2000/svg"
+    preserveAspectRatio="none"
+  >
+    <line class="irc2b-linechart-grid" x1="44" y1="24" x2="740" y2="24"></line>
+    <line class="irc2b-linechart-grid" x1="44" y1="95" x2="740" y2="95"></line>
+    <line
+      class="irc2b-linechart-axis"
+      x1="44"
+      y1="166"
+      x2="740"
+      y2="166"
+    ></line>
+
+    <text class="irc2b-linechart-axis-label" x="38" y="170" text-anchor="end">
+      0
+    </text>
+    <text class="irc2b-linechart-axis-label" x="38" y="99" text-anchor="end">
+      {{ (schools|length / 2) | round | int }}
+    </text>
+    <text class="irc2b-linechart-axis-label" x="38" y="28" text-anchor="end">
+      {{ schools|length }}
+    </text>
+
+    {% set ns = namespace(i=0) %} {% for q_key, q_months in quarters %} {% for
+    key, label in q_months %}
+    <text
+      class="irc2b-linechart-month-label"
+      x="{{ 44 + ns.i * (696 / 11) }}"
+      y="182"
+      text-anchor="middle"
+    >
+      {{ label }}
+    </text>
+    {% set ns.i = ns.i + 1 %} {% endfor %} {% endfor %}
+
+    <g id="irc2b-{{ section_id }}-line-group"></g>
+  </svg>
 </div>
 {% endmacro %}
 

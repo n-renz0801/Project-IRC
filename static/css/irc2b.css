@@ -13,7 +13,7 @@ html::-webkit-scrollbar {
   padding: 24px 0;
 
   /* Local palette for this page — elementary/secondary scheme shared
-     between the stat cards and the comparison chart below. */
+     between the stat cards, chart section, and line charts. */
   --irc2b-elementary: rgb(180, 83, 9);
   --irc2b-elementary-dark: rgb(140, 65, 7);
   --irc2b-elementary-light: rgb(217, 119, 6);
@@ -107,8 +107,8 @@ html::-webkit-scrollbar {
 }
 
 /* Color variants — Elementary = burnt orange, Secondary = green, paired
-   with the matching bar colors in the chart below so the whole
-   dashboard reads as one connected system. */
+   with the matching bar/line colors below so the whole dashboard reads
+   as one connected system. */
 .irc2b-stat-card-elementary {
   background: linear-gradient(
     135deg,
@@ -413,10 +413,86 @@ html::-webkit-scrollbar {
   padding-left: 14px !important;
 }
 
+/* ---- Total column header: clickable to toggle Quarters/Months ---- */
 .irc2b-total-col {
   width: 92px;
   text-align: center;
   line-height: 1.3;
+}
+
+.irc2b-total-col-clickable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.irc2b-total-col-clickable:hover {
+  background: #2d3947;
+}
+
+.irc2b-total-col-clickable:active {
+  background: #35455a;
+}
+
+.irc2b-total-header-label {
+  display: block;
+}
+
+.irc2b-total-mode-text {
+  color: var(--irc2b-gold);
+}
+
+.irc2b-total-toggle-hint {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 400;
+  color: #7c8797;
+  margin-top: 3px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Icon swap: two stacked icons crossfade on hover, rather than just
+   rotating one — the shape change itself signals "this does something". */
+.irc2b-total-toggle-icon-wrap {
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 5px auto 0;
+}
+
+.irc2b-total-toggle-icon-wrap i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 13px;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.irc2b-total-toggle-icon-default {
+  color: #9aa5b1;
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.irc2b-total-toggle-icon-hover {
+  color: var(--irc2b-gold);
+  opacity: 0;
+  transform: scale(0.6) rotate(-25deg);
+}
+
+.irc2b-total-col-clickable:hover .irc2b-total-toggle-icon-default {
+  opacity: 0;
+  transform: scale(0.6) rotate(25deg);
+}
+
+.irc2b-total-col-clickable:hover .irc2b-total-toggle-icon-hover {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
 }
 
 .irc2b-table th:not(.irc2b-label-col):not(.irc2b-total-col),
@@ -542,6 +618,141 @@ html::-webkit-scrollbar {
   padding: 4px 12px;
   border-radius: 999px;
   min-width: 20px;
+}
+
+/* ------------------------------------------------------------------
+   Monthly line chart — one per section, below its table
+------------------------------------------------------------------ */
+
+.irc2b-linechart-wrapper {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid #57534e;
+  border-radius: 12px;
+  padding: 18px 22px 12px;
+  margin-bottom: 28px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.irc2b-linechart-wrapper-elementary {
+  border-left-color: var(--irc2b-elementary);
+}
+
+.irc2b-linechart-wrapper-secondary {
+  border-left-color: var(--irc2b-secondary);
+}
+
+.irc2b-linechart-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+}
+
+.irc2b-linechart-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.irc2b-linechart-title i {
+  font-size: 15px;
+}
+
+.irc2b-linechart-title-elementary i {
+  color: var(--irc2b-elementary);
+}
+
+.irc2b-linechart-title-secondary i {
+  color: var(--irc2b-secondary);
+}
+
+.irc2b-linechart-caption {
+  font-size: 11.5px;
+  color: #888;
+}
+
+.irc2b-linechart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.irc2b-linechart-grid {
+  stroke: #eef0f2;
+  stroke-width: 1;
+}
+
+.irc2b-linechart-axis {
+  stroke: #d6dbe1;
+  stroke-width: 1.2;
+}
+
+.irc2b-linechart-axis-label {
+  font-size: 9.5px;
+  fill: #9aa5b1;
+}
+
+.irc2b-linechart-month-label {
+  font-size: 9.5px;
+  fill: #8a93a0;
+}
+
+.irc2b-linechart-path {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.irc2b-linechart-path-elementary {
+  stroke: var(--irc2b-elementary);
+}
+
+.irc2b-linechart-path-secondary {
+  stroke: var(--irc2b-secondary);
+}
+
+.irc2b-linechart-area-elementary {
+  fill: rgba(180, 83, 9, 0.09);
+  stroke: none;
+}
+
+.irc2b-linechart-area-secondary {
+  fill: rgba(4, 120, 87, 0.09);
+  stroke: none;
+}
+
+.irc2b-linechart-point {
+  fill: #fff;
+  stroke-width: 2.4;
+}
+
+.irc2b-linechart-point-elementary {
+  stroke: var(--irc2b-elementary);
+}
+
+.irc2b-linechart-point-secondary {
+  stroke: var(--irc2b-secondary);
+}
+
+.irc2b-linechart-point-val {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.irc2b-linechart-point-val-elementary {
+  fill: var(--irc2b-elementary-dark);
+}
+
+.irc2b-linechart-point-val-secondary {
+  fill: var(--irc2b-secondary-dark);
 }
 
 /* Responsive: only guard against very narrow windows since this is a
