@@ -4,18 +4,20 @@
   "use strict";
 
   // Constant master list — do not add/remove here at runtime.
-  // level: "elementary" | "secondary" | "integrated" | "sped"
+  // level: "elementary" | "secondary"
+  // (Integrated schools now count as "secondary"; the SPED Center now
+  // counts as "elementary" — there is no separate integrated/sped group.)
   const SCHOOLS = [
     { name: "Antipolo City Senior High School", level: "secondary" },
-    { name: "Antipolo City SPED Center", level: "sped" },
+    { name: "Antipolo City SPED Center", level: "elementary" },
     { name: "Antipolo National Science and Technology HS", level: "secondary" },
     { name: "Antipolo NHS", level: "secondary" },
-    { name: "Apia Integrated School", level: "integrated" },
+    { name: "Apia Integrated School", level: "secondary" },
     { name: "Bagong Nayon I ES", level: "elementary" },
     { name: "Bagong Nayon II ES", level: "elementary" },
     { name: "Bagong Nayon II NHS", level: "secondary" },
     { name: "Bagong Nayon IV ES", level: "elementary" },
-    { name: "Binayoyo Integrated School", level: "integrated" },
+    { name: "Binayoyo Integrated School", level: "secondary" },
     { name: "Cabading ES", level: "elementary" },
     { name: "Calawis ES", level: "elementary" },
     { name: "Calawis NHS", level: "secondary" },
@@ -108,8 +110,6 @@
   const LEVEL_LABELS = {
     elementary: "ES",
     secondary: "Secondary",
-    integrated: "Integrated",
-    sped: "SPED",
   };
 
   /** @type {Record<string, "provided"|"unprovided">} */
