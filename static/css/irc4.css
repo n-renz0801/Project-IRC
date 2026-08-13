@@ -80,29 +80,101 @@
   flex-direction: column;
 }
 
+/* Section labels bumped up in size/weight so each numbered section reads
+   as a clear heading rather than a small form label. */
 .irc4-label {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: #1a1a1a;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   line-height: 1.35;
   display: block;
 }
 
 .irc4-hint {
   display: block;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 400;
   color: #888;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
-/* ---- text inputs --------------------------------------------------------- */
+/* ---- icons ------------------------------------------------------------ */
+/* All icons are inline SVG (not an icon font), so they always render
+   regardless of what's linked in base.html. */
+.irc4-icon {
+  display: block;
+  flex-shrink: 0;
+}
 
+/* ---- view/edit field pattern ------------------------------------------
+   Every text input (Activity, each Objective, TA Receiver, MOV's) shows
+   as plain, non-clickable text with a pencil "Edit" button by default.
+   Clicking Edit swaps in the textarea; blurring out of the textarea
+   commits the value and swaps back to plain text. ----------------------- */
+
+.irc4-field {
+  width: 100%;
+}
+
+.irc4-field-view {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.irc4-field-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 7px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #222;
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: default;
+}
+
+.irc4-field-text.is-placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.irc4-field-edit-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-top: 3px;
+  background: transparent;
+  border: 1px solid var(--irc4-field-border);
+  color: #999;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.irc4-field-edit-btn:hover {
+  background: #eff4f9;
+  border-color: var(--irc4-accent);
+  color: var(--irc4-accent-dark);
+}
+
+/* ---- text inputs (edit mode) ---------------------------------------------- */
+
+/* Non-resizable: height is driven entirely by JS (autoGrow) based on
+   content length, so there's no drag handle for the user to fight with. */
 .irc4-textarea {
   width: 100%;
   box-sizing: border-box;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
   min-height: 64px;
   padding: 8px 10px;
   border: 1px solid var(--irc4-field-border);
@@ -163,15 +235,21 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--irc4-accent);
-  padding-top: 8px;
+  padding-top: 7px;
   min-width: 1.4em;
 }
 
-.irc4-objective-input {
+.irc4-objective-field {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* Same non-resizable, auto-growing behavior as the plain textareas above. */
+.irc4-objective-input {
+  width: 100%;
   box-sizing: border-box;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
   min-height: 34px;
   padding: 7px 9px;
   border: 1px solid var(--irc4-field-border);
@@ -197,13 +275,12 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  margin-top: 4px;
+  margin-top: 3px;
   background: transparent;
   border: 1px solid var(--irc4-field-border);
   color: #999;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
@@ -280,155 +357,95 @@
   margin: 0 0 12px 0;
 }
 
-.irc4-group {
+/* ---- read-only group view cards (rendered on the page after Save) -------- */
+
+.irc4-group-view {
   position: relative;
   border: 1px solid var(--irc4-field-border);
   border-radius: 10px;
   background: white;
-  padding: 14px 40px 14px 14px;
+  padding: 14px 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.irc4-group-remove {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+.irc4-group-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--irc4-field-border);
+}
+
+.irc4-group-view-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--irc4-accent-dark);
+}
+
+.irc4-group-view-title.is-unset {
+  color: #999;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.irc4-group-view-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.irc4-group-edit-btn,
+.irc4-group-delete-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   background: transparent;
   border: 1px solid var(--irc4-field-border);
   color: #999;
-  border-radius: 50%;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 11px;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
     color 0.15s ease;
 }
 
-.irc4-group-remove:hover {
+.irc4-group-edit-btn:hover {
+  background: #eff4f9;
+  border-color: var(--irc4-accent);
+  color: var(--irc4-accent-dark);
+}
+
+.irc4-group-delete-btn:hover {
   background: #fee2e2;
   border-color: #f5b5b5;
   color: #991b1b;
 }
 
-.irc4-group-body {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 700px) {
-  .irc4-group-body {
-    grid-template-columns: 1fr;
-  }
-}
-
-.irc4-group-sublabel {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #7a8494;
-  margin-bottom: 6px;
-}
-
-.irc4-school-picker {
+.irc4-group-view-list {
+  list-style: disc;
+  margin: 0;
+  padding-left: 20px;
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.irc4-school-select {
-  flex: 1 1 auto;
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 7px 9px;
-  border: 1px solid var(--irc4-field-border);
-  border-radius: 6px;
+.irc4-group-view-list li {
   font-size: 12.5px;
-  font-family: inherit;
-  background: #fbfbfc;
-  cursor: pointer;
+  color: #333;
+  line-height: 1.5;
 }
 
-.irc4-school-select:focus {
-  outline: none;
-  border-color: var(--irc4-accent);
-  background: white;
-  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
-}
-
-.irc4-school-add-btn {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--irc4-accent);
-  color: white;
-  border: none;
-  padding: 0 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.irc4-school-add-btn:hover {
-  background: var(--irc4-accent-dark);
-}
-
-.irc4-school-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.irc4-school-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #e6f1fb;
-  color: #185fa5;
-  border: 1px solid #cfe1f2;
-  border-radius: 999px;
-  padding: 4px 6px 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.irc4-chip-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  background: rgba(24, 95, 165, 0.12);
-  border: none;
-  border-radius: 50%;
-  color: #185fa5;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-}
-
-.irc4-chip-remove:hover {
-  background: rgba(153, 27, 27, 0.15);
-  color: #991b1b;
-}
-
-.irc4-group-empty-hint {
-  font-size: 11.5px;
+.irc4-group-view-empty {
+  list-style: none;
+  margin-left: -20px;
   color: #999;
   font-style: italic;
-  margin: 2px 0 0 0;
 }
 
 .irc4-add-group-btn {
@@ -452,6 +469,236 @@
   background: white;
   border-color: var(--irc4-accent-dark);
   color: var(--irc4-accent-dark);
+}
+
+/* ---- Add/Edit Group modal -------------------------------------------- */
+
+.irc4-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.irc4-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 30, 45, 0.45);
+}
+
+.irc4-modal-content {
+  position: relative;
+  width: min(520px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+}
+
+.irc4-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--irc4-border);
+}
+
+.irc4-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.irc4-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #999;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.irc4-modal-close:hover {
+  background: #f2f2f2;
+  color: #333;
+}
+
+.irc4-modal-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow: visible;
+}
+
+.irc4-group-sublabel {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #7a8494;
+  margin-bottom: 6px;
+}
+
+/* ---- searchable school picker ------------------------------------------ */
+
+.irc4-school-search {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.irc4-school-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--irc4-field-border);
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: inherit;
+  background: #fbfbfc;
+}
+
+.irc4-school-search-input:focus {
+  outline: none;
+  border-color: var(--irc4-accent);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+}
+
+.irc4-school-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 190px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid var(--irc4-field-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+}
+
+.irc4-school-suggestion-item {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: #222;
+  cursor: pointer;
+}
+
+.irc4-school-suggestion-item:hover,
+.irc4-school-suggestion-item:focus {
+  background: #eef4fb;
+  color: var(--irc4-accent-dark);
+  outline: none;
+}
+
+/* Selected schools rendered as a single vertical column, one per row. */
+.irc4-school-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.irc4-school-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #eef4fb;
+  color: #185fa5;
+  border: 1px solid #cfe1f2;
+  border-radius: 6px;
+  padding: 7px 8px 7px 12px;
+}
+
+.irc4-school-row-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.irc4-chip-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: rgba(24, 95, 165, 0.12);
+  border: none;
+  border-radius: 50%;
+  color: #185fa5;
+  cursor: pointer;
+  padding: 0;
+}
+
+.irc4-chip-remove:hover {
+  background: rgba(153, 27, 27, 0.15);
+  color: #991b1b;
+}
+
+.irc4-group-empty-hint {
+  font-size: 11.5px;
+  color: #999;
+  font-style: italic;
+  margin: 6px 0 0 0;
+}
+
+.irc4-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--irc4-border);
+}
+
+.irc4-modal-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--irc4-field-border);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc4-modal-btn-cancel {
+  background: white;
+  color: #555;
+}
+
+.irc4-modal-btn-cancel:hover {
+  background: #f2f2f2;
+}
+
+.irc4-modal-btn-save {
+  background: var(--irc4-accent);
+  border-color: var(--irc4-accent);
+  color: white;
+}
+
+.irc4-modal-btn-save:hover {
+  background: var(--irc4-accent-dark);
+  border-color: var(--irc4-accent-dark);
 }
 
 /* Responsive */
