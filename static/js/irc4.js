@@ -6,8 +6,9 @@
   const MIN_OBJECTIVES = 3;
 
   // Same master school list used in IRC2a, kept in sync so a school name
-  // typed/selected here matches what IRC2a already tracks. Only the name is
-  // needed on this tab.
+  // selected here matches what IRC2a already tracks. Only the name is
+  // needed on this tab. A school may be selected into more than one group
+  // (e.g. it receives TA in two different months) — no exclusivity here.
   const SCHOOLS = [
     "Antipolo City Senior High School",
     "Antipolo City SPED Center",
@@ -206,20 +207,23 @@
   }
 
   // ============================================================
-  // School + Schedule groups
+  // School + Schedule groups (no exclusivity — a school may be picked
+  // into more than one group; groups are unlabeled, only removable)
   // ============================================================
 
-  // Every school currently assigned to any group, across the whole plan —
-  // used to keep a school from being picked into two groups at once.
-  function assignedSchoolsSet() {
-    const set = new Set();
-    data.groups.forEach((g) => g.schools.forEach((s) => set.add(s)));
-    return set;
-  }
+  function populateSchoolSelect(select) {
+    select.innerHTML = "";
 
-  function relabelGroups() {
-    els.groupsList.querySelectorAll(".irc4-group").forEach((card, idx) => {
-      card.querySelector(".irc4-group-label").textContent = `Group ${idx + 1}`;
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Select a school\u2026";
+    select.appendChild(placeholder);
+
+    SCHOOLS.forEach((name) => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
     });
   }
 
@@ -227,39 +231,7 @@
     els.groupsEmpty.hidden = data.groups.length !== 0;
   }
 
-  // Rebuilds the <option> list of every group's school <select> based on
-  // the current assignment pool, preserving each select's own placeholder.
-  function refreshAllSchoolSelects() {
-    const assigned = assignedSchoolsSet();
-    els.groupsList
-      .querySelectorAll('[data-role="school-select"]')
-      .forEach((select) => {
-        const previousValue = select.value;
-        select.innerHTML = "";
-
-        const placeholder = document.createElement("option");
-        placeholder.value = "";
-        placeholder.textContent = "Select a school\u2026";
-        select.appendChild(placeholder);
-
-        SCHOOLS.filter((name) => !assigned.has(name)).forEach((name) => {
-          const opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name;
-          select.appendChild(opt);
-        });
-
-        // Keep the select on its previous choice if still valid (it won't
-        // be, since a just-added school becomes assigned — this simply
-        // avoids surprises if called for other reasons).
-        select.value =
-          SCHOOLS.includes(previousValue) && !assigned.has(previousValue)
-            ? previousValue
-            : "";
-      });
-  }
-
-  function buildChipNode(groupId, schoolName) {
+  function buildChipNode(schoolName) {
     const frag = els.chipTemplate.content.cloneNode(true);
     const chip = frag.querySelector(".irc4-school-chip");
     chip.dataset.school = schoolName;
@@ -273,7 +245,7 @@
 
     chipsContainer.innerHTML = "";
     group.schools.forEach((name) => {
-      chipsContainer.appendChild(buildChipNode(group.id, name));
+      chipsContainer.appendChild(buildChipNode(name));
     });
     emptyHint.hidden = group.schools.length !== 0;
   }
@@ -282,6 +254,10 @@
     const frag = els.groupTemplate.content.cloneNode(true);
     const card = frag.querySelector(".irc4-group");
     card.dataset.groupId = group.id;
+
+    const select = card.querySelector('[data-role="school-select"]');
+    populateSchoolSelect(select);
+
     card.querySelector('[data-role="schedule-select"]').value = group.schedule;
     updateGroupSchoolsUI(card, group);
     return card;
@@ -294,10 +270,7 @@
     const node = buildGroupNode(group);
     els.groupsList.appendChild(node);
 
-    relabelGroups();
     updateGroupsEmptyState();
-    refreshAllSchoolSelects();
-
     node.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
@@ -311,9 +284,7 @@
     );
     if (card) card.remove();
 
-    relabelGroups();
     updateGroupsEmptyState();
-    refreshAllSchoolSelects(); // frees up any schools that group had
   }
 
   function findGroup(groupId) {
@@ -333,12 +304,14 @@
     const schoolName = select.value;
     if (!schoolName) return; // nothing chosen
 
+    // Same school can be added more than once across groups, but not
+    // duplicated twice within the SAME group.
     if (!group.schools.includes(schoolName)) {
       group.schools.push(schoolName);
     }
 
+    select.value = "";
     updateGroupSchoolsUI(card, group);
-    refreshAllSchoolSelects(); // remove the newly-assigned school everywhere
   }
 
   function removeSchoolFromGroup(groupId, schoolName) {
@@ -353,8 +326,6 @@
       `.irc4-group[data-group-id="${CSS.escape(groupId)}"]`,
     );
     if (card) updateGroupSchoolsUI(card, group);
-
-    refreshAllSchoolSelects(); // school becomes available again
   }
 
   function onGroupsClick(e) {
@@ -362,8 +333,7 @@
     if (removeGroupBtn) {
       const card = removeGroupBtn.closest(".irc4-group");
       if (!card) return;
-      const label = card.querySelector(".irc4-group-label").textContent;
-      if (confirm(`Remove ${label} and its selected schools?`)) {
+      if (confirm("Remove this group and its selected schools?")) {
         removeGroup(card.dataset.groupId);
       }
       return;
