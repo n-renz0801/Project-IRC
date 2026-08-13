@@ -41,10 +41,12 @@
     el.textContent = `${percent}%`;
   }
 
-  function getIntValue(id) {
+  function readClampedInt(id, min, max) {
     const el = document.getElementById(id);
     if (!el) return 0;
-    return clamp(parseInt(el.value, 10) || 0, 0, parseInt(el.max, 10));
+    const clamped = clamp(parseInt(el.value, 10) || 0, min, max);
+    el.value = clamped;
+    return clamped;
   }
 
   // --- Provision + score row ---
@@ -54,48 +56,21 @@
 
     paintPercentBadge(document.getElementById(`${idPrefix}-percent`), percent);
     paintScoreBadge(document.getElementById(`${idPrefix}-score`), score);
-
-    return percent;
-  }
-
-  // --- Dashboard stat card + bar ---
-  function updateStat(section, count, base) {
-    const percent = base > 0 ? Math.round((count / base) * 100) : 0;
-
-    const countEl = document.getElementById(`irc3-${section}-count`);
-    const percentEl = document.getElementById(`irc3-${section}-percent`);
-    const barEl = document.getElementById(`irc3-${section}-bar`);
-    const barValEl = document.getElementById(`irc3-${section}-bar-val`);
-
-    if (countEl) countEl.textContent = count.toLocaleString();
-    if (percentEl) percentEl.textContent = `${percent}%`;
-    if (barEl) barEl.style.height = `${percent}%`;
-    if (barValEl) barValEl.textContent = `${percent}%`;
   }
 
   function recalcAll() {
-    // Clamp raw inputs first so typing out-of-range values self-corrects
-    const dedpInput = document.getElementById("irc3-dedp-ta");
-    const nondedpInput = document.getElementById("irc3-nondedp-ta");
-    dedpInput.value = clamp(parseInt(dedpInput.value, 10) || 0, 0, DEDP_TOTAL);
-    nondedpInput.value = clamp(
-      parseInt(nondedpInput.value, 10) || 0,
-      0,
-      NONDEDP_TOTAL,
-    );
-
-    const dedpTA = getIntValue("irc3-dedp-ta");
-    const nondedpTA = getIntValue("irc3-nondedp-ta");
+    const dedpTA = readClampedInt("irc3-dedp-ta", 0, DEDP_TOTAL);
+    const nondedpTA = readClampedInt("irc3-nondedp-ta", 0, NONDEDP_TOTAL);
     const totalTA = dedpTA + nondedpTA;
 
-    // Provision + score table
+    // Provided with TA + percentage + score
     updateRow("irc3-dedp-ta", dedpTA, DEDP_TOTAL);
     updateRow("irc3-nondedp-ta", nondedpTA, NONDEDP_TOTAL);
     document.getElementById("irc3-total-ta").textContent =
       totalTA.toLocaleString();
     updateRow("irc3-total-ta", totalTA, GRAND_TOTAL);
 
-    // Not-provided table (fully automatic)
+    // Not provided with TA (fully automatic)
     const dedpNot = DEDP_TOTAL - dedpTA;
     const nondedpNot = NONDEDP_TOTAL - nondedpTA;
     document.getElementById("irc3-dedp-not-provided").textContent =
@@ -106,32 +81,66 @@
       dedpNot + nondedpNot
     ).toLocaleString();
 
-    // Dashboard
-    updateStat("dedp", dedpTA, DEDP_TOTAL);
-    updateStat("nondedp", nondedpTA, NONDEDP_TOTAL);
+    // Target totals
+    recalcTarget();
   }
 
   function recalcTarget() {
-    const dedpTargetInput = document.getElementById("irc3-dedp-target");
-    const nondedpTargetInput = document.getElementById("irc3-nondedp-target");
-
-    dedpTargetInput.value = clamp(
-      parseInt(dedpTargetInput.value, 10) || 0,
-      0,
-      DEDP_TOTAL,
-    );
-    nondedpTargetInput.value = clamp(
-      parseInt(nondedpTargetInput.value, 10) || 0,
+    const dedpTarget = readClampedInt("irc3-dedp-target", 0, DEDP_TOTAL);
+    const nondedpTarget = readClampedInt(
+      "irc3-nondedp-target",
       0,
       NONDEDP_TOTAL,
     );
 
-    const dedpTarget = parseInt(dedpTargetInput.value, 10) || 0;
-    const nondedpTarget = parseInt(nondedpTargetInput.value, 10) || 0;
-
     document.getElementById("irc3-total-target").textContent = (
       dedpTarget + nondedpTarget
     ).toLocaleString();
+  }
+
+  // --- Rating basis cards: walks every possible count 0..base and
+  // buckets it by score, using the exact same percent/score logic as
+  // the live table, so the cards never drift out of sync with the
+  // badges shown in the main table.
+  function computeScoreRanges(base) {
+    const ranges = { 5: null, 4: null, 3: null, 2: null, 1: null };
+
+    for (let count = 0; count <= base; count++) {
+      const percent = Math.round((count / base) * 100);
+      const score = getScore(percent);
+
+      if (!ranges[score]) {
+        ranges[score] = [count, count];
+      } else {
+        ranges[score][1] = count;
+      }
+    }
+
+    return ranges;
+  }
+
+  function formatRange(range, score) {
+    if (!range) return "&ndash;";
+    const [min, max] = range;
+    if (score === 1) return `${max} & below`;
+    if (min === max) return `${min}`;
+    return `${min}&ndash;${max}`;
+  }
+
+  function renderBasisCards() {
+    const bases = {
+      dedp: DEDP_TOTAL,
+      nondedp: NONDEDP_TOTAL,
+      total: GRAND_TOTAL,
+    };
+
+    Object.entries(bases).forEach(([key, base]) => {
+      const ranges = computeScoreRanges(base);
+      [5, 4, 3, 2, 1].forEach((score) => {
+        const el = document.getElementById(`irc3-basis-${score}-${key}`);
+        if (el) el.innerHTML = formatRange(ranges[score], score);
+      });
+    });
   }
 
   // --- Wire up events ---
@@ -146,6 +155,6 @@
   });
 
   // --- Initial render ---
+  renderBasisCards();
   recalcAll();
-  recalcTarget();
 })();
