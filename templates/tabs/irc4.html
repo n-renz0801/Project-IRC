@@ -1,9 +1,172 @@
 {% extends "base.html" %} {% block title %}IRC4 - SGOD PMES{% endblock %} {%
 block content %}
-<div class="content__header">
-  <h1>Individual Report Card No. 4</h1>
-  <span class="content__badge">IRC4</span>
-</div>
 
-<div class="content__body"></div>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/irc4.css') }}"
+/>
+
+<section id="irc4-tab" class="tab-panel irc4-panel">
+  <div class="irc4-header">
+    <h2>IRC4 &mdash; Technical Assistance (TA) Catch-up Plan</h2>
+    <p class="irc4-subtitle">
+      Prepare a TA Catch-up Plan based on the results of IRC3.
+    </p>
+  </div>
+
+  <div class="irc4-toolbar">
+    <button type="button" class="irc4-add-btn" id="irc4AddEntryBtn">
+      <i class="ti ti-plus"></i> Add Activity
+    </button>
+    <span class="irc4-count-badge" id="irc4EntryCount">0 activities</span>
+  </div>
+
+  <div class="irc4-entries" id="irc4Entries"></div>
+
+  <div class="irc4-empty-state" id="irc4Empty">
+    <i class="ti ti-clipboard-list"></i>
+    <p>No activities yet.</p>
+    <p class="irc4-empty-hint">
+      Click &ldquo;Add Activity&rdquo; to start building the catch-up plan.
+    </p>
+  </div>
+
+  <!-- Reusable template for a single TA Catch-up entry card -->
+  <template id="irc4-entry-template">
+    <div class="irc4-entry" data-id="">
+      <div class="irc4-entry-header">
+        <span class="irc4-entry-number">Activity #1</span>
+        <button
+          type="button"
+          class="irc4-entry-delete"
+          title="Remove this activity"
+        >
+          <i class="ti ti-trash"></i>
+        </button>
+      </div>
+
+      <div class="irc4-entry-grid">
+        <div class="irc4-field irc4-field--activity">
+          <label
+            >1. Activity
+            <span class="irc4-field-hint"
+              >(Specify the activity and project title)</span
+            ></label
+          >
+          <textarea
+            class="irc4-textarea"
+            data-field="activity"
+            rows="3"
+            placeholder="Describe the activity and project title..."
+          ></textarea>
+        </div>
+
+        <div class="irc4-field irc4-field--objectives">
+          <label
+            >2. Objective/s
+            <span class="irc4-field-hint"
+              >(List down at least three specific objectives)</span
+            ></label
+          >
+          <ol class="irc4-objectives-list" data-role="objectives-list"></ol>
+          <button type="button" class="irc4-add-objective-btn">
+            <i class="ti ti-plus"></i> Add Objective
+          </button>
+          <p
+            class="irc4-objectives-warning"
+            data-role="objectives-warning"
+            hidden
+          >
+            At least three objectives are recommended.
+          </p>
+        </div>
+
+        <div class="irc4-field irc4-field--school">
+          <label
+            >3. School
+            <span class="irc4-field-hint"
+              >(Identify the schools that will be provided with TA per
+              Month)</span
+            ></label
+          >
+          <div class="irc4-school-placeholder" data-role="school-placeholder">
+            <i class="ti ti-tools"></i>
+            <span>School selection logic coming soon</span>
+          </div>
+        </div>
+
+        <div class="irc4-field irc4-field--schedule">
+          <label>4. Schedule of TA</label>
+          <select class="irc4-select" data-field="schedule">
+            <option value="">Select month&hellip;</option>
+            <option value="Jan">January</option>
+            <option value="Feb">February</option>
+            <option value="Mar">March</option>
+            <option value="Apr">April</option>
+            <option value="May">May</option>
+            <option value="Jun">June</option>
+            <option value="Jul">July</option>
+            <option value="Aug">August</option>
+            <option value="Sep">September</option>
+            <option value="Oct">October</option>
+            <option value="Nov">November</option>
+            <option value="Dec">December</option>
+          </select>
+        </div>
+
+        <div class="irc4-field irc4-field--receiver">
+          <label
+            >5. TA Receiver
+            <span class="irc4-field-hint"
+              >(Identify the individuals who will be provided with TA)</span
+            ></label
+          >
+          <textarea
+            class="irc4-textarea"
+            data-field="taReceiver"
+            rows="3"
+            placeholder="Names / positions of the TA receivers..."
+          ></textarea>
+        </div>
+
+        <div class="irc4-field irc4-field--movs">
+          <label
+            >6. MOV&rsquo;s
+            <span class="irc4-field-hint"
+              >(List down the evidences)</span
+            ></label
+          >
+          <textarea
+            class="irc4-textarea"
+            data-field="movs"
+            rows="3"
+            placeholder="Means of verification..."
+          ></textarea>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Reusable template for a single objective list item -->
+  <template id="irc4-objective-template">
+    <li class="irc4-objective-item" data-obj-id="">
+      <span class="irc4-objective-label">a.</span>
+      <textarea
+        class="irc4-objective-input"
+        rows="1"
+        placeholder="Specific objective..."
+      ></textarea>
+      <button
+        type="button"
+        class="irc4-objective-remove"
+        title="Remove objective"
+      >
+        <i class="ti ti-x"></i>
+      </button>
+    </li>
+  </template>
+</section>
+
+<script src="{{ url_for('static', filename='js/irc4.js') }}"></script>
+
 {% endblock %}
