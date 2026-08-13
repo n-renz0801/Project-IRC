@@ -14,6 +14,29 @@
     "nov",
     "dec",
   ];
+  const MONTH_LABELS = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const QUARTER_KEYS = ["Q1", "Q2", "Q3", "Q4"];
+
+  // Shared plot geometry for the line charts — used both when placing
+  // data points and when placing the matching x-axis labels beneath them.
+  const CHART_PLOT_LEFT = 44;
+  const CHART_PLOT_RIGHT = 740;
+  const CHART_PLOT_TOP = 24;
+  const CHART_PLOT_BOTTOM = 166;
+  const CHART_X_LABEL_Y = 182;
 
   const tab = document.getElementById("irc2b-tab");
   if (!tab) return;
@@ -22,6 +45,10 @@
   // "months"   = current logic (1 point per checked month, max 12)
   // Global so both tables always show the same mode side by side.
   let totalDisplayMode = "quarters";
+
+  // "monthly" = 12-point line chart, "quarterly" = 4-point line chart.
+  // Global so both charts always show the same interval side by side.
+  let chartDisplayMode = "monthly";
 
   function getTable(section) {
     return document.getElementById(`irc2b-table-${section}`);
@@ -165,10 +192,9 @@
     return percent;
   }
 
-  // --- Per-table monthly line chart ---
-  // Counts how many schools in this section had TA checked in each
-  // of the 12 months (independent of the quarter/month total toggle
-  // above — this always shows monthly granularity).
+  // --- Per-table line chart: monthly or quarterly counts ---
+
+  // Schools with TA checked in each of the 12 months.
   function getMonthlyCounts(section) {
     const table = getTable(section);
     return MONTH_KEYS.map(
@@ -178,23 +204,35 @@
     );
   }
 
-  // Builds the path/area/points/value-label markup for the chart's
-  // dynamic <g> group. Plot coordinates match the static axis/gridline
-  // coordinates baked into the template's SVG skeleton.
-  function buildLineChartMarkup(section, counts, maxValue) {
-    const plotLeft = 44;
-    const plotRight = 740;
-    const plotTop = 24;
-    const plotBottom = 166;
-    const plotWidth = plotRight - plotLeft;
-    const plotHeight = plotBottom - plotTop;
-    const n = counts.length;
-    const step = plotWidth / (n - 1);
+  // Schools reached in each of the 4 quarters (any month within the
+  // quarter checked counts once) — same "reached" definition used by
+  // the footer's per-quarter totals, just recomputed here for the chart.
+  function getQuarterlyCounts(section) {
+    const table = getTable(section);
+    return QUARTER_KEYS.map((q) => {
+      const checked = table.querySelectorAll(
+        `input.irc2b-check[data-quarter="${q}"]:checked`,
+      );
+      const rowsReached = new Set(
+        Array.from(checked).map((cb) => cb.dataset.row),
+      );
+      return rowsReached.size;
+    });
+  }
 
-    const points = counts.map((val, i) => {
-      const x = plotLeft + i * step;
+  // Builds the path/area/points/value-label markup for the chart's
+  // data <g> group. Works for any number of points (12 for monthly,
+  // 4 for quarterly) since spacing is derived from values.length.
+  function buildLineDataMarkup(section, values, maxValue) {
+    const plotWidth = CHART_PLOT_RIGHT - CHART_PLOT_LEFT;
+    const plotHeight = CHART_PLOT_BOTTOM - CHART_PLOT_TOP;
+    const n = values.length;
+    const step = n > 1 ? plotWidth / (n - 1) : 0;
+
+    const points = values.map((val, i) => {
+      const x = CHART_PLOT_LEFT + i * step;
       const ratio = maxValue > 0 ? val / maxValue : 0;
-      const y = plotBottom - ratio * plotHeight;
+      const y = CHART_PLOT_BOTTOM - ratio * plotHeight;
       return { x, y, val };
     });
 
@@ -205,9 +243,9 @@
       .join(" ");
 
     const areaPath =
-      `M ${points[0].x.toFixed(1)},${plotBottom} ` +
+      `M ${points[0].x.toFixed(1)},${CHART_PLOT_BOTTOM} ` +
       points.map((p) => `L ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ") +
-      ` L ${points[n - 1].x.toFixed(1)},${plotBottom} Z`;
+      ` L ${points[n - 1].x.toFixed(1)},${CHART_PLOT_BOTTOM} Z`;
 
     const circles = points
       .map(
@@ -231,14 +269,61 @@
     );
   }
 
+  // Builds the x-axis label group to match whichever label set (months
+  // or quarters) is active — same x spacing formula as the data points.
+  function buildXAxisLabelMarkup(labels) {
+    const plotWidth = CHART_PLOT_RIGHT - CHART_PLOT_LEFT;
+    const n = labels.length;
+    const step = n > 1 ? plotWidth / (n - 1) : 0;
+
+    return labels
+      .map((label, i) => {
+        const x = CHART_PLOT_LEFT + i * step;
+        return `<text class="irc2b-linechart-x-label" x="${x.toFixed(1)}" y="${CHART_X_LABEL_Y}">${label}</text>`;
+      })
+      .join("");
+  }
+
   function updateLineChart(section) {
-    const group = document.getElementById(`irc2b-${section}-line-group`);
-    if (!group) return;
+    const lineGroup = document.getElementById(`irc2b-${section}-line-group`);
+    const xAxisGroup = document.getElementById(`irc2b-${section}-xaxis-group`);
+    const captionEl = document.querySelector(
+      `.irc2b-linechart-wrapper-${section} .irc2b-linechart-caption`,
+    );
+    if (!lineGroup || !xAxisGroup) return;
 
-    const counts = getMonthlyCounts(section);
     const totalSchools = getAllRowIndices(section).length;
+    const isQuarterly = chartDisplayMode === "quarterly";
 
-    group.innerHTML = buildLineChartMarkup(section, counts, totalSchools);
+    const values = isQuarterly
+      ? getQuarterlyCounts(section)
+      : getMonthlyCounts(section);
+    const labels = isQuarterly ? QUARTER_KEYS : MONTH_LABELS;
+
+    lineGroup.innerHTML = buildLineDataMarkup(section, values, totalSchools);
+    xAxisGroup.innerHTML = buildXAxisLabelMarkup(labels);
+
+    if (captionEl) {
+      captionEl.textContent = isQuarterly
+        ? "Schools reached with TA, per quarter"
+        : "Schools provided with TA, per month";
+    }
+  }
+
+  // Repaints the active/inactive state on every toggle button (both
+  // charts share chartDisplayMode, so both sets of buttons stay in sync).
+  function applyChartToggleButtons() {
+    document.querySelectorAll(".irc2b-chart-toggle-btn").forEach((btn) => {
+      const isActive = btn.dataset.chartMode === chartDisplayMode;
+      btn.classList.toggle("irc2b-chart-toggle-btn-active", isActive);
+    });
+  }
+
+  function setChartDisplayMode(mode) {
+    if (mode !== "monthly" && mode !== "quarterly") return;
+    chartDisplayMode = mode;
+    applyChartToggleButtons();
+    SECTIONS.forEach((section) => updateLineChart(section));
   }
 
   function updateDashboard() {
@@ -285,6 +370,14 @@
     header.addEventListener("click", toggleTotalDisplayMode);
   });
 
+  // --- Chart toggle buttons: Monthly <-> Quarterly ---
+  document.querySelectorAll(".irc2b-chart-toggle-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setChartDisplayMode(btn.dataset.chartMode);
+    });
+  });
+
   // --- Initial render ---
+  applyChartToggleButtons();
   updateDashboard();
 })();
