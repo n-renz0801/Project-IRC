@@ -6,6 +6,13 @@
   --irc4-accent-tint: #eef4fb;
   --irc4-border: #e0e0e0;
   --irc4-field-border: #e2e5ea;
+
+  /* Same level colors as IRC2a, so a school reads the same way on both
+     tabs regardless of which page you're looking at. */
+  --irc4-elementary: rgb(180, 83, 9);
+  --irc4-secondary: rgb(4, 120, 87);
+  --irc4-elementary-tint: rgba(180, 83, 9, 0.1);
+  --irc4-secondary-tint: rgba(4, 120, 87, 0.1);
 }
 
 .irc4-panel {
@@ -105,6 +112,35 @@
 .irc4-icon {
   display: block;
   flex-shrink: 0;
+}
+
+/* ---- level / DEDP badges -----------------------------------------------
+   Same visual language as IRC2a: a gold star "DEDP" pill by default, which
+   flips to a solid level color once it's sitting inside a level-coded row
+   (see the .irc4-school-row / .irc4-group-school-item overrides below). */
+
+.irc4-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.irc4-badge--dedp {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.irc4-badge--dedp::before {
+  content: "\2605"; /* star */
+  font-size: 9px;
 }
 
 /* ---- view/edit field pattern ------------------------------------------
@@ -426,26 +462,60 @@
   color: #991b1b;
 }
 
+/* Selected-school rows on the main page — deliberately the same visual
+   language as the modal's .irc4-school-row chips below (colored by level,
+   DEDP badge included), just without the remove button since this list is
+   read-only. */
 .irc4-group-view-list {
-  list-style: disc;
+  list-style: none;
   margin: 0;
-  padding-left: 20px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-}
-
-.irc4-group-view-list li {
-  font-size: 12.5px;
-  color: #333;
-  line-height: 1.5;
+  gap: 6px;
 }
 
 .irc4-group-view-empty {
-  list-style: none;
-  margin-left: -20px;
   color: #999;
   font-style: italic;
+  font-size: 12.5px;
+  padding: 4px 2px;
+}
+
+.irc4-group-school-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--irc4-field-border);
+  border-left: 3px solid var(--irc4-field-border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: #fafbfc;
+  font-size: 12.5px;
+  color: #333;
+  line-height: 1.4;
+}
+
+.irc4-group-school-item[data-level="elementary"] {
+  background: var(--irc4-elementary-tint);
+  border-color: rgba(180, 83, 9, 0.25);
+  border-left-color: var(--irc4-elementary);
+  color: #7a3c05;
+}
+
+.irc4-group-school-item[data-level="secondary"] {
+  background: var(--irc4-secondary-tint);
+  border-color: rgba(4, 120, 87, 0.25);
+  border-left-color: var(--irc4-secondary);
+  color: #036045;
+}
+
+.irc4-group-school-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .irc4-add-group-btn {
@@ -548,7 +618,10 @@
   margin-bottom: 6px;
 }
 
-/* ---- searchable school picker ------------------------------------------ */
+/* ---- searchable school picker / schedule combobox -----------------------
+   Both the school search and the Schedule of TA field share these classes
+   so they look and behave the same: click to browse the full dropdown,
+   or type to filter it down. ---------------------------------------------- */
 
 .irc4-school-search {
   position: relative;
@@ -564,6 +637,7 @@
   font-size: 12.5px;
   font-family: inherit;
   background: #fbfbfc;
+  cursor: text;
 }
 
 .irc4-school-search-input:focus {
@@ -616,22 +690,53 @@
   gap: 6px;
 }
 
+/* Base (unmatched/neutral) styling; level-specific colors below override
+   this once a school's level is known. */
 .irc4-school-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background: #eef4fb;
-  color: #185fa5;
-  border: 1px solid #cfe1f2;
+  border: 1px solid var(--irc4-field-border);
+  border-left: 3px solid var(--irc4-field-border);
   border-radius: 6px;
   padding: 7px 8px 7px 12px;
+  background: #fafbfc;
+  color: #333;
+}
+
+.irc4-school-row[data-level="elementary"] {
+  background: var(--irc4-elementary-tint);
+  border-color: rgba(180, 83, 9, 0.25);
+  border-left-color: var(--irc4-elementary);
+  color: #7a3c05;
+}
+
+.irc4-school-row[data-level="secondary"] {
+  background: var(--irc4-secondary-tint);
+  border-color: rgba(4, 120, 87, 0.25);
+  border-left-color: var(--irc4-secondary);
+  color: #036045;
+}
+
+/* DEDP badge takes on the row's level color, same as IRC2a. */
+.irc4-school-row[data-level="elementary"] .irc4-badge--dedp,
+.irc4-group-school-item[data-level="elementary"] .irc4-badge--dedp {
+  background: var(--irc4-elementary);
+  color: #fff;
+}
+
+.irc4-school-row[data-level="secondary"] .irc4-badge--dedp,
+.irc4-group-school-item[data-level="secondary"] .irc4-badge--dedp {
+  background: var(--irc4-secondary);
+  color: #fff;
 }
 
 .irc4-school-row-name {
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.4;
+  color: inherit;
 }
 
 .irc4-chip-remove {
@@ -649,7 +754,19 @@
   padding: 0;
 }
 
-.irc4-chip-remove:hover {
+.irc4-school-row[data-level="elementary"] .irc4-chip-remove {
+  background: rgba(180, 83, 9, 0.12);
+  color: var(--irc4-elementary);
+}
+
+.irc4-school-row[data-level="secondary"] .irc4-chip-remove {
+  background: rgba(4, 120, 87, 0.12);
+  color: var(--irc4-secondary);
+}
+
+.irc4-chip-remove:hover,
+.irc4-school-row[data-level="elementary"] .irc4-chip-remove:hover,
+.irc4-school-row[data-level="secondary"] .irc4-chip-remove:hover {
   background: rgba(153, 27, 27, 0.15);
   color: #991b1b;
 }

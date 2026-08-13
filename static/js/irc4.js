@@ -7,80 +7,112 @@
   const MAX_SUGGESTIONS = 8;
 
   // Same master school list used in IRC2a, kept in sync so a school name
-  // selected here matches what IRC2a already tracks. A school may be
-  // selected into more than one group (e.g. it receives TA in two
-  // different months) — no exclusivity here.
+  // selected here matches what IRC2a already tracks — including its level
+  // (elementary/secondary) and DEDP-priority status, which now drive this
+  // page's color-coding and badges too. A school may be selected into more
+  // than one group (e.g. it receives TA in two different months) — no
+  // exclusivity here.
   const SCHOOLS = [
-    "Antipolo City Senior High School",
-    "Antipolo City SPED Center",
-    "Antipolo National Science and Technology HS",
+    { name: "Antipolo City Senior High School", level: "secondary" },
+    { name: "Antipolo City SPED Center", level: "elementary" },
+    { name: "Antipolo National Science and Technology HS", level: "secondary" },
+    { name: "Antipolo NHS", level: "secondary" },
+    { name: "Apia Integrated School", level: "secondary" },
+    { name: "Bagong Nayon I ES", level: "elementary" },
+    { name: "Bagong Nayon II ES", level: "elementary" },
+    { name: "Bagong Nayon II NHS", level: "secondary" },
+    { name: "Bagong Nayon IV ES", level: "elementary" },
+    { name: "Binayoyo Integrated School", level: "secondary" },
+    { name: "Cabading ES", level: "elementary" },
+    { name: "Calawis ES", level: "elementary" },
+    { name: "Calawis NHS", level: "secondary" },
+    { name: "Canumay ES", level: "elementary" },
+    { name: "Canumay NHS", level: "secondary" },
+    { name: "Cupang ES", level: "elementary" },
+    { name: "Cupang ES Annex", level: "elementary" },
+    { name: "Cupang NHS", level: "secondary" },
+    { name: "Dalig ES", level: "elementary" },
+    { name: "Dalig NHS", level: "secondary" },
+    { name: "Dela Paz ES", level: "elementary" },
+    { name: "Dela Paz NHS", level: "secondary" },
+    { name: "Inuman ES", level: "elementary" },
+    { name: "Isaias S. Tapales ES", level: "elementary" },
+    { name: "Jesus S. Cabarrus ES", level: "elementary" },
+    { name: "Juan Sumulong ES", level: "elementary" },
+    { name: "Kaila ES", level: "elementary" },
+    { name: "Kaysakat ES", level: "elementary" },
+    { name: "Kaysakat NHS", level: "secondary" },
+    { name: "Knights of Columbus ES", level: "elementary" },
+    { name: "Libis ES", level: "elementary" },
+    { name: "Lores ES", level: "elementary" },
+    { name: "Mambugan I ES", level: "elementary" },
+    { name: "Mambugan II ES", level: "elementary" },
+    { name: "Mambugan NHS", level: "secondary" },
+    { name: "Marcelino M. Santos NHS", level: "secondary" },
+    { name: "Maximo L. Gatlabayan MNHS", level: "secondary" },
+    { name: "Mayamot ES", level: "elementary" },
+    { name: "Mayamot NHS", level: "secondary" },
+    { name: "Muntindilaw ES", level: "elementary" },
+    { name: "Muntindilaw NHS", level: "secondary" },
+    { name: "Nazarene Ville ES", level: "elementary" },
+    { name: "Old Boso-Boso ES", level: "elementary" },
+    { name: "Old Boso-Boso NHS", level: "secondary" },
+    { name: "Paglitaw ES", level: "elementary" },
+    { name: "Pantay ES", level: "elementary" },
+    { name: "Peace Village ES", level: "elementary" },
+    { name: "Peñafrancia ES", level: "elementary" },
+    { name: "Peñafrancia ES Annex", level: "elementary" },
+    { name: "Rizza ES", level: "elementary" },
+    { name: "Rizza NHS", level: "secondary" },
+    { name: "San Antonio Village ES", level: "elementary" },
+    { name: "San Isidro ES", level: "elementary" },
+    { name: "San Isidro NHS", level: "secondary" },
+    { name: "San Jose NHS", level: "secondary" },
+    { name: "San Joseph ES", level: "elementary" },
+    { name: "San Juan NHS", level: "secondary" },
+    { name: "San Luis ES", level: "elementary" },
+    { name: "San Roque NHS", level: "secondary" },
+    { name: "San Ysiro ES", level: "elementary" },
+    { name: "Sapinit ES", level: "elementary" },
+    { name: "Sta. Cruz ES", level: "elementary" },
+    { name: "Sumilang ES", level: "elementary" },
+    { name: "Taguete ES", level: "elementary" },
+    { name: "Tanza ES", level: "elementary" },
+    { name: "Teofila Z. Rovero MES", level: "elementary" },
+    { name: "Upper Kilingan ES", level: "elementary" },
+  ]
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // Schools tagged as DEDP Priority — identical set to IRC2a.
+  const DEDP_PRIORITY = new Set([
     "Antipolo NHS",
-    "Apia Integrated School",
     "Bagong Nayon I ES",
     "Bagong Nayon II ES",
     "Bagong Nayon II NHS",
     "Bagong Nayon IV ES",
-    "Binayoyo Integrated School",
-    "Cabading ES",
-    "Calawis ES",
-    "Calawis NHS",
-    "Canumay ES",
-    "Canumay NHS",
     "Cupang ES",
-    "Cupang ES Annex",
-    "Cupang NHS",
-    "Dalig ES",
     "Dalig NHS",
     "Dela Paz ES",
-    "Dela Paz NHS",
-    "Inuman ES",
-    "Isaias S. Tapales ES",
     "Jesus S. Cabarrus ES",
     "Juan Sumulong ES",
-    "Kaila ES",
     "Kaysakat ES",
-    "Kaysakat NHS",
-    "Knights of Columbus ES",
-    "Libis ES",
     "Lores ES",
     "Mambugan I ES",
     "Mambugan II ES",
     "Mambugan NHS",
-    "Marcelino M. Santos NHS",
     "Maximo L. Gatlabayan MNHS",
     "Mayamot ES",
-    "Mayamot NHS",
     "Muntindilaw ES",
-    "Muntindilaw NHS",
-    "Nazarene Ville ES",
-    "Old Boso-Boso ES",
-    "Old Boso-Boso NHS",
-    "Paglitaw ES",
-    "Pantay ES",
     "Peace Village ES",
     "Peñafrancia ES",
-    "Peñafrancia ES Annex",
     "Rizza ES",
-    "Rizza NHS",
     "San Antonio Village ES",
     "San Isidro ES",
     "San Isidro NHS",
     "San Jose NHS",
-    "San Joseph ES",
-    "San Juan NHS",
-    "San Luis ES",
-    "San Roque NHS",
-    "San Ysiro ES",
-    "Sapinit ES",
-    "Sta. Cruz ES",
-    "Sumilang ES",
-    "Taguete ES",
     "Tanza ES",
-    "Teofila Z. Rovero MES",
-    "Upper Kilingan ES",
-  ]
-    .slice()
-    .sort((a, b) => a.localeCompare(b));
+  ]);
 
   const MONTH_LABELS = {
     Jan: "January",
@@ -133,6 +165,21 @@
     return letter.repeat(repeat);
   }
 
+  function getSchoolMeta(name) {
+    return SCHOOLS.find((s) => s.name === name) || null;
+  }
+
+  function isDedpSchool(name) {
+    return DEDP_PRIORITY.has(name);
+  }
+
+  function monthEntries() {
+    return Object.keys(MONTH_LABELS).map((code) => ({
+      code,
+      label: MONTH_LABELS[code],
+    }));
+  }
+
   function cacheEls() {
     els.root = document.getElementById("irc4-tab");
 
@@ -167,7 +214,10 @@
     els.modalSchoolEmptyHint = document.getElementById(
       "irc4ModalSchoolEmptyHint",
     );
-    els.modalSchedule = document.getElementById("irc4ModalSchedule");
+    els.modalScheduleInput = document.getElementById("irc4ModalScheduleInput");
+    els.modalScheduleSuggestions = document.getElementById(
+      "irc4ModalScheduleSuggestions",
+    );
   }
 
   // Textareas are non-resizable (CSS: resize: none) and grow purely with
@@ -333,8 +383,23 @@
       list.appendChild(li);
     } else {
       group.schools.forEach((name) => {
+        const meta = getSchoolMeta(name);
         const li = document.createElement("li");
-        li.textContent = name;
+        li.className = "irc4-group-school-item";
+        if (meta) li.dataset.level = meta.level;
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "irc4-group-school-name";
+        nameSpan.textContent = name;
+        li.appendChild(nameSpan);
+
+        if (isDedpSchool(name)) {
+          const badge = document.createElement("span");
+          badge.className = "irc4-badge irc4-badge--dedp";
+          badge.textContent = "DEDP";
+          li.appendChild(badge);
+        }
+
         list.appendChild(li);
       });
     }
@@ -398,7 +463,19 @@
       const frag = els.chipTemplate.content.cloneNode(true);
       const row = frag.querySelector(".irc4-school-row");
       row.dataset.school = name;
+
+      const meta = getSchoolMeta(name);
+      if (meta) row.dataset.level = meta.level;
+
       row.querySelector(".irc4-school-row-name").textContent = name;
+
+      if (isDedpSchool(name)) {
+        const badge = document.createElement("span");
+        badge.className = "irc4-badge irc4-badge--dedp";
+        badge.textContent = "DEDP";
+        row.insertBefore(badge, row.querySelector(".irc4-chip-remove"));
+      }
+
       els.modalSchoolChips.appendChild(row);
     });
     els.modalSchoolEmptyHint.hidden = modalDraft.schools.length !== 0;
@@ -417,8 +494,9 @@
     }
 
     const matches = SCHOOLS.filter(
-      (name) =>
-        !modalDraft.schools.includes(name) && name.toLowerCase().includes(q),
+      (s) =>
+        !modalDraft.schools.includes(s.name) &&
+        s.name.toLowerCase().includes(q),
     ).slice(0, MAX_SUGGESTIONS);
 
     if (matches.length === 0) {
@@ -427,16 +505,16 @@
     }
 
     els.modalSchoolSuggestions.innerHTML = "";
-    matches.forEach((name) => {
+    matches.forEach((s) => {
       const item = document.createElement("button");
       item.type = "button";
       item.className = "irc4-school-suggestion-item";
-      item.textContent = name;
+      item.textContent = s.name;
       // mousedown + preventDefault so the search input never blurs before
       // the click is registered (avoids a focus/blur race condition).
       item.addEventListener("mousedown", (e) => {
         e.preventDefault();
-        addSchoolToDraft(name);
+        addSchoolToDraft(s.name);
       });
       els.modalSchoolSuggestions.appendChild(item);
     });
@@ -494,12 +572,125 @@
     setTimeout(hideSuggestions, 100);
   }
 
+  // ---- modal: schedule combobox ---------------------------------------
+  //
+  // Same interaction pattern as the school search above: clicking/focusing
+  // the field opens a dropdown of all twelve months so it can be picked
+  // with the mouse, and typing filters that list down (by name or 3-letter
+  // code) so it can be reached from the keyboard too.
+
+  function hideScheduleSuggestions() {
+    els.modalScheduleSuggestions.hidden = true;
+    els.modalScheduleSuggestions.innerHTML = "";
+  }
+
+  function renderScheduleSuggestions(query) {
+    const q = query.trim().toLowerCase();
+    const all = monthEntries();
+    const matches = q
+      ? all.filter(
+          (m) =>
+            m.label.toLowerCase().includes(q) ||
+            m.code.toLowerCase().includes(q),
+        )
+      : all;
+
+    if (matches.length === 0) {
+      hideScheduleSuggestions();
+      return;
+    }
+
+    els.modalScheduleSuggestions.innerHTML = "";
+    matches.forEach((m) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "irc4-school-suggestion-item";
+      item.textContent = m.label;
+      item.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        selectScheduleMonth(m.code);
+      });
+      els.modalScheduleSuggestions.appendChild(item);
+    });
+    els.modalScheduleSuggestions.hidden = false;
+  }
+
+  function selectScheduleMonth(code) {
+    modalDraft.schedule = code;
+    els.modalScheduleInput.value = MONTH_LABELS[code] || "";
+    hideScheduleSuggestions();
+    els.modalScheduleInput.focus();
+  }
+
+  // Reconciles whatever text is currently sitting in the input with a real
+  // month. The schedule is a fixed enum, so free text that doesn't match
+  // anything falls back to the last confirmed selection instead of being
+  // saved as-is.
+  function resolveScheduleInput() {
+    const typed = els.modalScheduleInput.value.trim().toLowerCase();
+
+    if (!typed) {
+      modalDraft.schedule = "";
+      els.modalScheduleInput.value = "";
+      return;
+    }
+
+    const match = monthEntries().find(
+      (m) => m.label.toLowerCase() === typed || m.code.toLowerCase() === typed,
+    );
+
+    if (match) {
+      modalDraft.schedule = match.code;
+      els.modalScheduleInput.value = match.label;
+    } else {
+      els.modalScheduleInput.value = MONTH_LABELS[modalDraft.schedule] || "";
+    }
+  }
+
+  function onModalScheduleInput(e) {
+    renderScheduleSuggestions(e.target.value);
+  }
+
+  function onModalScheduleFocus(e) {
+    renderScheduleSuggestions(e.target.value);
+  }
+
+  function onModalScheduleKeydown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const firstItem = els.modalScheduleSuggestions.querySelector(
+        ".irc4-school-suggestion-item",
+      );
+      if (firstItem) {
+        const match = monthEntries().find(
+          (m) => m.label === firstItem.textContent,
+        );
+        if (match) selectScheduleMonth(match.code);
+      } else {
+        resolveScheduleInput();
+        hideScheduleSuggestions();
+      }
+    } else if (e.key === "Escape") {
+      hideScheduleSuggestions();
+    }
+  }
+
+  function onModalScheduleBlur() {
+    // Same delay trick as the school search: let a mousedown-triggered
+    // suggestion click land before the dropdown disappears.
+    setTimeout(() => {
+      resolveScheduleInput();
+      hideScheduleSuggestions();
+    }, 100);
+  }
+
   // ---- modal: open / close / save -------------------------------------
 
   function openModal() {
     els.modalSchoolSearch.value = "";
     hideSuggestions();
-    els.modalSchedule.value = modalDraft.schedule;
+    els.modalScheduleInput.value = MONTH_LABELS[modalDraft.schedule] || "";
+    hideScheduleSuggestions();
     renderModalChips();
     els.modal.style.display = "flex";
     els.modalSchoolSearch.focus();
@@ -528,10 +719,13 @@
   function closeModal() {
     els.modal.style.display = "none";
     hideSuggestions();
+    hideScheduleSuggestions();
   }
 
   function saveModal() {
-    modalDraft.schedule = els.modalSchedule.value;
+    // Resolve any schedule text the user typed but never blurred out of
+    // (e.g. they typed a month then clicked Save directly).
+    resolveScheduleInput();
 
     if (modalDraft.editingGroupId) {
       const group = findGroup(modalDraft.editingGroupId);
@@ -590,6 +784,11 @@
     );
     els.modalSchoolSearch.addEventListener("focus", onModalSchoolSearchFocus);
     els.modalSchoolSearch.addEventListener("blur", onModalSchoolSearchBlur);
+
+    els.modalScheduleInput.addEventListener("input", onModalScheduleInput);
+    els.modalScheduleInput.addEventListener("keydown", onModalScheduleKeydown);
+    els.modalScheduleInput.addEventListener("focus", onModalScheduleFocus);
+    els.modalScheduleInput.addEventListener("blur", onModalScheduleBlur);
 
     // Start with the recommended minimum of three objective fields.
     // Groups start empty — the user adds the first one via the modal.
