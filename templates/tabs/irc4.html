@@ -406,21 +406,23 @@ block content %}
 
         <div class="irc4-group-schedule">
           <label class="irc4-group-sublabel">Schedule of TA</label>
-          <select class="irc4-select" id="irc4ModalSchedule">
-            <option value="">Select month&hellip;</option>
-            <option value="Jan">January</option>
-            <option value="Feb">February</option>
-            <option value="Mar">March</option>
-            <option value="Apr">April</option>
-            <option value="May">May</option>
-            <option value="Jun">June</option>
-            <option value="Jul">July</option>
-            <option value="Aug">August</option>
-            <option value="Sep">September</option>
-            <option value="Oct">October</option>
-            <option value="Nov">November</option>
-            <option value="Dec">December</option>
-          </select>
+          <!-- Combobox: click to browse all months in the dropdown, or type
+               to filter/jump to one — same interaction pattern as the
+               school search above. -->
+          <div class="irc4-school-search">
+            <input
+              type="text"
+              class="irc4-school-search-input"
+              id="irc4ModalScheduleInput"
+              placeholder="Type or click to select a month&hellip;"
+              autocomplete="off"
+            />
+            <div
+              class="irc4-school-suggestions"
+              id="irc4ModalScheduleSuggestions"
+              hidden
+            ></div>
+          </div>
         </div>
       </div>
 
