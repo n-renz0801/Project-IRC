@@ -105,12 +105,90 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
       <p class="irc2b-subtitle">
         Check the box for every month a school was provided with Technical
         Assistance.
-        <!-- Months are grouped by quarter — a school counts toward the 
-        Total only once per quarter, no matter how many months within that
-        quarter it was checked. The bottom row tallies how many schools were
-        reached each quarter, and how many schools were reached in at least 2
-        quarters for the year.-->
       </p>
+    </div>
+  </div>
+
+  <div class="irc2b-dashboard">
+    <div class="irc2b-stat-card irc2b-stat-card-elementary">
+      <div class="irc2b-stat-icon-ghost">
+        <i class="ti ti-building-community" aria-hidden="true"></i>
+      </div>
+      <div class="irc2b-stat-header">
+        <div class="irc2b-stat-icon-badge">
+          <i class="ti ti-building-community" aria-hidden="true"></i>
+        </div>
+        <span class="irc2b-stat-label">Elementary</span>
+      </div>
+      <span class="irc2b-stat-percent-big" id="irc2b-elementary-percent"
+        >0%</span
+      >
+      <span class="irc2b-stat-caption">
+        <span id="irc2b-elementary-count">0</span> of {{
+        elementary_schools|length }} schools
+      </span>
+    </div>
+
+    <div class="irc2b-stat-card irc2b-stat-card-secondary">
+      <div class="irc2b-stat-icon-ghost">
+        <i class="ti ti-school" aria-hidden="true"></i>
+      </div>
+      <div class="irc2b-stat-header">
+        <div class="irc2b-stat-icon-badge">
+          <i class="ti ti-school" aria-hidden="true"></i>
+        </div>
+        <span class="irc2b-stat-label">Secondary</span>
+      </div>
+      <span class="irc2b-stat-percent-big" id="irc2b-secondary-percent"
+        >0%</span
+      >
+      <span class="irc2b-stat-caption">
+        <span id="irc2b-secondary-count">0</span> of {{ secondary_schools|length
+        }} schools
+      </span>
+    </div>
+
+    <div class="irc2b-dashboard-chart-section">
+      <h3>Elementary vs Secondary</h3>
+      <div class="irc2b-dashboard-chart">
+        <div class="irc2b-dashboard-chart-col">
+          <span
+            class="irc2b-dashboard-chart-val irc2b-dashboard-chart-val-elementary"
+            id="irc2b-elementary-bar-val"
+            >0%</span
+          >
+          <div class="irc2b-dashboard-chart-bar-track">
+            <div
+              class="irc2b-dashboard-chart-bar irc2b-bar-elementary"
+              id="irc2b-elementary-bar"
+              style="height: 0%"
+            ></div>
+          </div>
+          <span
+            class="irc2b-dashboard-chart-label irc2b-dashboard-chart-label-elementary"
+            ><i class="ti ti-building-community" aria-hidden="true"></i>
+            Elementary</span
+          >
+        </div>
+        <div class="irc2b-dashboard-chart-col">
+          <span
+            class="irc2b-dashboard-chart-val irc2b-dashboard-chart-val-secondary"
+            id="irc2b-secondary-bar-val"
+            >0%</span
+          >
+          <div class="irc2b-dashboard-chart-bar-track">
+            <div
+              class="irc2b-dashboard-chart-bar irc2b-bar-secondary"
+              id="irc2b-secondary-bar"
+              style="height: 0%"
+            ></div>
+          </div>
+          <span
+            class="irc2b-dashboard-chart-label irc2b-dashboard-chart-label-secondary"
+            ><i class="ti ti-school" aria-hidden="true"></i> Secondary</span
+          >
+        </div>
+      </div>
     </div>
   </div>
 
