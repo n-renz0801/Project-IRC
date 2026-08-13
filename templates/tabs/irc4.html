@@ -23,12 +23,47 @@ block content %}
           >(Specify the activity and project title)</span
         ></label
       >
-      <textarea
-        class="irc4-textarea"
-        id="irc4Activity"
-        rows="3"
-        placeholder="Describe the activity and project title..."
-      ></textarea>
+      <div class="irc4-field" id="irc4ActivityField">
+        <div class="irc4-field-view" data-role="view">
+          <p
+            class="irc4-field-text"
+            data-role="text"
+            data-placeholder="Describe the activity and project title..."
+          >
+            Describe the activity and project title...
+          </p>
+          <button
+            type="button"
+            class="irc4-field-edit-btn"
+            data-role="edit-btn"
+            title="Edit"
+          >
+            <svg
+              class="irc4-icon"
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+              ></path>
+            </svg>
+          </button>
+        </div>
+        <textarea
+          class="irc4-textarea"
+          id="irc4Activity"
+          data-role="input"
+          rows="3"
+          placeholder="Describe the activity and project title..."
+          hidden
+        ></textarea>
+      </div>
     </div>
 
     <!-- 2. Objectives -->
@@ -45,7 +80,21 @@ block content %}
         class="irc4-add-objective-btn"
         id="irc4AddObjectiveBtn"
       >
-        <i class="ti ti-plus"></i> Add Objective
+        <svg
+          class="irc4-icon"
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add Objective
       </button>
       <p class="irc4-objectives-warning" id="irc4ObjectivesWarning" hidden>
         At least three objectives are recommended.
@@ -57,9 +106,8 @@ block content %}
       <label class="irc4-label irc4-label--zone"
         >3. School &amp; 4. Schedule of TA
         <span class="irc4-hint"
-          >(Select the schools to be provided with TA, then set their schedule.
-          Add another group for a different set of schools and month. A school
-          may appear in more than one group.)</span
+          >(Add a group, select the schools to be provided with TA, and set
+          their schedule. A school may appear in more than one group.)</span
         ></label
       >
 
@@ -71,7 +119,21 @@ block content %}
       </p>
 
       <button type="button" class="irc4-add-group-btn" id="irc4AddGroupBtn">
-        <i class="ti ti-plus"></i> Add Group
+        <svg
+          class="irc4-icon"
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add Group
       </button>
     </div>
 
@@ -83,12 +145,47 @@ block content %}
           >(Identify the individuals who will be provided with TA)</span
         ></label
       >
-      <textarea
-        class="irc4-textarea"
-        id="irc4TaReceiver"
-        rows="3"
-        placeholder="Names / positions of the TA receivers..."
-      ></textarea>
+      <div class="irc4-field" id="irc4TaReceiverField">
+        <div class="irc4-field-view" data-role="view">
+          <p
+            class="irc4-field-text"
+            data-role="text"
+            data-placeholder="Names / positions of the TA receivers..."
+          >
+            Names / positions of the TA receivers...
+          </p>
+          <button
+            type="button"
+            class="irc4-field-edit-btn"
+            data-role="edit-btn"
+            title="Edit"
+          >
+            <svg
+              class="irc4-icon"
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+              ></path>
+            </svg>
+          </button>
+        </div>
+        <textarea
+          class="irc4-textarea"
+          id="irc4TaReceiver"
+          data-role="input"
+          rows="3"
+          placeholder="Names / positions of the TA receivers..."
+          hidden
+        ></textarea>
+      </div>
     </div>
 
     <div class="irc4-card irc4-card--movs">
@@ -96,12 +193,47 @@ block content %}
         >6. MOV&rsquo;s
         <span class="irc4-hint">(List down the evidences)</span></label
       >
-      <textarea
-        class="irc4-textarea"
-        id="irc4Movs"
-        rows="3"
-        placeholder="Means of verification..."
-      ></textarea>
+      <div class="irc4-field" id="irc4MovsField">
+        <div class="irc4-field-view" data-role="view">
+          <p
+            class="irc4-field-text"
+            data-role="text"
+            data-placeholder="Means of verification..."
+          >
+            Means of verification...
+          </p>
+          <button
+            type="button"
+            class="irc4-field-edit-btn"
+            data-role="edit-btn"
+            title="Edit"
+          >
+            <svg
+              class="irc4-icon"
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+              ></path>
+            </svg>
+          </button>
+        </div>
+        <textarea
+          class="irc4-textarea"
+          id="irc4Movs"
+          data-role="input"
+          rows="3"
+          placeholder="Means of verification..."
+          hidden
+        ></textarea>
+      </div>
     </div>
   </div>
 
@@ -109,52 +241,172 @@ block content %}
   <template id="irc4-objective-template">
     <li class="irc4-objective-item" data-obj-id="">
       <span class="irc4-objective-label">a.</span>
-      <textarea
-        class="irc4-objective-input"
-        rows="1"
-        placeholder="Specific objective..."
-      ></textarea>
+      <div class="irc4-field irc4-objective-field">
+        <div class="irc4-field-view" data-role="view">
+          <p
+            class="irc4-field-text"
+            data-role="text"
+            data-placeholder="Specific objective..."
+          >
+            Specific objective...
+          </p>
+          <button
+            type="button"
+            class="irc4-field-edit-btn"
+            data-role="edit-btn"
+            title="Edit"
+          >
+            <svg
+              class="irc4-icon"
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+              ></path>
+            </svg>
+          </button>
+        </div>
+        <textarea
+          class="irc4-objective-input"
+          data-role="input"
+          rows="1"
+          placeholder="Specific objective..."
+          hidden
+        ></textarea>
+      </div>
       <button
         type="button"
         class="irc4-objective-remove"
         title="Remove objective"
       >
-        <i class="ti ti-x"></i>
+        <svg
+          class="irc4-icon"
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+          <path d="M10 11v6"></path>
+          <path d="M14 11v6"></path>
+          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
       </button>
     </li>
   </template>
 
-  <!-- Reusable template for a School + Schedule group -->
-  <template id="irc4-group-template">
-    <div class="irc4-group" data-group-id="">
-      <button type="button" class="irc4-group-remove" title="Remove this group">
-        <i class="ti ti-x"></i>
-      </button>
+  <!-- Reusable template for a read-only group card shown on the page -->
+  <template id="irc4-group-view-template">
+    <div class="irc4-group-view" data-group-id="">
+      <div class="irc4-group-view-header">
+        <span class="irc4-group-view-title" data-role="title"
+          >No month selected</span
+        >
+        <div class="irc4-group-view-actions">
+          <button
+            type="button"
+            class="irc4-group-edit-btn"
+            title="Edit this group"
+          >
+            <svg
+              class="irc4-icon"
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+              ></path>
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="irc4-group-delete-btn"
+            title="Delete this group"
+          >
+            <svg
+              class="irc4-icon"
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              <path d="M10 11v6"></path>
+              <path d="M14 11v6"></path>
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <ul class="irc4-group-view-list" data-role="school-list"></ul>
+    </div>
+  </template>
 
-      <div class="irc4-group-body">
+  <!-- Add/Edit Group modal -->
+  <div id="irc4GroupModal" class="irc4-modal" style="display: none">
+    <div class="irc4-modal-overlay" id="irc4ModalOverlay"></div>
+    <div class="irc4-modal-content">
+      <div class="irc4-modal-header">
+        <h3 id="irc4ModalTitle">Add Group</h3>
+        <button
+          type="button"
+          class="irc4-modal-close"
+          id="irc4ModalClose"
+          aria-label="Close"
+        >
+          &times;
+        </button>
+      </div>
+
+      <div class="irc4-modal-body">
         <div class="irc4-group-schools">
           <label class="irc4-group-sublabel">Schools</label>
-          <div class="irc4-school-picker">
-            <select class="irc4-school-select" data-role="school-select">
-              <option value="">Select a school&hellip;</option>
-            </select>
-            <button
-              type="button"
-              class="irc4-school-add-btn"
-              data-role="school-add"
-            >
-              <i class="ti ti-plus"></i> Add
-            </button>
+          <div class="irc4-school-search">
+            <input
+              type="text"
+              class="irc4-school-search-input"
+              id="irc4ModalSchoolSearch"
+              placeholder="Type to search schools&hellip;"
+              autocomplete="off"
+            />
+            <div
+              class="irc4-school-suggestions"
+              id="irc4ModalSchoolSuggestions"
+              hidden
+            ></div>
           </div>
-          <div class="irc4-school-chips" data-role="school-chips"></div>
-          <p class="irc4-group-empty-hint" data-role="school-empty-hint">
+          <div class="irc4-school-list" id="irc4ModalSchoolChips"></div>
+          <p class="irc4-group-empty-hint" id="irc4ModalSchoolEmptyHint">
             No schools added yet.
           </p>
         </div>
 
         <div class="irc4-group-schedule">
           <label class="irc4-group-sublabel">Schedule of TA</label>
-          <select class="irc4-select" data-role="schedule-select">
+          <select class="irc4-select" id="irc4ModalSchedule">
             <option value="">Select month&hellip;</option>
             <option value="Jan">January</option>
             <option value="Feb">February</option>
@@ -171,17 +423,50 @@ block content %}
           </select>
         </div>
       </div>
-    </div>
-  </template>
 
-  <!-- Reusable template for a school chip -->
+      <div class="irc4-modal-footer">
+        <button
+          type="button"
+          class="irc4-modal-btn irc4-modal-btn-cancel"
+          id="irc4ModalCancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="irc4-modal-btn irc4-modal-btn-save"
+          id="irc4ModalSave"
+        >
+          Save Group
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reusable template for a school row (used inside the modal) -->
   <template id="irc4-chip-template">
-    <span class="irc4-school-chip" data-school="">
-      <span class="irc4-school-chip-name"></span>
+    <div class="irc4-school-row" data-school="">
+      <span class="irc4-school-row-name"></span>
       <button type="button" class="irc4-chip-remove" title="Remove">
-        &times;
+        <svg
+          class="irc4-icon"
+          viewBox="0 0 24 24"
+          width="13"
+          height="13"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+          <path d="M10 11v6"></path>
+          <path d="M14 11v6"></path>
+          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
       </button>
-    </span>
+    </div>
   </template>
 </section>
 

@@ -4,11 +4,12 @@
   "use strict";
 
   const MIN_OBJECTIVES = 3;
+  const MAX_SUGGESTIONS = 8;
 
   // Same master school list used in IRC2a, kept in sync so a school name
-  // selected here matches what IRC2a already tracks. Only the name is
-  // needed on this tab. A school may be selected into more than one group
-  // (e.g. it receives TA in two different months) — no exclusivity here.
+  // selected here matches what IRC2a already tracks. A school may be
+  // selected into more than one group (e.g. it receives TA in two
+  // different months) — no exclusivity here.
   const SCHOOLS = [
     "Antipolo City Senior High School",
     "Antipolo City SPED Center",
@@ -81,6 +82,21 @@
     .slice()
     .sort((a, b) => a.localeCompare(b));
 
+  const MONTH_LABELS = {
+    Jan: "January",
+    Feb: "February",
+    Mar: "March",
+    Apr: "April",
+    May: "May",
+    Jun: "June",
+    Jul: "July",
+    Aug: "August",
+    Sep: "September",
+    Oct: "October",
+    Nov: "November",
+    Dec: "December",
+  };
+
   /**
    * Single-activity state (only one activity per plan).
    * {
@@ -99,6 +115,10 @@
     movs: "",
   };
 
+  // Working copy edited inside the modal; only committed to `data.groups`
+  // on Save. `editingGroupId` is null while adding a brand-new group.
+  let modalDraft = { editingGroupId: null, schools: [], schedule: "" };
+
   let uidCounter = 0;
   const els = {};
 
@@ -116,9 +136,9 @@
   function cacheEls() {
     els.root = document.getElementById("irc4-tab");
 
-    els.activity = document.getElementById("irc4Activity");
-    els.taReceiver = document.getElementById("irc4TaReceiver");
-    els.movs = document.getElementById("irc4Movs");
+    els.activityField = document.getElementById("irc4ActivityField");
+    els.taReceiverField = document.getElementById("irc4TaReceiverField");
+    els.movsField = document.getElementById("irc4MovsField");
 
     els.objectivesList = document.getElementById("irc4ObjectivesList");
     els.addObjectiveBtn = document.getElementById("irc4AddObjectiveBtn");
@@ -129,13 +149,95 @@
     els.addGroupBtn = document.getElementById("irc4AddGroupBtn");
 
     els.objectiveTemplate = document.getElementById("irc4-objective-template");
-    els.groupTemplate = document.getElementById("irc4-group-template");
+    els.groupViewTemplate = document.getElementById("irc4-group-view-template");
     els.chipTemplate = document.getElementById("irc4-chip-template");
+
+    // Modal
+    els.modal = document.getElementById("irc4GroupModal");
+    els.modalOverlay = document.getElementById("irc4ModalOverlay");
+    els.modalTitle = document.getElementById("irc4ModalTitle");
+    els.modalClose = document.getElementById("irc4ModalClose");
+    els.modalCancel = document.getElementById("irc4ModalCancel");
+    els.modalSave = document.getElementById("irc4ModalSave");
+    els.modalSchoolSearch = document.getElementById("irc4ModalSchoolSearch");
+    els.modalSchoolSuggestions = document.getElementById(
+      "irc4ModalSchoolSuggestions",
+    );
+    els.modalSchoolChips = document.getElementById("irc4ModalSchoolChips");
+    els.modalSchoolEmptyHint = document.getElementById(
+      "irc4ModalSchoolEmptyHint",
+    );
+    els.modalSchedule = document.getElementById("irc4ModalSchedule");
   }
 
+  // Textareas are non-resizable (CSS: resize: none) and grow purely with
+  // their content, so there is never a manual drag handle. Safe to call on
+  // any textarea at any time — it just measures and re-applies height.
   function autoGrow(textarea) {
+    if (!textarea) return;
     textarea.style.height = "auto";
     textarea.style.height = `${textarea.scrollHeight}px`;
+  }
+
+  // ============================================================
+  // Generic view/edit field toggle
+  //
+  // Every text field (Activity, each Objective, TA Receiver, MOV's) is
+  // built the same way in the HTML:
+  //   .irc4-field
+  //     .irc4-field-view              (visible by default)
+  //       p[data-role="text"]
+  //       button[data-role="edit-btn"]
+  //     textarea[data-role="input"]   (hidden by default)
+  //
+  // Clicking the edit button swaps to the textarea; blurring the textarea
+  // commits the value back into plain, non-clickable text.
+  // ============================================================
+
+  function initEditableField(fieldEl, initialValue, onChange) {
+    const viewEl = fieldEl.querySelector(".irc4-field-view");
+    const textEl = fieldEl.querySelector('[data-role="text"]');
+    const editBtn = fieldEl.querySelector('[data-role="edit-btn"]');
+    const inputEl = fieldEl.querySelector('[data-role="input"]');
+    const placeholder = textEl.dataset.placeholder || "";
+
+    function refreshView() {
+      const val = inputEl.value;
+      if (val.trim()) {
+        textEl.textContent = val;
+        textEl.classList.remove("is-placeholder");
+      } else {
+        textEl.textContent = placeholder;
+        textEl.classList.add("is-placeholder");
+      }
+    }
+
+    function enterEdit() {
+      viewEl.hidden = true;
+      inputEl.hidden = false;
+      autoGrow(inputEl);
+      inputEl.focus();
+      const len = inputEl.value.length;
+      inputEl.setSelectionRange(len, len);
+    }
+
+    function exitEdit() {
+      inputEl.hidden = true;
+      viewEl.hidden = false;
+      refreshView();
+    }
+
+    inputEl.value = initialValue || "";
+    refreshView();
+
+    editBtn.addEventListener("click", enterEdit);
+    inputEl.addEventListener("input", () => {
+      autoGrow(inputEl);
+      if (onChange) onChange(inputEl.value);
+    });
+    inputEl.addEventListener("blur", exitEdit);
+
+    return { refreshView, enterEdit, exitEdit };
   }
 
   // ============================================================
@@ -159,7 +261,12 @@
     const frag = els.objectiveTemplate.content.cloneNode(true);
     const li = frag.querySelector(".irc4-objective-item");
     li.dataset.objId = obj.id;
-    li.querySelector(".irc4-objective-input").value = obj.text;
+
+    const fieldEl = li.querySelector(".irc4-field");
+    initEditableField(fieldEl, obj.text, (val) => {
+      obj.text = val;
+    });
+
     return li;
   }
 
@@ -171,9 +278,6 @@
     els.objectivesList.appendChild(li);
     relabelObjectives();
     updateObjectivesWarning();
-
-    const textarea = li.querySelector(".irc4-objective-input");
-    if (textarea) textarea.focus();
   }
 
   function removeObjective(objId) {
@@ -197,81 +301,57 @@
     if (li) removeObjective(li.dataset.objId);
   }
 
-  function onObjectivesInput(e) {
-    const input = e.target.closest(".irc4-objective-input");
-    if (!input) return;
-    const li = input.closest(".irc4-objective-item");
-    const obj = data.objectives.find((o) => o.id === li.dataset.objId);
-    if (obj) obj.text = input.value;
-    autoGrow(input);
-  }
-
   // ============================================================
-  // School + Schedule groups (no exclusivity — a school may be picked
-  // into more than one group; groups are unlabeled, only removable)
+  // School + Schedule groups — read-only cards on the page, all editing
+  // happens through the Add/Edit Group modal.
   // ============================================================
-
-  function populateSchoolSelect(select) {
-    select.innerHTML = "";
-
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "Select a school\u2026";
-    select.appendChild(placeholder);
-
-    SCHOOLS.forEach((name) => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      select.appendChild(opt);
-    });
-  }
 
   function updateGroupsEmptyState() {
     els.groupsEmpty.hidden = data.groups.length !== 0;
   }
 
-  function buildChipNode(schoolName) {
-    const frag = els.chipTemplate.content.cloneNode(true);
-    const chip = frag.querySelector(".irc4-school-chip");
-    chip.dataset.school = schoolName;
-    chip.querySelector(".irc4-school-chip-name").textContent = schoolName;
-    return chip;
+  function groupTitle(group) {
+    if (!group.schedule) return "No month selected";
+    return `${MONTH_LABELS[group.schedule] || group.schedule} Schedule`;
   }
 
-  function updateGroupSchoolsUI(card, group) {
-    const chipsContainer = card.querySelector('[data-role="school-chips"]');
-    const emptyHint = card.querySelector('[data-role="school-empty-hint"]');
-
-    chipsContainer.innerHTML = "";
-    group.schools.forEach((name) => {
-      chipsContainer.appendChild(buildChipNode(name));
-    });
-    emptyHint.hidden = group.schools.length !== 0;
-  }
-
-  function buildGroupNode(group) {
-    const frag = els.groupTemplate.content.cloneNode(true);
-    const card = frag.querySelector(".irc4-group");
+  function buildGroupViewNode(group) {
+    const frag = els.groupViewTemplate.content.cloneNode(true);
+    const card = frag.querySelector(".irc4-group-view");
     card.dataset.groupId = group.id;
 
-    const select = card.querySelector('[data-role="school-select"]');
-    populateSchoolSelect(select);
+    const title = card.querySelector('[data-role="title"]');
+    title.textContent = groupTitle(group);
+    title.classList.toggle("is-unset", !group.schedule);
 
-    card.querySelector('[data-role="schedule-select"]').value = group.schedule;
-    updateGroupSchoolsUI(card, group);
+    const list = card.querySelector('[data-role="school-list"]');
+    list.innerHTML = "";
+    if (group.schools.length === 0) {
+      const li = document.createElement("li");
+      li.className = "irc4-group-view-empty";
+      li.textContent = "No schools selected";
+      list.appendChild(li);
+    } else {
+      group.schools.forEach((name) => {
+        const li = document.createElement("li");
+        li.textContent = name;
+        list.appendChild(li);
+      });
+    }
+
     return card;
   }
 
-  function addGroup() {
-    const group = { id: genId("group"), schools: [], schedule: "" };
-    data.groups.push(group);
-
-    const node = buildGroupNode(group);
-    els.groupsList.appendChild(node);
-
-    updateGroupsEmptyState();
-    node.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  function renderGroupView(group) {
+    const existing = els.groupsList.querySelector(
+      `.irc4-group-view[data-group-id="${CSS.escape(group.id)}"]`,
+    );
+    const node = buildGroupViewNode(group);
+    if (existing) {
+      existing.replaceWith(node);
+    } else {
+      els.groupsList.appendChild(node);
+    }
   }
 
   function removeGroup(groupId) {
@@ -280,7 +360,7 @@
     data.groups.splice(idx, 1);
 
     const card = els.groupsList.querySelector(
-      `.irc4-group[data-group-id="${CSS.escape(groupId)}"]`,
+      `.irc4-group-view[data-group-id="${CSS.escape(groupId)}"]`,
     );
     if (card) card.remove();
 
@@ -291,90 +371,187 @@
     return data.groups.find((g) => g.id === groupId) || null;
   }
 
-  function addSchoolToGroup(groupId) {
-    const group = findGroup(groupId);
-    if (!group) return;
-
-    const card = els.groupsList.querySelector(
-      `.irc4-group[data-group-id="${CSS.escape(groupId)}"]`,
-    );
-    if (!card) return;
-
-    const select = card.querySelector('[data-role="school-select"]');
-    const schoolName = select.value;
-    if (!schoolName) return; // nothing chosen
-
-    // Same school can be added more than once across groups, but not
-    // duplicated twice within the SAME group.
-    if (!group.schools.includes(schoolName)) {
-      group.schools.push(schoolName);
-    }
-
-    select.value = "";
-    updateGroupSchoolsUI(card, group);
-  }
-
-  function removeSchoolFromGroup(groupId, schoolName) {
-    const group = findGroup(groupId);
-    if (!group) return;
-
-    const idx = group.schools.indexOf(schoolName);
-    if (idx === -1) return;
-    group.schools.splice(idx, 1);
-
-    const card = els.groupsList.querySelector(
-      `.irc4-group[data-group-id="${CSS.escape(groupId)}"]`,
-    );
-    if (card) updateGroupSchoolsUI(card, group);
-  }
-
   function onGroupsClick(e) {
-    const removeGroupBtn = e.target.closest(".irc4-group-remove");
-    if (removeGroupBtn) {
-      const card = removeGroupBtn.closest(".irc4-group");
+    const deleteBtn = e.target.closest(".irc4-group-delete-btn");
+    if (deleteBtn) {
+      const card = deleteBtn.closest(".irc4-group-view");
       if (!card) return;
-      if (confirm("Remove this group and its selected schools?")) {
+      if (confirm("Delete this group and its selected schools?")) {
         removeGroup(card.dataset.groupId);
       }
       return;
     }
 
-    const addSchoolBtn = e.target.closest('[data-role="school-add"]');
-    if (addSchoolBtn) {
-      const card = addSchoolBtn.closest(".irc4-group");
-      if (card) addSchoolToGroup(card.dataset.groupId);
+    const editBtn = e.target.closest(".irc4-group-edit-btn");
+    if (editBtn) {
+      const card = editBtn.closest(".irc4-group-view");
+      if (card) openEditGroupModal(card.dataset.groupId);
+      return;
+    }
+  }
+
+  // ---- modal: school search + selected list --------------------------
+
+  function renderModalChips() {
+    els.modalSchoolChips.innerHTML = "";
+    modalDraft.schools.forEach((name) => {
+      const frag = els.chipTemplate.content.cloneNode(true);
+      const row = frag.querySelector(".irc4-school-row");
+      row.dataset.school = name;
+      row.querySelector(".irc4-school-row-name").textContent = name;
+      els.modalSchoolChips.appendChild(row);
+    });
+    els.modalSchoolEmptyHint.hidden = modalDraft.schools.length !== 0;
+  }
+
+  function hideSuggestions() {
+    els.modalSchoolSuggestions.hidden = true;
+    els.modalSchoolSuggestions.innerHTML = "";
+  }
+
+  function renderSuggestions(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      hideSuggestions();
       return;
     }
 
-    const chipRemoveBtn = e.target.closest(".irc4-chip-remove");
-    if (chipRemoveBtn) {
-      const card = chipRemoveBtn.closest(".irc4-group");
-      const chip = chipRemoveBtn.closest(".irc4-school-chip");
-      if (card && chip) {
-        removeSchoolFromGroup(card.dataset.groupId, chip.dataset.school);
+    const matches = SCHOOLS.filter(
+      (name) =>
+        !modalDraft.schools.includes(name) && name.toLowerCase().includes(q),
+    ).slice(0, MAX_SUGGESTIONS);
+
+    if (matches.length === 0) {
+      hideSuggestions();
+      return;
+    }
+
+    els.modalSchoolSuggestions.innerHTML = "";
+    matches.forEach((name) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "irc4-school-suggestion-item";
+      item.textContent = name;
+      // mousedown + preventDefault so the search input never blurs before
+      // the click is registered (avoids a focus/blur race condition).
+      item.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        addSchoolToDraft(name);
+      });
+      els.modalSchoolSuggestions.appendChild(item);
+    });
+    els.modalSchoolSuggestions.hidden = false;
+  }
+
+  function addSchoolToDraft(name) {
+    if (!name) return;
+    if (!modalDraft.schools.includes(name)) {
+      modalDraft.schools.push(name);
+    }
+    els.modalSchoolSearch.value = "";
+    hideSuggestions();
+    renderModalChips();
+    els.modalSchoolSearch.focus();
+  }
+
+  function removeSchoolFromDraft(name) {
+    const idx = modalDraft.schools.indexOf(name);
+    if (idx === -1) return;
+    modalDraft.schools.splice(idx, 1);
+    renderModalChips();
+  }
+
+  function onModalChipsClick(e) {
+    const removeBtn = e.target.closest(".irc4-chip-remove");
+    if (!removeBtn) return;
+    const row = removeBtn.closest(".irc4-school-row");
+    if (row) removeSchoolFromDraft(row.dataset.school);
+  }
+
+  function onModalSchoolSearchInput(e) {
+    renderSuggestions(e.target.value);
+  }
+
+  function onModalSchoolSearchKeydown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const firstItem = els.modalSchoolSuggestions.querySelector(
+        ".irc4-school-suggestion-item",
+      );
+      if (firstItem) addSchoolToDraft(firstItem.textContent);
+    } else if (e.key === "Escape") {
+      hideSuggestions();
+    }
+  }
+
+  function onModalSchoolSearchFocus(e) {
+    if (e.target.value.trim()) renderSuggestions(e.target.value);
+  }
+
+  function onModalSchoolSearchBlur() {
+    // Small delay so a mousedown-triggered suggestion click (which already
+    // prevents default) still has time to run before we hide the list.
+    setTimeout(hideSuggestions, 100);
+  }
+
+  // ---- modal: open / close / save -------------------------------------
+
+  function openModal() {
+    els.modalSchoolSearch.value = "";
+    hideSuggestions();
+    els.modalSchedule.value = modalDraft.schedule;
+    renderModalChips();
+    els.modal.style.display = "flex";
+    els.modalSchoolSearch.focus();
+  }
+
+  function openAddGroupModal() {
+    modalDraft = { editingGroupId: null, schools: [], schedule: "" };
+    els.modalTitle.textContent = "Add Group";
+    els.modalSave.textContent = "Save Group";
+    openModal();
+  }
+
+  function openEditGroupModal(groupId) {
+    const group = findGroup(groupId);
+    if (!group) return;
+    modalDraft = {
+      editingGroupId: group.id,
+      schools: group.schools.slice(),
+      schedule: group.schedule,
+    };
+    els.modalTitle.textContent = "Edit Group";
+    els.modalSave.textContent = "Save Changes";
+    openModal();
+  }
+
+  function closeModal() {
+    els.modal.style.display = "none";
+    hideSuggestions();
+  }
+
+  function saveModal() {
+    modalDraft.schedule = els.modalSchedule.value;
+
+    if (modalDraft.editingGroupId) {
+      const group = findGroup(modalDraft.editingGroupId);
+      if (group) {
+        group.schools = modalDraft.schools.slice();
+        group.schedule = modalDraft.schedule;
+        renderGroupView(group);
       }
-      return;
+    } else {
+      const group = {
+        id: genId("group"),
+        schools: modalDraft.schools.slice(),
+        schedule: modalDraft.schedule,
+      };
+      data.groups.push(group);
+      renderGroupView(group);
     }
-  }
 
-  function onGroupsChange(e) {
-    const scheduleSelect = e.target.closest('[data-role="schedule-select"]');
-    if (!scheduleSelect) return;
-    const card = scheduleSelect.closest(".irc4-group");
-    if (!card) return;
-    const group = findGroup(card.dataset.groupId);
-    if (group) group.schedule = scheduleSelect.value;
-  }
-
-  // ============================================================
-  // Plain fields (activity / TA receiver / MOV's)
-  // ============================================================
-
-  function onPlainFieldInput(e) {
-    const field = e.target.dataset.plainField;
-    if (!field) return;
-    data[field] = e.target.value;
-    autoGrow(e.target);
+    updateGroupsEmptyState();
+    closeModal();
   }
 
   // ============================================================
@@ -385,27 +562,39 @@
     cacheEls();
     if (!els.root) return; // not on this page
 
-    els.activity.dataset.plainField = "activity";
-    els.taReceiver.dataset.plainField = "taReceiver";
-    els.movs.dataset.plainField = "movs";
-
-    [els.activity, els.taReceiver, els.movs].forEach((el) =>
-      el.addEventListener("input", onPlainFieldInput),
-    );
+    initEditableField(els.activityField, data.activity, (val) => {
+      data.activity = val;
+    });
+    initEditableField(els.taReceiverField, data.taReceiver, (val) => {
+      data.taReceiver = val;
+    });
+    initEditableField(els.movsField, data.movs, (val) => {
+      data.movs = val;
+    });
 
     els.addObjectiveBtn.addEventListener("click", addObjective);
     els.objectivesList.addEventListener("click", onObjectivesClick);
-    els.objectivesList.addEventListener("input", onObjectivesInput);
 
-    els.addGroupBtn.addEventListener("click", addGroup);
+    els.addGroupBtn.addEventListener("click", openAddGroupModal);
     els.groupsList.addEventListener("click", onGroupsClick);
-    els.groupsList.addEventListener("change", onGroupsChange);
 
-    // Start with the recommended minimum of three objective fields ready
-    // to type into, and one school/schedule group ready to fill out.
+    els.modalClose.addEventListener("click", closeModal);
+    els.modalCancel.addEventListener("click", closeModal);
+    els.modalOverlay.addEventListener("click", closeModal);
+    els.modalSave.addEventListener("click", saveModal);
+    els.modalSchoolChips.addEventListener("click", onModalChipsClick);
+    els.modalSchoolSearch.addEventListener("input", onModalSchoolSearchInput);
+    els.modalSchoolSearch.addEventListener(
+      "keydown",
+      onModalSchoolSearchKeydown,
+    );
+    els.modalSchoolSearch.addEventListener("focus", onModalSchoolSearchFocus);
+    els.modalSchoolSearch.addEventListener("blur", onModalSchoolSearchBlur);
+
+    // Start with the recommended minimum of three objective fields.
+    // Groups start empty — the user adds the first one via the modal.
     for (let i = 0; i < MIN_OBJECTIVES; i++) addObjective();
     updateGroupsEmptyState();
-    addGroup();
   }
 
   document.addEventListener("DOMContentLoaded", init);
