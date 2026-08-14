@@ -290,19 +290,23 @@
   // Every text field (Activity, each Objective, TA Receiver, MOV's) is
   // built the same way in the HTML:
   //   .irc4-field
-  //     .irc4-field-view              (visible by default)
-  //       p[data-role="text"]
-  //       button[data-role="edit-btn"]
-  //     textarea[data-role="input"]   (hidden by default)
+  //     .irc4-field-view                 (always present, never itself hidden)
+  //       p[data-role="text"]            (view mode)
+  //       textarea[data-role="input"]    (edit mode — lives in the SAME spot
+  //                                        as the text, so typing happens
+  //                                        right where the text was)
+  //       button[data-role="edit-btn"]   (view mode — pencil)
+  //       button[data-role="save-btn"]   (edit mode — check)
   //
-  // Clicking the edit button swaps to the textarea; blurring the textarea
-  // commits the value back into plain, non-clickable text.
+  // Clicking the edit (pencil) button swaps the text for the textarea and
+  // the pencil for a check button. Clicking the check button, blurring the
+  // textarea, or pressing Enter all commit the value and swap back.
   // ============================================================
 
   function initEditableField(fieldEl, initialValue, onChange) {
-    const viewEl = fieldEl.querySelector(".irc4-field-view");
     const textEl = fieldEl.querySelector('[data-role="text"]');
     const editBtn = fieldEl.querySelector('[data-role="edit-btn"]');
+    const saveBtn = fieldEl.querySelector('[data-role="save-btn"]');
     const inputEl = fieldEl.querySelector('[data-role="input"]');
     const placeholder = textEl.dataset.placeholder || "";
 
@@ -318,8 +322,10 @@
     }
 
     function enterEdit() {
-      viewEl.hidden = true;
+      textEl.hidden = true;
       inputEl.hidden = false;
+      editBtn.hidden = true;
+      saveBtn.hidden = false;
       autoGrow(inputEl);
       inputEl.focus();
       const len = inputEl.value.length;
@@ -328,7 +334,9 @@
 
     function exitEdit() {
       inputEl.hidden = true;
-      viewEl.hidden = false;
+      textEl.hidden = false;
+      editBtn.hidden = false;
+      saveBtn.hidden = true;
       refreshView();
     }
 
@@ -336,13 +344,26 @@
     refreshView();
 
     editBtn.addEventListener("click", enterEdit);
+
+    // mousedown + preventDefault keeps focus on the textarea when the save
+    // button is clicked, so the click fires normally instead of racing the
+    // textarea's own blur handler (same trick used for the school/schedule
+    // suggestion items below).
+    saveBtn.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+    });
+    saveBtn.addEventListener("click", () => {
+      exitEdit();
+      inputEl.blur();
+    });
+
     inputEl.addEventListener("input", () => {
       autoGrow(inputEl);
       if (onChange) onChange(inputEl.value);
     });
     inputEl.addEventListener("blur", exitEdit);
-    // Plain Enter commits the field (same effect as clicking away — the
-    // existing blur handler above does the actual commit/view-swap).
+    // Plain Enter commits the field (same effect as clicking the check
+    // button — the existing blur handler above does the actual commit).
     // Shift+Enter falls through to the textarea's normal behavior so a
     // newline is inserted instead.
     inputEl.addEventListener("keydown", (e) => {
@@ -535,15 +556,14 @@
       row.querySelector(".irc4-school-row-name").textContent = name;
 
       if (isDedpSchool(name)) {
-        // Badge is inserted into .irc4-school-row-end (not `row` itself),
-        // since the remove button now lives inside that wrapper — this
-        // keeps the badge grouped visually next to the trash icon instead
-        // of floating in the middle of the row.
+        // Reverted: badge is inserted directly into the row (a plain flex
+        // sibling next to the name and remove button), spread apart via
+        // justify-content: space-between on .irc4-school-row — not grouped
+        // into a wrapper next to the remove button.
         const badge = document.createElement("span");
         badge.className = "irc4-badge irc4-badge--dedp";
         badge.textContent = "DEDP";
-        const rowEnd = row.querySelector(".irc4-school-row-end");
-        rowEnd.insertBefore(badge, rowEnd.querySelector(".irc4-chip-remove"));
+        row.insertBefore(badge, row.querySelector(".irc4-chip-remove"));
       }
 
       els.modalSchoolChips.appendChild(row);
@@ -839,9 +859,6 @@
     hideScheduleSuggestions();
   }
 
-  // NOTE: irc4.js is unchanged from the previous version — no JS edits were
-  // needed for the modal height cap, badge alignment, or numbering. Those are
-  // handled entirely in irc4.html (chip template markup) and irc4.css.
   function saveModal() {
     // Resolve any schedule text the user typed but never blurred out of
     // (e.g. they typed a month then clicked Save directly).
