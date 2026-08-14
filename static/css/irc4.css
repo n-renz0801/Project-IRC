@@ -637,7 +637,7 @@
   font-size: 12.5px;
   font-family: inherit;
   background: #fbfbfc;
-  cursor: text;
+  cursor: pointer; /* was: text */
 }
 
 .irc4-school-search-input:focus {
@@ -661,13 +661,25 @@
   z-index: 20;
   display: flex;
   flex-direction: column;
+  gap: 6px; /* ← also fixes #2, see below */
   padding: 4px;
 }
 
+/* NEW — forces the panel closed when hidden is set; without this the
+   display:flex above always wins over the browser's own [hidden] rule */
+.irc4-school-suggestions[hidden] {
+  display: none;
+}
+
 .irc4-school-suggestion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   text-align: left;
   background: none;
-  border: none;
+  border: 1px solid transparent;
+  border-left: 3px solid transparent;
   padding: 8px 10px;
   border-radius: 6px;
   font-size: 12.5px;
@@ -676,11 +688,57 @@
   cursor: pointer;
 }
 
-.irc4-school-suggestion-item:hover,
-.irc4-school-suggestion-item:focus {
+.irc4-school-suggestion-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+/* Plain items (e.g. months in the schedule combobox, which have no
+   level) keep the original neutral hover. */
+.irc4-school-suggestion-item:not([data-level]):hover,
+.irc4-school-suggestion-item:not([data-level]):focus {
   background: #eef4fb;
   color: var(--irc4-accent-dark);
   outline: none;
+}
+
+/* School items are color-coded by level, same as the selected-school
+   rows and IRC2a. */
+.irc4-school-suggestion-item[data-level="elementary"] {
+  background: var(--irc4-elementary-tint);
+  border-left-color: var(--irc4-elementary);
+  color: #7a3c05;
+}
+
+.irc4-school-suggestion-item[data-level="secondary"] {
+  background: var(--irc4-secondary-tint);
+  border-left-color: var(--irc4-secondary);
+  color: #036045;
+}
+
+.irc4-school-suggestion-item[data-level="elementary"]:hover,
+.irc4-school-suggestion-item[data-level="elementary"]:focus {
+  background: rgba(180, 83, 9, 0.2);
+  outline: none;
+}
+
+.irc4-school-suggestion-item[data-level="secondary"]:hover,
+.irc4-school-suggestion-item[data-level="secondary"]:focus {
+  background: rgba(4, 120, 87, 0.2);
+  outline: none;
+}
+
+.irc4-school-suggestion-item[data-level="elementary"] .irc4-badge--dedp {
+  background: var(--irc4-elementary);
+  color: #fff;
+}
+
+.irc4-school-suggestion-item[data-level="secondary"] .irc4-badge--dedp {
+  background: var(--irc4-secondary);
+  color: #fff;
 }
 
 /* Selected schools rendered as a single vertical column, one per row. */
