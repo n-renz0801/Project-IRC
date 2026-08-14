@@ -915,6 +915,14 @@
   pointer-events: none;
 }
 
+/* Forces the hint closed when [hidden] is set. Without this, the rule
+   above's own `display: flex` wins the origin tie against the browser's
+   built-in [hidden] rule, so the hint stays visibly showing even once
+   schools have been selected and JS sets el.hidden = true. */
+.irc4-group-empty-hint[hidden] {
+  display: none;
+}
+
 .irc4-modal-footer {
   display: flex;
   justify-content: flex-end;

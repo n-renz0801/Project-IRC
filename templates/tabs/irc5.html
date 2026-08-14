@@ -1,9 +1,193 @@
 {% extends "base.html" %} {% block title %}IRC5 - SGOD PMES{% endblock %} {%
 block content %}
-<div class="content__header">
-  <h1>Individual Report Card No. 5</h1>
-  <span class="content__badge">IRC5</span>
+
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/irc5.css') }}"
+/>
+
+<section id="irc5-tab" class="tab-panel irc5-panel">
+  <div class="irc5-header">
+    <div class="irc5-header-text">
+      <h2>IRC5 &mdash; Post Program Evaluation Results</h2>
+      <p class="irc5-subtitle">
+        Based on the <strong>Post Program Evaluation Results</strong> given by
+        the SMME Section, encode the required information for each activity
+        conducted. Enter <strong>N/A</strong> in a field if it does not apply.
+      </p>
+    </div>
+    <button type="button" id="irc5-add-btn" class="irc5-add-btn">
+      <span class="irc5-add-icon">+</span> Add Entry
+    </button>
+  </div>
+
+  <!-- ================= MAIN TABLE ================= -->
+  <div class="irc5-table-wrapper">
+    <table id="irc5-table" class="irc5-table">
+      <thead>
+        <tr>
+          <th class="irc5-col-no">No.</th>
+          <th class="irc5-col-title">Activity Title</th>
+          <th class="irc5-col-nature">Nature of Activity</th>
+          <th class="irc5-col-date">Date of Implementation</th>
+          <th class="irc5-col-participants">Participants</th>
+          <th class="irc5-col-rating">Overall Rating</th>
+          <th class="irc5-col-descval">Descriptive Value</th>
+          <th class="irc5-col-indicator">
+            Indicator with the Lowest Attained Rating
+          </th>
+          <th class="irc5-col-cause">Potential Cause for the Low Rating</th>
+          <th class="irc5-col-measures">
+            Corrective Measures to be Implemented
+          </th>
+          <th class="irc5-col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="irc5-table-body">
+        <!-- rows injected by irc5.js -->
+      </tbody>
+    </table>
+
+    <div id="irc5-empty-state" class="irc5-empty-state">
+      <p>No entries yet. Click <strong>Add Entry</strong> to get started.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ADD / EDIT ENTRY MODAL ================= -->
+<div id="irc5-modal-overlay" class="irc5-modal-overlay">
+  <div class="irc5-modal">
+    <div class="irc5-modal-header">
+      <h3 id="irc5-modal-title">Add Entry</h3>
+      <button type="button" id="irc5-modal-close" class="irc5-modal-close">
+        &times;
+      </button>
+    </div>
+
+    <form id="irc5-form" class="irc5-modal-body">
+      <div class="irc5-form-grid">
+        <div class="irc5-field irc5-field-span2">
+          <label for="irc5-f-title">Activity Title</label>
+          <input
+            type="text"
+            id="irc5-f-title"
+            placeholder="e.g. School-Based INSET on Differentiated Instruction"
+            required
+          />
+        </div>
+
+        <div class="irc5-field">
+          <label for="irc5-f-nature">Nature of Activity</label>
+          <select id="irc5-f-nature" required>
+            <option value="" disabled selected>Select&hellip;</option>
+            <option value="Funded">Funded</option>
+            <option value="Non-Funded">Non-Funded</option>
+          </select>
+        </div>
+
+        <div class="irc5-field">
+          <label for="irc5-f-participants">Participants</label>
+          <input
+            type="text"
+            id="irc5-f-participants"
+            placeholder="e.g. 45 Elementary Teachers"
+          />
+        </div>
+
+        <div class="irc5-field">
+          <label for="irc5-f-rating">Overall Rating</label>
+          <input
+            type="number"
+            id="irc5-f-rating"
+            step="0.01"
+            min="1"
+            max="5"
+            placeholder="e.g. 3.75"
+          />
+        </div>
+
+        <div class="irc5-field">
+          <label for="irc5-f-descval">Descriptive Value</label>
+          <select id="irc5-f-descval" required>
+            <option value="" disabled selected>Select&hellip;</option>
+            <option value="Strongly Agree">Strongly Agree</option>
+            <option value="Agree">Agree</option>
+            <option value="Disagree">Disagree</option>
+            <option value="Strongly Disagree">Strongly Disagree</option>
+          </select>
+        </div>
+
+        <div class="irc5-field irc5-field-span2">
+          <label for="irc5-f-indicator"
+            >Indicator with the Lowest Attained Rating</label
+          >
+          <input type="text" id="irc5-f-indicator" placeholder="N/A" />
+        </div>
+
+        <div class="irc5-field irc5-field-span2">
+          <label for="irc5-f-cause">Potential Cause for the Low Rating</label>
+          <textarea id="irc5-f-cause" rows="2" placeholder="N/A"></textarea>
+        </div>
+
+        <div class="irc5-field irc5-field-span2">
+          <label for="irc5-f-measures"
+            >Corrective Measures to be Implemented</label
+          >
+          <textarea id="irc5-f-measures" rows="2" placeholder="N/A"></textarea>
+        </div>
+      </div>
+
+      <!-- ============ DATE OF IMPLEMENTATION CALENDAR ============ -->
+      <div class="irc5-field irc5-date-field">
+        <label>Date of Implementation</label>
+        <p class="irc5-date-hint">
+          Click a day to select it, or click-and-drag across days to select a
+          range. Navigate months freely &mdash; selections persist across
+          months.
+        </p>
+
+        <div class="irc5-calendar">
+          <div class="irc5-calendar-nav">
+            <button type="button" id="irc5-cal-prev" class="irc5-cal-nav-btn">
+              &lsaquo;
+            </button>
+            <span id="irc5-cal-label" class="irc5-cal-label"></span>
+            <button type="button" id="irc5-cal-next" class="irc5-cal-nav-btn">
+              &rsaquo;
+            </button>
+          </div>
+
+          <div class="irc5-cal-weekdays">
+            <span>Su</span><span>Mo</span><span>Tu</span><span>We</span
+            ><span>Th</span><span>Fr</span><span>Sa</span>
+          </div>
+
+          <div id="irc5-cal-grid" class="irc5-cal-grid"></div>
+        </div>
+
+        <div class="irc5-date-preview-row">
+          <div class="irc5-date-preview">
+            <span class="irc5-date-preview-label">Preview:</span>
+            <span id="irc5-date-preview-text" class="irc5-date-preview-text"
+              >No dates selected</span
+            >
+          </div>
+          <button type="button" id="irc5-cal-clear" class="irc5-cal-clear-btn">
+            Clear dates
+          </button>
+        </div>
+      </div>
+
+      <div class="irc5-modal-footer">
+        <button type="button" id="irc5-cancel-btn" class="irc5-btn-secondary">
+          Cancel
+        </button>
+        <button type="submit" class="irc5-btn-primary">Save Entry</button>
+      </div>
+    </form>
+  </div>
 </div>
 
-<div class="content__body"></div>
+<script src="{{ url_for('static', filename='js/irc5.js') }}"></script>
+
 {% endblock %}
