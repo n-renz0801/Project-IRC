@@ -19,6 +19,18 @@
   padding: 16px 0 40px;
 }
 
+/* Default rule: every clickable button anywhere in this panel (Edit,
+   Delete, Add, Remove, suggestion items, modal actions, etc.) shows a
+   pointer cursor on hover. Individual buttons can still override this if
+   ever needed, but nothing here should require it. */
+.irc4-panel button:not(:disabled) {
+  cursor: pointer;
+}
+
+.irc4-panel button:disabled {
+  cursor: not-allowed;
+}
+
 .irc4-header {
   margin-bottom: 18px;
 }
@@ -473,6 +485,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  counter-reset: irc4-group-school-index;
 }
 
 .irc4-group-view-empty {
@@ -495,6 +508,7 @@
   font-size: 12.5px;
   color: #333;
   line-height: 1.4;
+  counter-increment: irc4-group-school-index;
 }
 
 .irc4-group-school-item[data-level="elementary"] {
@@ -516,6 +530,12 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.irc4-group-school-name::before {
+  content: counter(irc4-group-school-index) ". ";
+  font-weight: 700;
+  opacity: 0.7;
 }
 
 .irc4-add-group-btn {
@@ -562,6 +582,7 @@
   width: min(520px, 92vw);
   max-height: 86vh;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   background: white;
   border-radius: 14px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
@@ -637,7 +658,7 @@
   font-size: 12.5px;
   font-family: inherit;
   background: #fbfbfc;
-  cursor: pointer; /* was: text */
+  cursor: pointer;
 }
 
 .irc4-school-search-input:focus {
@@ -654,6 +675,7 @@
   right: 0;
   max-height: 190px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   background: white;
   border: 1px solid var(--irc4-field-border);
   border-radius: 8px;
@@ -661,12 +683,15 @@
   z-index: 20;
   display: flex;
   flex-direction: column;
-  gap: 6px; /* ← also fixes #2, see below */
+  gap: 6px;
   padding: 4px;
 }
 
-/* NEW — forces the panel closed when hidden is set; without this the
-   display:flex above always wins over the browser's own [hidden] rule */
+/* Forces the panel closed when [hidden] is set. Without this,
+   .irc4-school-suggestions' own `display: flex` above wins the
+   specificity tie against the browser's built-in [hidden] rule, so the
+   panel would stay visibly open even while the `hidden` attribute is
+   present on the element. */
 .irc4-school-suggestions[hidden] {
   display: none;
 }
@@ -741,11 +766,32 @@
   color: #fff;
 }
 
-/* Selected schools rendered as a single vertical column, one per row. */
+/* Wraps the school list + its empty-state hint so both share one
+   footprint: the hint is positioned absolutely over the (fixed-height)
+   list below, centered, so it reads naturally inside the box instead of
+   trailing below an empty area. */
+.irc4-school-list-wrap {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+/* Selected schools rendered as a single vertical column, one per row.
+   Fixed (not max-) height, set from the start — even with zero schools —
+   so the box never grows or shrinks as schools are added/removed; it just
+   scrolls internally once content exceeds this height. scrollbar-gutter
+   reserves the scrollbar's space permanently so its appearance never
+   shifts the row content left/right. A numeric prefix is added in front
+   of each school name via a CSS counter, so the count updates
+   automatically as rows are added/removed with no JS involved. */
 .irc4-school-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  height: 240px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-right: 4px;
+  counter-reset: irc4-school-index;
 }
 
 /* Base (unmatched/neutral) styling; level-specific colors below override
@@ -761,6 +807,7 @@
   padding: 7px 8px 7px 12px;
   background: #fafbfc;
   color: #333;
+  counter-increment: irc4-school-index;
 }
 
 .irc4-school-row[data-level="elementary"] {
@@ -791,10 +838,35 @@
 }
 
 .irc4-school-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.4;
   color: inherit;
+}
+
+/* Numeric prefix — "1. ", "2. ", etc. — driven purely by the counter set
+   up on .irc4-school-list / .irc4-school-row above. */
+.irc4-school-row-name::before {
+  content: counter(irc4-school-index) ". ";
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+/* Groups the DEDP badge and the remove button together on the right side
+   of the row, so the badge always sits directly next to the trash icon
+   instead of floating in the middle of the row (which is what happened
+   when badge + button were separate flex siblings under
+   justify-content: space-between). */
+.irc4-school-row-end {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .irc4-chip-remove {
@@ -830,10 +902,17 @@
 }
 
 .irc4-group-empty-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   font-size: 11.5px;
   color: #999;
   font-style: italic;
-  margin: 6px 0 0 0;
+  margin: 0;
+  pointer-events: none;
 }
 
 .irc4-modal-footer {
