@@ -180,6 +180,61 @@
     }));
   }
 
+  // ============================================================
+  // Fixed-position dropdowns
+  //
+  // The modal clips its own contents (overflow: hidden/auto) so its own
+  // height can stay capped even as the school list grows. `position: fixed`
+  // is the escape hatch: a fixed element is placed relative to the
+  // viewport, not to any scrolling/clipping ancestor, so anchoring the
+  // suggestion panels this way lets them extend past the modal's edges
+  // and show more rows at once instead of being cut off at the modal
+  // boundary. We compute the anchor position in JS (from the input's own
+  // on-screen position) and keep it in sync while the panel is open.
+  //
+  // Both the school-search dropdown and the schedule dropdown share this
+  // same tracking mechanism (see renderSuggestions/hideSuggestions and
+  // renderScheduleSuggestions/hideScheduleSuggestions below) so they
+  // behave identically with respect to the modal's boundaries.
+  // ============================================================
+
+  let activeDropdown = null; // { inputEl, dropdownEl } | null
+
+  function positionFixedDropdown(inputEl, dropdownEl) {
+    const rect = inputEl.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - 12;
+    // Generous cap so many more rows are visible than the old in-modal
+    // panel allowed, but still bounded by actual remaining viewport space.
+    const maxHeight = Math.max(160, Math.min(360, spaceBelow));
+
+    dropdownEl.style.position = "fixed";
+    dropdownEl.style.left = `${rect.left}px`;
+    dropdownEl.style.top = `${rect.bottom + 4}px`;
+    dropdownEl.style.width = `${rect.width}px`;
+    dropdownEl.style.maxHeight = `${maxHeight}px`;
+  }
+
+  function trackDropdown(inputEl, dropdownEl) {
+    activeDropdown = { inputEl, dropdownEl };
+    positionFixedDropdown(inputEl, dropdownEl);
+  }
+
+  function untrackDropdown(dropdownEl) {
+    if (activeDropdown && activeDropdown.dropdownEl === dropdownEl) {
+      activeDropdown = null;
+    }
+  }
+
+  function repositionActiveDropdown() {
+    if (!activeDropdown) return;
+    positionFixedDropdown(activeDropdown.inputEl, activeDropdown.dropdownEl);
+  }
+
+  // Capture phase so this also fires for scrolling inside the modal body,
+  // not just the window itself.
+  window.addEventListener("scroll", repositionActiveDropdown, true);
+  window.addEventListener("resize", repositionActiveDropdown);
+
   function cacheEls() {
     els.root = document.getElementById("irc4-tab");
 
@@ -484,20 +539,52 @@
   function hideSuggestions() {
     els.modalSchoolSuggestions.hidden = true;
     els.modalSchoolSuggestions.innerHTML = "";
+    untrackDropdown(els.modalSchoolSuggestions);
   }
 
-  function renderSuggestions(query) {
-    const q = query.trim().toLowerCase();
-    if (!q) {
-      hideSuggestions();
-      return;
+  function buildSchoolSuggestionItem(school) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "irc4-school-suggestion-item";
+    item.dataset.name = school.name;
+    if (school.level) item.dataset.level = school.level;
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "irc4-school-suggestion-name";
+    nameSpan.textContent = school.name;
+    item.appendChild(nameSpan);
+
+    if (isDedpSchool(school.name)) {
+      const badge = document.createElement("span");
+      badge.className = "irc4-badge irc4-badge--dedp";
+      badge.textContent = "DEDP";
+      item.appendChild(badge);
     }
 
-    const matches = SCHOOLS.filter(
-      (s) =>
-        !modalDraft.schools.includes(s.name) &&
-        s.name.toLowerCase().includes(q),
-    ).slice(0, MAX_SUGGESTIONS);
+    // mousedown + preventDefault so the search input never blurs before
+    // the click is registered (avoids a focus/blur race condition).
+    item.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      addSchoolToDraft(school.name);
+    });
+
+    return item;
+  }
+
+  // With no query, show every not-yet-selected school (the panel scrolls,
+  // so there's no need to truncate the full list) — this is the "default"
+  // dropdown view that opens on click/focus. Once there's a query, narrow
+  // it down and cap it so the list stays easy to scan.
+  function renderSuggestions(query) {
+    const q = query.trim().toLowerCase();
+    const available = SCHOOLS.filter(
+      (s) => !modalDraft.schools.includes(s.name),
+    );
+    const matches = q
+      ? available
+          .filter((s) => s.name.toLowerCase().includes(q))
+          .slice(0, MAX_SUGGESTIONS)
+      : available;
 
     if (matches.length === 0) {
       hideSuggestions();
@@ -506,19 +593,10 @@
 
     els.modalSchoolSuggestions.innerHTML = "";
     matches.forEach((s) => {
-      const item = document.createElement("button");
-      item.type = "button";
-      item.className = "irc4-school-suggestion-item";
-      item.textContent = s.name;
-      // mousedown + preventDefault so the search input never blurs before
-      // the click is registered (avoids a focus/blur race condition).
-      item.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        addSchoolToDraft(s.name);
-      });
-      els.modalSchoolSuggestions.appendChild(item);
+      els.modalSchoolSuggestions.appendChild(buildSchoolSuggestionItem(s));
     });
     els.modalSchoolSuggestions.hidden = false;
+    trackDropdown(els.modalSchoolSearch, els.modalSchoolSuggestions);
   }
 
   function addSchoolToDraft(name) {
@@ -556,14 +634,29 @@
       const firstItem = els.modalSchoolSuggestions.querySelector(
         ".irc4-school-suggestion-item",
       );
-      if (firstItem) addSchoolToDraft(firstItem.textContent);
+      if (firstItem) addSchoolToDraft(firstItem.dataset.name);
     } else if (e.key === "Escape") {
       hideSuggestions();
     }
   }
 
-  function onModalSchoolSearchFocus(e) {
-    if (e.target.value.trim()) renderSuggestions(e.target.value);
+  // Opening the field (by focusing or clicking it) always shows the full
+  // dropdown of remaining schools, regardless of whatever text happens to
+  // be sitting in the input. It only narrows once the person actually
+  // types (see onModalSchoolSearchInput) — so re-clicking a field never
+  // feels "stuck" in plain typing mode with no options visible.
+  //
+  // `suppressNextSchoolOpen` guards the one case where we focus() the
+  // field ourselves (right when the modal opens) — that shouldn't pop the
+  // dropdown open before the person has actually asked for it.
+  let suppressNextSchoolOpen = false;
+
+  function onModalSchoolSearchOpen() {
+    if (suppressNextSchoolOpen) {
+      suppressNextSchoolOpen = false;
+      return;
+    }
+    renderSuggestions("");
   }
 
   function onModalSchoolSearchBlur() {
@@ -577,11 +670,15 @@
   // Same interaction pattern as the school search above: clicking/focusing
   // the field opens a dropdown of all twelve months so it can be picked
   // with the mouse, and typing filters that list down (by name or 3-letter
-  // code) so it can be reached from the keyboard too.
+  // code) so it can be reached from the keyboard too. It also uses the
+  // same fixed-position tracking (trackDropdown/untrackDropdown) as the
+  // school search, so it escapes the modal's clipped bounds in exactly
+  // the same way.
 
   function hideScheduleSuggestions() {
     els.modalScheduleSuggestions.hidden = true;
     els.modalScheduleSuggestions.innerHTML = "";
+    untrackDropdown(els.modalScheduleSuggestions);
   }
 
   function renderScheduleSuggestions(query) {
@@ -605,6 +702,7 @@
       const item = document.createElement("button");
       item.type = "button";
       item.className = "irc4-school-suggestion-item";
+      item.dataset.code = m.code;
       item.textContent = m.label;
       item.addEventListener("mousedown", (e) => {
         e.preventDefault();
@@ -613,6 +711,7 @@
       els.modalScheduleSuggestions.appendChild(item);
     });
     els.modalScheduleSuggestions.hidden = false;
+    trackDropdown(els.modalScheduleInput, els.modalScheduleSuggestions);
   }
 
   function selectScheduleMonth(code) {
@@ -651,8 +750,13 @@
     renderScheduleSuggestions(e.target.value);
   }
 
-  function onModalScheduleFocus(e) {
-    renderScheduleSuggestions(e.target.value);
+  // Opening the field (focus or click) always shows all twelve months,
+  // even if a month was already picked and its label is sitting in the
+  // input — otherwise re-clicking a filled-in field just filters the list
+  // down to the one already-selected match. Only actual typing narrows it
+  // (see onModalScheduleInput).
+  function onModalScheduleOpen() {
+    renderScheduleSuggestions("");
   }
 
   function onModalScheduleKeydown(e) {
@@ -662,10 +766,7 @@
         ".irc4-school-suggestion-item",
       );
       if (firstItem) {
-        const match = monthEntries().find(
-          (m) => m.label === firstItem.textContent,
-        );
-        if (match) selectScheduleMonth(match.code);
+        selectScheduleMonth(firstItem.dataset.code);
       } else {
         resolveScheduleInput();
         hideScheduleSuggestions();
@@ -693,6 +794,7 @@
     hideScheduleSuggestions();
     renderModalChips();
     els.modal.style.display = "flex";
+    suppressNextSchoolOpen = true;
     els.modalSchoolSearch.focus();
   }
 
@@ -782,12 +884,17 @@
       "keydown",
       onModalSchoolSearchKeydown,
     );
-    els.modalSchoolSearch.addEventListener("focus", onModalSchoolSearchFocus);
+    els.modalSchoolSearch.addEventListener("focus", onModalSchoolSearchOpen);
+    // 'click' is needed too: if the field is already focused, clicking it
+    // again fires no 'focus' event, so without this the dropdown would
+    // stay closed until the person started typing.
+    els.modalSchoolSearch.addEventListener("click", onModalSchoolSearchOpen);
     els.modalSchoolSearch.addEventListener("blur", onModalSchoolSearchBlur);
 
     els.modalScheduleInput.addEventListener("input", onModalScheduleInput);
     els.modalScheduleInput.addEventListener("keydown", onModalScheduleKeydown);
-    els.modalScheduleInput.addEventListener("focus", onModalScheduleFocus);
+    els.modalScheduleInput.addEventListener("focus", onModalScheduleOpen);
+    els.modalScheduleInput.addEventListener("click", onModalScheduleOpen);
     els.modalScheduleInput.addEventListener("blur", onModalScheduleBlur);
 
     // Start with the recommended minimum of three objective fields.
