@@ -341,6 +341,16 @@
       if (onChange) onChange(inputEl.value);
     });
     inputEl.addEventListener("blur", exitEdit);
+    // Plain Enter commits the field (same effect as clicking away — the
+    // existing blur handler above does the actual commit/view-swap).
+    // Shift+Enter falls through to the textarea's normal behavior so a
+    // newline is inserted instead.
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        inputEl.blur();
+      }
+    });
 
     return { refreshView, enterEdit, exitEdit };
   }
@@ -525,10 +535,15 @@
       row.querySelector(".irc4-school-row-name").textContent = name;
 
       if (isDedpSchool(name)) {
+        // Badge is inserted into .irc4-school-row-end (not `row` itself),
+        // since the remove button now lives inside that wrapper — this
+        // keeps the badge grouped visually next to the trash icon instead
+        // of floating in the middle of the row.
         const badge = document.createElement("span");
         badge.className = "irc4-badge irc4-badge--dedp";
         badge.textContent = "DEDP";
-        row.insertBefore(badge, row.querySelector(".irc4-chip-remove"));
+        const rowEnd = row.querySelector(".irc4-school-row-end");
+        rowEnd.insertBefore(badge, rowEnd.querySelector(".irc4-chip-remove"));
       }
 
       els.modalSchoolChips.appendChild(row);
@@ -824,6 +839,9 @@
     hideScheduleSuggestions();
   }
 
+  // NOTE: irc4.js is unchanged from the previous version — no JS edits were
+  // needed for the modal height cap, badge alignment, or numbering. Those are
+  // handled entirely in irc4.html (chip template markup) and irc4.css.
   function saveModal() {
     // Resolve any schedule text the user typed but never blurred out of
     // (e.g. they typed a month then clicked Save directly).
