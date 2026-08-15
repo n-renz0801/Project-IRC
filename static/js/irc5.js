@@ -17,12 +17,14 @@
     "Dec",
   ];
   const WEEKDAY_COUNT = 7;
+  const TEXTAREA_MIN_HEIGHT = 44; // px, must match the CSS default height
 
   // In-memory store of entries. Swap this out for a fetch()/POST to
   // Flask once a persistence layer exists for IRC5.
   let entries = [];
   let editingId = null; // id of entry currently being edited, or null for "add"
   let nextId = 1;
+  let pendingDeleteId = null; // id awaiting confirmation in the delete modal
 
   // Calendar state (scoped to whatever modal instance is open)
   let calViewYear;
@@ -61,6 +63,10 @@
   const calClearBtn = document.getElementById("irc5-cal-clear");
   const datePreviewText = document.getElementById("irc5-date-preview-text");
 
+  const confirmOverlay = document.getElementById("irc5-confirm-overlay");
+  const confirmCancelBtn = document.getElementById("irc5-confirm-cancel");
+  const confirmDeleteBtn = document.getElementById("irc5-confirm-delete");
+
   // ------------------------------------------------------------------
   // Helpers
   // ------------------------------------------------------------------
@@ -89,6 +95,24 @@
     return toIso(new Date());
   }
 
+  // Overall Rating -> Descriptive Value, per the fixed 0.75-wide bands:
+  //   3.26 - 4.00  -> Strongly Agree
+  //   2.51 - 3.25  -> Agree
+  //   1.76 - 2.50  -> Disagree
+  //   1.00 - 1.75  -> Strongly Disagree
+  // Anything blank, non-numeric, or outside 1.00-4.00 yields "" so the
+  // field just shows its "Enter a rating first" placeholder / stays
+  // blank rather than a misleading label.
+  function computeDescVal(ratingInput) {
+    const val = parseFloat(ratingInput);
+    if (isNaN(val)) return "";
+    if (val >= 3.26 && val <= 4.0) return "Strongly Agree";
+    if (val >= 2.51 && val <= 3.25) return "Agree";
+    if (val >= 1.76 && val <= 2.5) return "Disagree";
+    if (val >= 1.0 && val <= 1.75) return "Strongly Disagree";
+    return "";
+  }
+
   function descValClass(value) {
     switch (value) {
       case "Strongly Agree":
@@ -109,6 +133,22 @@
     div.textContent = str == null ? "" : str;
     return div.innerHTML;
   }
+
+  // Grows a textarea to fit its content, but never shrinks below the
+  // fixed default height. Called on input and whenever a field is
+  // populated programmatically (e.g. opening the edit modal).
+  function autosizeTextarea(el) {
+    el.style.height = "auto";
+    const newHeight = Math.max(el.scrollHeight, TEXTAREA_MIN_HEIGHT);
+    el.style.height = `${newHeight}px`;
+  }
+
+  // ------------------------------------------------------------------
+  // Overall Rating -> Descriptive Value (auto-fill)
+  // ------------------------------------------------------------------
+  fRating.addEventListener("input", () => {
+    fDescVal.value = computeDescVal(fRating.value);
+  });
 
   // ------------------------------------------------------------------
   // Hybrid date formatting
@@ -308,10 +348,19 @@
   });
 
   // ------------------------------------------------------------------
+  // Textarea autosize wiring
+  // ------------------------------------------------------------------
+  fCause.addEventListener("input", () => autosizeTextarea(fCause));
+  fMeasures.addEventListener("input", () => autosizeTextarea(fMeasures));
+
+  // ------------------------------------------------------------------
   // Modal open / close
   // ------------------------------------------------------------------
   function resetForm() {
     form.reset();
+    fDescVal.value = "";
+    fCause.style.height = `${TEXTAREA_MIN_HEIGHT}px`;
+    fMeasures.style.height = `${TEXTAREA_MIN_HEIGHT}px`;
     selectedDates = new Set();
     const now = new Date();
     calViewYear = now.getFullYear();
@@ -335,10 +384,15 @@
     fNature.value = entry.nature;
     fParticipants.value = entry.participants;
     fRating.value = entry.rating;
-    fDescVal.value = entry.descVal;
+    // Recompute rather than trusting the stored value, so edited
+    // entries always reflect the current rating -> descriptive value
+    // mapping even if the field was populated programmatically.
+    fDescVal.value = computeDescVal(entry.rating);
     fIndicator.value = entry.indicator;
     fCause.value = entry.cause;
     fMeasures.value = entry.measures;
+    autosizeTextarea(fCause);
+    autosizeTextarea(fMeasures);
 
     selectedDates = new Set(entry.dateIsoList);
     if (entry.dateIsoList.length > 0) {
@@ -366,6 +420,32 @@
   cancelBtn.addEventListener("click", closeModal);
   modalOverlay.addEventListener("click", (e) => {
     if (e.target === modalOverlay) closeModal();
+  });
+
+  // ------------------------------------------------------------------
+  // Delete confirmation modal
+  // ------------------------------------------------------------------
+  function openDeleteConfirm(id) {
+    pendingDeleteId = id;
+    confirmOverlay.classList.add("visible");
+  }
+
+  function closeDeleteConfirm() {
+    pendingDeleteId = null;
+    confirmOverlay.classList.remove("visible");
+  }
+
+  confirmCancelBtn.addEventListener("click", closeDeleteConfirm);
+  confirmOverlay.addEventListener("click", (e) => {
+    if (e.target === confirmOverlay) closeDeleteConfirm();
+  });
+
+  confirmDeleteBtn.addEventListener("click", () => {
+    if (pendingDeleteId !== null) {
+      entries = entries.filter((en) => en.id !== pendingDeleteId);
+      renderTable();
+    }
+    closeDeleteConfirm();
   });
 
   // ------------------------------------------------------------------
@@ -431,9 +511,7 @@
     }
 
     if (deleteBtn) {
-      const id = Number(deleteBtn.dataset.id);
-      entries = entries.filter((en) => en.id !== id);
-      renderTable();
+      openDeleteConfirm(Number(deleteBtn.dataset.id));
     }
   });
 

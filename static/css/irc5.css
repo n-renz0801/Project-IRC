@@ -1,11 +1,22 @@
 /* IRC5 - Post Program Evaluation Results - CSS Stylesheet */
 
-.irc5-panel {
-  padding: 24px 0;
-
+/* Theme colors live at :root (not on .irc5-panel) on purpose: the
+   Add/Edit modal, its calendar, and the delete-confirmation dialog are
+   all siblings of <section class="irc5-panel">, not descendants of it.
+   CSS custom properties only inherit down the DOM tree, so scoping
+   them to .irc5-panel made them invisible inside the modal — that was
+   the root cause of the "invisible" Save button (transparent
+   background) and the calendar selection only showing its outline
+   (the fill color silently failed to resolve). */
+:root {
   --irc5-dedp: rgb(29, 78, 216);
   --irc5-dedp-light: rgb(59, 130, 246);
+  --irc5-dedp-dark: #0b3a75;
   --irc5-accent: #185fa5;
+}
+
+.irc5-panel {
+  padding: 24px 0;
 }
 
 .irc5-header {
@@ -299,7 +310,12 @@
   display: flex;
 }
 
+/* The modal itself is a capped-height flex column: header (auto),
+   body (flexes + scrolls internally), footer (auto, always visible). */
 .irc5-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: min(90vh, 900px);
   background: #fff;
   border-radius: 14px;
   width: 100%;
@@ -315,6 +331,7 @@
   padding: 18px 22px;
   border-bottom: 1px solid #e5e7eb;
   background: #f9fafb;
+  flex-shrink: 0;
 }
 
 .irc5-modal-header h3 {
@@ -340,9 +357,13 @@
   color: #1f2937;
 }
 
+/* The only scrolling region inside the modal. flex:1 consumes the
+   space left after header/footer; min-height:0 lets a flex child
+   actually shrink and scroll instead of overflowing its parent. */
 .irc5-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 22px;
-  max-height: 76vh;
   overflow-y: auto;
 }
 
@@ -381,11 +402,31 @@
   font-family: inherit;
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
+/* Overall Rating: keep it a numeric field but hide the native
+   increment/decrement spinner so the user can only type into it. */
+.irc5-field input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.irc5-field input[type="number"]::-webkit-outer-spin-button,
+.irc5-field input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Potential Cause / Corrective Measures: fixed height by default,
+   no manual drag-resize handle. Height only grows automatically
+   (via JS) when the typed content needs more room. */
 .irc5-field textarea {
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
+  height: 44px;
   min-height: 44px;
 }
 
@@ -395,6 +436,41 @@
   outline: none;
   border-color: var(--irc5-dedp-light);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Descriptive Value: read-only, auto-filled, and color-coded to match
+   the same categories used in the table's badges. Neutral/gray until
+   a rating has been entered. */
+.irc5-descval-display {
+  background: #f3f4f6;
+  color: #9ca3af;
+  font-weight: 700;
+  text-align: center;
+  cursor: default;
+}
+
+.irc5-descval-display.sa {
+  background: #059669;
+  border-color: #059669;
+  color: #fff;
+}
+
+.irc5-descval-display.a {
+  background: #65a30d;
+  border-color: #65a30d;
+  color: #fff;
+}
+
+.irc5-descval-display.d {
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #fff;
+}
+
+.irc5-descval-display.sd {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
 }
 
 /* Date field */
@@ -479,7 +555,10 @@
   color: #1f2937;
   background: #fff;
   border: 1px solid transparent;
-  transition: background 0.1s ease;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .irc5-cal-day:hover {
@@ -495,14 +574,30 @@
   font-weight: 700;
 }
 
+/* Selected dates: solid dark-navy fill covering the whole cell, with
+   bold white text — a full color swap, not just an outline/ring, so
+   selection is unmistakable at a glance. Declared last (and repeated
+   for the outside/hover/today combos) so it always wins no matter
+   what other state classes are also present on the cell. */
 .irc5-cal-day.irc5-cal-selected {
-  background: var(--irc5-dedp);
-  color: #fff;
-  font-weight: 600;
+  background-color: var(--irc5-dedp-dark);
+  color: #ffffff;
+  font-weight: 700;
+  border-color: var(--irc5-dedp-dark);
+}
+
+.irc5-cal-day.irc5-cal-selected.irc5-cal-outside {
+  color: #ffffff;
+}
+
+.irc5-cal-day.irc5-cal-selected.irc5-cal-today {
+  border-color: #ffffff;
 }
 
 .irc5-cal-day.irc5-cal-selected:hover {
-  background: var(--irc5-dedp-light);
+  background-color: #0f478f;
+  border-color: #0f478f;
+  color: #ffffff;
 }
 
 .irc5-date-preview-row {
@@ -551,19 +646,26 @@
   color: #dc2626;
 }
 
-/* Modal footer */
-
+/* Modal footer: a normal (non-sticky) flex item pinned to the bottom
+   of the .irc5-modal flex column. Because .irc5-modal is height-capped
+   and flex-column, this element always renders at the modal's true
+   bottom edge, and because --irc5-dedp now resolves correctly (see
+   the :root block up top), the Save Entry button is finally visible
+   instead of rendering with a transparent/unset background. */
 .irc5-modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 20px;
-  padding-top: 16px;
+  flex-shrink: 0;
+  padding: 16px 22px;
   border-top: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .irc5-btn-secondary,
-.irc5-btn-primary {
+.irc5-btn-primary,
+.irc5-btn-danger {
   border: none;
   border-radius: 8px;
   padding: 10px 20px;
@@ -588,6 +690,64 @@
 
 .irc5-btn-primary:hover {
   background: var(--irc5-dedp-light);
+}
+
+.irc5-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.irc5-btn-danger:hover {
+  background: #b91c1c;
+}
+
+/* ------------------------------------------------------------------
+   Delete confirmation modal
+------------------------------------------------------------------ */
+
+.irc5-confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.irc5-confirm-overlay.visible {
+  display: flex;
+}
+
+.irc5-confirm-box {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 360px;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.irc5-confirm-box h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.irc5-confirm-box p {
+  margin: 0 0 20px 0;
+  font-size: 13.5px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.irc5-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
 }
 
 /* Responsive */
