@@ -1,0 +1,361 @@
+(function () {
+  const tab = document.getElementById("irc6-tab");
+  if (!tab) return;
+
+  // In-memory store of entries. Swap this out for a fetch()/POST to
+  // Flask once a persistence layer exists for IRC6.
+  //
+  // Each entry: { id, kind: 'goal' | 'outcome' | 'output', title,
+  //   objectives, indicators, definition,
+  //   dcSource, dcPerson, dcFreq,
+  //   daUsed, daPerson, daFreq,
+  //   users, repComm, repFreq }
+  //
+  // 'title' is only meaningful for kind === 'output'. Goal and Outcome
+  // are seeded once, always present, and are edit-only (no delete, no
+  // title field) — the label itself is fixed. Outputs are numbered by
+  // their position among kind === 'output' entries at render time, so
+  // deleting one automatically renumbers the rest; nothing is stored.
+  let entries = [];
+  let editingId = null; // id of entry currently being edited, or null for "add"
+  let nextId = 1;
+  let pendingDeleteId = null;
+
+  function makeSeedEntry(kind, title) {
+    return {
+      id: nextId++,
+      kind,
+      title: title || "",
+      objectives: "",
+      indicators: "",
+      definition: "",
+      dcSource: "",
+      dcPerson: "",
+      dcFreq: "",
+      daUsed: "",
+      daPerson: "",
+      daFreq: "",
+      users: "",
+      repComm: "",
+      repFreq: "",
+    };
+  }
+
+  entries.push(makeSeedEntry("goal"));
+  entries.push(makeSeedEntry("outcome"));
+  entries.push(makeSeedEntry("output", ""));
+
+  // ------------------------------------------------------------------
+  // DOM refs
+  // ------------------------------------------------------------------
+  const tableBody = document.getElementById("irc6-table-body");
+
+  const addBtn = document.getElementById("irc6-add-btn");
+  const modalOverlay = document.getElementById("irc6-modal-overlay");
+  const modalTitle = document.getElementById("irc6-modal-title");
+  const modalClose = document.getElementById("irc6-modal-close");
+  const cancelBtn = document.getElementById("irc6-cancel-btn");
+  const form = document.getElementById("irc6-form");
+
+  const titleField = document.getElementById("irc6-title-field");
+  const fTitleLabel = document.getElementById("irc6-f-title-label");
+  const fTitle = document.getElementById("irc6-f-title");
+  const fTitleHint = document.getElementById("irc6-f-title-hint");
+
+  const fObjectives = document.getElementById("irc6-f-objectives");
+  const fIndicators = document.getElementById("irc6-f-indicators");
+  const fDefinition = document.getElementById("irc6-f-definition");
+  const fDcSource = document.getElementById("irc6-f-dcsource");
+  const fDcPerson = document.getElementById("irc6-f-dcperson");
+  const fDcFreq = document.getElementById("irc6-f-dcfreq");
+  const fDaUsed = document.getElementById("irc6-f-daused");
+  const fDaPerson = document.getElementById("irc6-f-daperson");
+  const fDaFreq = document.getElementById("irc6-f-dafreq");
+  const fUsers = document.getElementById("irc6-f-users");
+  const fRepComm = document.getElementById("irc6-f-repcomm");
+  const fRepFreq = document.getElementById("irc6-f-repfreq");
+
+  const AUTOSIZE_TEXTAREAS = [
+    fObjectives,
+    fIndicators,
+    fDefinition,
+    fDcSource,
+    fDaUsed,
+    fUsers,
+    fRepComm,
+  ];
+  const TEXTAREA_MIN_HEIGHT = 44; // px, must match the CSS default height
+
+  const confirmOverlay = document.getElementById("irc6-confirm-overlay");
+  const confirmCancelBtn = document.getElementById("irc6-confirm-cancel");
+  const confirmDeleteBtn = document.getElementById("irc6-confirm-delete");
+
+  // ------------------------------------------------------------------
+  // Helpers
+  // ------------------------------------------------------------------
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str == null ? "" : str;
+    return div.innerHTML;
+  }
+
+  function autosizeTextarea(el) {
+    el.style.height = "auto";
+    const newHeight = Math.max(el.scrollHeight, TEXTAREA_MIN_HEIGHT);
+    el.style.height = `${newHeight}px`;
+  }
+
+  // Next output number = count of existing outputs + 1. Used both for
+  // the "Add" modal hint and for labeling rows at render time.
+  function outputNumberFor(entry) {
+    let n = 0;
+    for (const en of entries) {
+      if (en.kind === "output") {
+        n += 1;
+        if (en.id === entry.id) return n;
+      }
+    }
+    return n;
+  }
+
+  function nextOutputNumber() {
+    return entries.filter((en) => en.kind === "output").length + 1;
+  }
+
+  AUTOSIZE_TEXTAREAS.forEach((el) => {
+    el.addEventListener("input", () => autosizeTextarea(el));
+  });
+
+  // ------------------------------------------------------------------
+  // Modal open / close
+  // ------------------------------------------------------------------
+  function resetForm() {
+    form.reset();
+    AUTOSIZE_TEXTAREAS.forEach((el) => {
+      el.style.height = `${TEXTAREA_MIN_HEIGHT}px`;
+    });
+  }
+
+  function configureTitleFieldFor(kind) {
+    if (kind === "goal" || kind === "outcome") {
+      titleField.style.display = "none";
+      fTitle.required = false;
+    } else {
+      titleField.style.display = "";
+      fTitleLabel.textContent = "Output Title";
+      fTitle.required = true;
+      fTitle.placeholder = "e.g. Mid-Year Performance Review";
+    }
+  }
+
+  function openModalForAdd() {
+    editingId = null;
+    const n = nextOutputNumber();
+    modalTitle.textContent = "Add Output";
+    resetForm();
+    configureTitleFieldFor("output");
+    fTitleHint.textContent = `This will be labeled "OUTPUT ${n}: <your title>".`;
+    modalOverlay.classList.add("visible");
+    fTitle.focus();
+  }
+
+  function kindDisplayName(kind) {
+    if (kind === "goal") return "Goal";
+    if (kind === "outcome") return "Outcome";
+    return "Output";
+  }
+
+  function openModalForEdit(entry) {
+    editingId = entry.id;
+    modalTitle.textContent = `Edit ${kindDisplayName(entry.kind)}`;
+    resetForm();
+    configureTitleFieldFor(entry.kind);
+
+    if (entry.kind === "output") {
+      fTitle.value = entry.title;
+      fTitleHint.textContent = `Labeled as "OUTPUT ${outputNumberFor(
+        entry,
+      )}: <your title>".`;
+    } else {
+      fTitleHint.textContent = "";
+    }
+
+    fObjectives.value = entry.objectives;
+    fIndicators.value = entry.indicators;
+    fDefinition.value = entry.definition;
+    fDcSource.value = entry.dcSource;
+    fDcPerson.value = entry.dcPerson;
+    fDcFreq.value = entry.dcFreq;
+    fDaUsed.value = entry.daUsed;
+    fDaPerson.value = entry.daPerson;
+    fDaFreq.value = entry.daFreq;
+    fUsers.value = entry.users;
+    fRepComm.value = entry.repComm;
+    fRepFreq.value = entry.repFreq;
+
+    AUTOSIZE_TEXTAREAS.forEach((el) => autosizeTextarea(el));
+
+    modalOverlay.classList.add("visible");
+  }
+
+  function closeModal() {
+    modalOverlay.classList.remove("visible");
+    editingId = null;
+  }
+
+  addBtn.addEventListener("click", openModalForAdd);
+  modalClose.addEventListener("click", closeModal);
+  cancelBtn.addEventListener("click", closeModal);
+  modalOverlay.addEventListener("click", (e) => {
+    if (e.target === modalOverlay) closeModal();
+  });
+
+  // ------------------------------------------------------------------
+  // Delete confirmation modal (outputs only)
+  // ------------------------------------------------------------------
+  function openDeleteConfirm(id) {
+    pendingDeleteId = id;
+    confirmOverlay.classList.add("visible");
+  }
+
+  function closeDeleteConfirm() {
+    pendingDeleteId = null;
+    confirmOverlay.classList.remove("visible");
+  }
+
+  confirmCancelBtn.addEventListener("click", closeDeleteConfirm);
+  confirmOverlay.addEventListener("click", (e) => {
+    if (e.target === confirmOverlay) closeDeleteConfirm();
+  });
+
+  confirmDeleteBtn.addEventListener("click", () => {
+    if (pendingDeleteId !== null) {
+      entries = entries.filter((en) => en.id !== pendingDeleteId);
+      renderTable();
+    }
+    closeDeleteConfirm();
+  });
+
+  // ------------------------------------------------------------------
+  // Table rendering
+  // ------------------------------------------------------------------
+  function renderTitleCell(entry) {
+    if (entry.kind === "goal") {
+      return `<div class="irc6-title-cell"><span class="irc6-kind-badge goal">Goal</span></div>`;
+    }
+    if (entry.kind === "outcome") {
+      return `<div class="irc6-title-cell"><span class="irc6-kind-badge outcome">Outcome</span></div>`;
+    }
+    const n = outputNumberFor(entry);
+    const titleText = entry.title
+      ? escapeHtml(entry.title)
+      : `<span style="color:#9ca3af;">Untitled output</span>`;
+    return `
+      <div class="irc6-title-cell">
+        <span class="irc6-kind-badge output">Output ${n}</span>
+        <div class="irc6-output-title">${titleText}</div>
+      </div>
+    `;
+  }
+
+  function cell(value) {
+    return `<td class="irc6-cell-text">${escapeHtml(value) || "N/A"}</td>`;
+  }
+
+  function renderTable() {
+    tableBody.innerHTML = "";
+
+    entries.forEach((entry, index) => {
+      const tr = document.createElement("tr");
+      const canDelete = entry.kind === "output";
+
+      tr.innerHTML = `
+        <td>${index + 1}</td>
+        <td class="irc6-cell-title">${renderTitleCell(entry)}</td>
+        ${cell(entry.objectives)}
+        ${cell(entry.indicators)}
+        ${cell(entry.definition)}
+        ${cell(entry.dcSource)}
+        ${cell(entry.dcPerson)}
+        ${cell(entry.dcFreq)}
+        ${cell(entry.daUsed)}
+        ${cell(entry.daPerson)}
+        ${cell(entry.daFreq)}
+        ${cell(entry.users)}
+        ${cell(entry.repComm)}
+        ${cell(entry.repFreq)}
+        <td>
+          <div class="irc6-actions-cell">
+            <button type="button" class="irc6-icon-btn irc6-edit-btn" data-id="${
+              entry.id
+            }" title="Edit">&#9998;</button>
+            <button type="button" class="irc6-icon-btn irc6-delete-btn" data-id="${
+              entry.id
+            }" title="${
+              canDelete ? "Delete" : "Goal and Outcome cannot be deleted"
+            }" ${canDelete ? "" : "disabled"}>&#128465;</button>
+          </div>
+        </td>
+      `;
+
+      tableBody.appendChild(tr);
+    });
+  }
+
+  tableBody.addEventListener("click", (e) => {
+    const editBtn = e.target.closest(".irc6-edit-btn");
+    const deleteBtn = e.target.closest(".irc6-delete-btn");
+
+    if (editBtn) {
+      const entry = entries.find((en) => en.id === Number(editBtn.dataset.id));
+      if (entry) openModalForEdit(entry);
+    }
+
+    if (deleteBtn && !deleteBtn.disabled) {
+      openDeleteConfirm(Number(deleteBtn.dataset.id));
+    }
+  });
+
+  // ------------------------------------------------------------------
+  // Form submit
+  // ------------------------------------------------------------------
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const kind =
+      editingId === null
+        ? "output"
+        : entries.find((en) => en.id === editingId).kind;
+
+    const entryData = {
+      title: kind === "output" ? fTitle.value.trim() : "",
+      objectives: fObjectives.value.trim(),
+      indicators: fIndicators.value.trim(),
+      definition: fDefinition.value.trim(),
+      dcSource: fDcSource.value.trim(),
+      dcPerson: fDcPerson.value.trim(),
+      dcFreq: fDcFreq.value.trim(),
+      daUsed: fDaUsed.value.trim(),
+      daPerson: fDaPerson.value.trim(),
+      daFreq: fDaFreq.value.trim(),
+      users: fUsers.value.trim(),
+      repComm: fRepComm.value.trim(),
+      repFreq: fRepFreq.value.trim(),
+    };
+
+    if (editingId !== null) {
+      const idx = entries.findIndex((en) => en.id === editingId);
+      if (idx !== -1) entries[idx] = { ...entries[idx], ...entryData };
+    } else {
+      entries.push({ id: nextId++, kind: "output", ...entryData });
+    }
+
+    renderTable();
+    closeModal();
+  });
+
+  // ------------------------------------------------------------------
+  // Initial render
+  // ------------------------------------------------------------------
+  renderTable();
+})();
