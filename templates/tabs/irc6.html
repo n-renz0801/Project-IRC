@@ -13,11 +13,6 @@ block content %}
       <p class="irc6-subtitle">
         Supply the needed data for your
         <strong>Monitoring &amp; Evaluation (M&amp;E) Plan</strong>.
-        <strong>Goal</strong> and <strong>Outcome</strong> are fixed sections
-        &mdash; edit them to fill in their details. Use
-        <strong>Add Output</strong> to append additional Output entries, which
-        are numbered automatically. Enter <strong>N/A</strong> in a field if it
-        does not apply.
       </p>
     </div>
     <button type="button" id="irc6-add-btn" class="irc6-add-btn">
@@ -70,8 +65,8 @@ block content %}
     </div>
 
     <form id="irc6-form" class="irc6-modal-body">
-      <div class="irc6-form-grid">
-        <div class="irc6-field irc6-field-span2" id="irc6-title-field">
+      <div class="irc6-form-stack">
+        <div class="irc6-field" id="irc6-title-field">
           <label id="irc6-f-title-label" for="irc6-f-title">Output Title</label>
           <input
             type="text"
@@ -81,7 +76,7 @@ block content %}
           <span id="irc6-f-title-hint" class="irc6-field-hint"></span>
         </div>
 
-        <div class="irc6-field irc6-field-span2">
+        <div class="irc6-field">
           <label for="irc6-f-objectives">Objectives</label>
           <textarea
             id="irc6-f-objectives"
@@ -90,7 +85,7 @@ block content %}
           ></textarea>
         </div>
 
-        <div class="irc6-field irc6-field-span2">
+        <div class="irc6-field">
           <label for="irc6-f-indicators">Indicators</label>
           <textarea
             id="irc6-f-indicators"
@@ -99,7 +94,7 @@ block content %}
           ></textarea>
         </div>
 
-        <div class="irc6-field irc6-field-span2">
+        <div class="irc6-field">
           <label for="irc6-f-definition">Definition</label>
           <textarea
             id="irc6-f-definition"
@@ -108,61 +103,119 @@ block content %}
           ></textarea>
         </div>
 
-        <div class="irc6-field irc6-field-span2 irc6-section-divider">
-          <span class="irc6-section-label">Data Collection</span>
+        <div class="irc6-group-card">
+          <div class="irc6-group-header">
+            <svg
+              class="irc6-group-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <span>Data Collection</span>
+          </div>
+          <div class="irc6-group-body">
+            <div class="irc6-field">
+              <label for="irc6-f-dcsource">Source/Methods</label>
+              <textarea
+                id="irc6-f-dcsource"
+                rows="2"
+                placeholder="N/A"
+              ></textarea>
+            </div>
+            <div class="irc6-group-row">
+              <div class="irc6-field">
+                <label for="irc6-f-dcperson">Person Responsible</label>
+                <input type="text" id="irc6-f-dcperson" placeholder="N/A" />
+              </div>
+              <div class="irc6-field">
+                <label for="irc6-f-dcfreq">Frequency/Schedule</label>
+                <input type="text" id="irc6-f-dcfreq" placeholder="N/A" />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="irc6-field irc6-field-span2">
-          <label for="irc6-f-dcsource">Source/Methods</label>
-          <textarea id="irc6-f-dcsource" rows="2" placeholder="N/A"></textarea>
+        <div class="irc6-group-card">
+          <div class="irc6-group-header">
+            <svg
+              class="irc6-group-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="12" y1="20" x2="12" y2="10"></line>
+              <line x1="18" y1="20" x2="18" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="16"></line>
+            </svg>
+            <span>Data Analysis</span>
+          </div>
+          <div class="irc6-group-body">
+            <div class="irc6-field">
+              <label for="irc6-f-daused">Data Used</label>
+              <textarea
+                id="irc6-f-daused"
+                rows="2"
+                placeholder="N/A"
+              ></textarea>
+            </div>
+            <div class="irc6-group-row">
+              <div class="irc6-field">
+                <label for="irc6-f-daperson">Person Responsible</label>
+                <input type="text" id="irc6-f-daperson" placeholder="N/A" />
+              </div>
+              <div class="irc6-field">
+                <label for="irc6-f-dafreq">Frequency</label>
+                <input type="text" id="irc6-f-dafreq" placeholder="N/A" />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="irc6-field">
-          <label for="irc6-f-dcperson">Person Responsible</label>
-          <input type="text" id="irc6-f-dcperson" placeholder="N/A" />
-        </div>
-
-        <div class="irc6-field">
-          <label for="irc6-f-dcfreq">Frequency/Schedule</label>
-          <input type="text" id="irc6-f-dcfreq" placeholder="N/A" />
-        </div>
-
-        <div class="irc6-field irc6-field-span2 irc6-section-divider">
-          <span class="irc6-section-label">Data Analysis</span>
-        </div>
-
-        <div class="irc6-field irc6-field-span2">
-          <label for="irc6-f-daused">Data Used</label>
-          <textarea id="irc6-f-daused" rows="2" placeholder="N/A"></textarea>
-        </div>
-
-        <div class="irc6-field">
-          <label for="irc6-f-daperson">Person Responsible</label>
-          <input type="text" id="irc6-f-daperson" placeholder="N/A" />
-        </div>
-
-        <div class="irc6-field">
-          <label for="irc6-f-dafreq">Frequency</label>
-          <input type="text" id="irc6-f-dafreq" placeholder="N/A" />
-        </div>
-
-        <div class="irc6-field irc6-field-span2">
           <label for="irc6-f-users">Users of M&amp;E Results</label>
           <textarea id="irc6-f-users" rows="2" placeholder="N/A"></textarea>
         </div>
 
-        <div class="irc6-field irc6-field-span2 irc6-section-divider">
-          <span class="irc6-section-label">Reporting</span>
-        </div>
-
-        <div class="irc6-field irc6-field-span2">
-          <label for="irc6-f-repcomm">Communication Strategies</label>
-          <textarea id="irc6-f-repcomm" rows="2" placeholder="N/A"></textarea>
-        </div>
-
-        <div class="irc6-field irc6-field-span2">
-          <label for="irc6-f-repfreq">Frequency/Schedule</label>
-          <input type="text" id="irc6-f-repfreq" placeholder="N/A" />
+        <div class="irc6-group-card">
+          <div class="irc6-group-header">
+            <svg
+              class="irc6-group-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <span>Reporting</span>
+          </div>
+          <div class="irc6-group-body">
+            <div class="irc6-field">
+              <label for="irc6-f-repcomm">Communication Strategies</label>
+              <textarea
+                id="irc6-f-repcomm"
+                rows="2"
+                placeholder="N/A"
+              ></textarea>
+            </div>
+            <div class="irc6-field">
+              <label for="irc6-f-repfreq">Frequency/Schedule</label>
+              <input type="text" id="irc6-f-repfreq" placeholder="N/A" />
+            </div>
+          </div>
         </div>
       </div>
     </form>
