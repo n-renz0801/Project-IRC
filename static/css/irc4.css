@@ -214,6 +214,47 @@
   color: var(--irc4-accent-dark);
 }
 
+/* Forces the edit button closed when [hidden] is set. Without this, this
+   rule's own `display: inline-flex` above wins the specificity/origin tie
+   against the browser's built-in [hidden] rule, so the pencil button
+   would keep showing (alongside the check button) instead of disappearing
+   once enterEdit() sets editBtn.hidden = true. */
+.irc4-field-edit-btn[hidden] {
+  display: none;
+}
+
+.irc4-field-save-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-top: 3px;
+  background: #eaf7ef;
+  border: 1px solid #bfe6cc;
+  color: #1a7f43;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.irc4-field-save-btn:hover {
+  background: #dcf3e3;
+  border-color: #8fd6a8;
+  color: #14622f;
+}
+
+/* Same fix as the edit button above: without this, the save button would
+   show by default (its own `display: inline-flex` beating [hidden]),
+   instead of staying hidden until enterEdit() reveals it. */
+.irc4-field-save-btn[hidden] {
+  display: none;
+}
+
 /* ---- text inputs (edit mode) ---------------------------------------------- */
 
 /* Non-resizable: height is driven entirely by JS (autoGrow) based on
@@ -223,7 +264,7 @@
   box-sizing: border-box;
   resize: none;
   overflow: hidden;
-  min-height: 64px;
+  min-height: 36px;
   padding: 8px 10px;
   border: 1px solid var(--irc4-field-border);
   border-radius: 6px;
@@ -298,7 +339,7 @@
   box-sizing: border-box;
   resize: none;
   overflow: hidden;
-  min-height: 34px;
+  min-height: 30px;
   padding: 7px 9px;
   border: 1px solid var(--irc4-field-border);
   border-radius: 6px;
@@ -915,10 +956,10 @@
   pointer-events: none;
 }
 
-/* Forces the hint closed when [hidden] is set. Without this, the rule
-   above's own `display: flex` wins the origin tie against the browser's
-   built-in [hidden] rule, so the hint stays visibly showing even once
-   schools have been selected and JS sets el.hidden = true. */
+/* Forces the hint closed when [hidden] is set. Without this, this rule's
+   own `display: flex` above wins the specificity/origin tie against the
+   browser's built-in [hidden] rule, so the hint would keep showing even
+   after schools have been selected and JS sets el.hidden = true. */
 .irc4-group-empty-hint[hidden] {
   display: none;
 }
