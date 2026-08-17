@@ -2,6 +2,8 @@
   const table = document.getElementById("irc7-table");
   if (!table) return;
 
+  const wrapper = table.closest(".irc7-table-wrapper") || table.parentElement;
+  const colgroup = document.getElementById("irc7-colgroup");
   const groupRow = document.getElementById("irc7-group-row");
   const colRow = document.getElementById("irc7-col-row");
   const tbody = document.getElementById("irc7-tbody");
@@ -30,19 +32,63 @@
   const editModeBanner = document.getElementById("editModeBanner");
   const deleteModeBanner = document.getElementById("deleteModeBanner");
 
+  // Minimum pixel width for each column type. Every added column (grouped
+  // or standalone) gets a <col data-min-width="..."> using one of these.
+  const ADDED_COLUMN_MIN_WIDTH = {
+    text: 140,
+    number: 100,
+    paragraph: 220,
+  };
+
   // ---------- Data model for added groups/columns ----------
   const groups = new Map(); // groupId -> { id, name }
   let columns = []; // ordered array of { id, name, type, groupId|null }
   let colCounter = 0;
   let groupCounter = 0;
 
+  // ================= FLUID-UNTIL-MINIMUM COLUMN LAYOUT =================
+  // Every <col> in #irc7-colgroup carries a data-min-width (px). Whenever
+  // columns change (or the wrapper is resized), recalcLayout() decides:
+  //  - if the sum of all minimums fits inside the wrapper: stretch the
+  //    table to 100% and give each column a percentage share of that
+  //    width proportional to its minimum (fluid — fills the table).
+  //  - otherwise: pin the table width to the sum of minimums (px) and
+  //    give each column exactly its minimum (px) — columns stop
+  //    shrinking, and the wrapper's overflow-x: auto makes it scroll.
+  function recalcLayout() {
+    const cols = Array.from(colgroup.children);
+    if (cols.length === 0) return;
+
+    const minWidths = cols.map((c) => parseFloat(c.dataset.minWidth) || 100);
+    const totalMin = minWidths.reduce((sum, w) => sum + w, 0);
+    const available = wrapper.clientWidth;
+
+    if (totalMin <= available) {
+      table.style.width = "100%";
+      cols.forEach((c, i) => {
+        c.style.width = (minWidths[i] / totalMin) * 100 + "%";
+      });
+    } else {
+      table.style.width = totalMin + "px";
+      cols.forEach((c, i) => {
+        c.style.width = minWidths[i] + "px";
+      });
+    }
+  }
+
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(recalcLayout, 100);
+  });
+
   // ---------- Mode state: null | 'edit' | 'delete' ----------
   let activeMode = null;
 
   function deactivateModes() {
     activeMode = null;
-    editModeBtn.classList.remove("irc7-mode-btn--active");
-    deleteModeBtn.classList.remove("irc7-mode-btn--active");
+    editModeBtn.classList.remove("irc7-icon-btn--active");
+    deleteModeBtn.classList.remove("irc7-icon-btn--active");
     editModeBanner.style.display = "none";
     deleteModeBanner.style.display = "none";
     table.classList.remove("irc7-mode-edit", "irc7-mode-delete");
@@ -56,11 +102,11 @@
     deactivateModes();
     activeMode = mode;
     if (mode === "edit") {
-      editModeBtn.classList.add("irc7-mode-btn--active");
+      editModeBtn.classList.add("irc7-icon-btn--active");
       editModeBanner.style.display = "flex";
       table.classList.add("irc7-mode-edit");
     } else if (mode === "delete") {
-      deleteModeBtn.classList.add("irc7-mode-btn--active");
+      deleteModeBtn.classList.add("irc7-icon-btn--active");
       deleteModeBanner.style.display = "flex";
       table.classList.add("irc7-mode-delete");
     }
@@ -70,6 +116,9 @@
   deleteModeBtn.addEventListener("click", () => setMode("delete"));
 
   // ================= ADD COLUMN MODAL =================
+
+  const TRASH_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>`;
+  const PLUS_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>`;
 
   function createColumnRow() {
     const row = document.createElement("div");
@@ -82,7 +131,7 @@
         <option value="paragraph">Paragraph</option>
       </select>
       <button type="button" class="irc7-remove-column-btn" title="Remove column">
-        <i class="ti ti-x"></i>
+        ${TRASH_SVG}
       </button>
     `;
     row
@@ -98,12 +147,12 @@
       <div class="irc7-group-block-header">
         <input type="text" class="irc7-group-name-input" placeholder="Group name (optional — leave blank for standalone columns)" />
         <button type="button" class="irc7-remove-group-btn" title="Remove group">
-          <i class="ti ti-trash"></i>
+          ${TRASH_SVG}
         </button>
       </div>
       <div class="irc7-columns-list"></div>
       <button type="button" class="irc7-add-column-btn">
-        <i class="ti ti-plus"></i> Add Column
+        ${PLUS_SVG} Add Column
       </button>
     `;
 
@@ -210,6 +259,7 @@
 
           const th = buildColumnHeaderCell(colId, c.name);
           colRow.appendChild(th);
+          colgroup.appendChild(buildColElement(colId, c.type));
           appendCellToRows(colId, c.type);
         });
 
@@ -226,22 +276,35 @@
         const th = buildColumnHeaderCell(colId, col.name);
         th.rowSpan = 2;
         groupRow.appendChild(th);
+        colgroup.appendChild(buildColElement(colId, col.type));
         appendCellToRows(colId, col.type);
         i++;
       }
     }
+
+    recalcLayout();
   }
 
-  // Plain text headers — no icons, so centered text never shifts off-center.
-  function buildGroupHeaderCell(groupId, name, span) {
+  // <col> element carrying this column's minimum width.
+  function buildColElement(colId, type) {
+    const colEl = document.createElement("col");
+    colEl.dataset.colId = colId;
+    colEl.dataset.minWidth =
+      ADDED_COLUMN_MIN_WIDTH[type] || ADDED_COLUMN_MIN_WIDTH.text;
+    return colEl;
+  }
+
+  // Header cell for a top-row group (spans the columns beneath it).
+  function buildGroupHeaderCell(groupId, name, colSpan) {
     const th = document.createElement("th");
     th.className = "irc7-group-header irc7-added-header";
-    th.colSpan = span;
+    th.colSpan = colSpan;
     th.dataset.groupId = groupId;
     th.textContent = name;
     return th;
   }
 
+  // Header cell for an individual column (grouped or standalone).
   function buildColumnHeaderCell(colId, name) {
     const th = document.createElement("th");
     th.className = "irc7-sub-header irc7-added-header irc7-fixed-col";
@@ -356,6 +419,16 @@
       if (th) th.textContent = newName;
 
       if (typeChanged) {
+        // Update the column's minimum width to match the new type, then
+        // let recalcLayout() redistribute space.
+        const colEl = colgroup.querySelector(
+          `col[data-col-id="${editingTarget.id}"]`,
+        );
+        if (colEl) {
+          colEl.dataset.minWidth =
+            ADDED_COLUMN_MIN_WIDTH[newType] || ADDED_COLUMN_MIN_WIDTH.text;
+        }
+
         tbody
           .querySelectorAll(`td[data-col-id="${editingTarget.id}"]`)
           .forEach((td) => {
@@ -371,6 +444,8 @@
             }
             td.appendChild(input);
           });
+
+        recalcLayout();
       }
     }
 
@@ -412,6 +487,9 @@
       groupRow.querySelector(`th[data-col-id="${colId}"]`);
     if (th) th.remove();
 
+    const colEl = colgroup.querySelector(`col[data-col-id="${colId}"]`);
+    if (colEl) colEl.remove();
+
     tbody
       .querySelectorAll(`td[data-col-id="${colId}"]`)
       .forEach((td) => td.remove());
@@ -432,6 +510,7 @@
     }
 
     columns = columns.filter((c) => c.id !== colId);
+    recalcLayout();
   }
 
   function removeGroup(groupId) {
@@ -445,6 +524,8 @@
     colsInGroup.forEach((colId) => {
       const th = colRow.querySelector(`th[data-col-id="${colId}"]`);
       if (th) th.remove();
+      const colEl = colgroup.querySelector(`col[data-col-id="${colId}"]`);
+      if (colEl) colEl.remove();
       tbody
         .querySelectorAll(`td[data-col-id="${colId}"]`)
         .forEach((td) => td.remove());
@@ -452,5 +533,9 @@
 
     columns = columns.filter((c) => c.groupId !== groupId);
     groups.delete(groupId);
+    recalcLayout();
   }
+
+  // ---------- Initial layout ----------
+  recalcLayout();
 })();

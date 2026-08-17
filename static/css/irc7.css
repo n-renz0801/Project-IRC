@@ -63,7 +63,7 @@
 .irc7-toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -85,40 +85,57 @@
   background: #3d5a8a;
 }
 
-.irc7-mode-btn {
+/* Minimalist icon-only mode toggles */
+
+.irc7-icon-btn {
   background: white;
   border: 1px solid #d0d0d0;
-  color: #444;
-  padding: 10px 16px;
+  color: #555;
+  width: 38px;
+  height: 38px;
   border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   transition: all 0.2s ease;
 }
 
-.irc7-mode-btn:hover {
+.irc7-icon-btn:hover {
   background: #f5f5f5;
   border-color: #999;
 }
 
-.irc7-mode-btn--edit.irc7-mode-btn--active {
+.irc7-icon-btn--edit.irc7-icon-btn--active {
   background: #1f4f8a;
   border-color: #1f4f8a;
   color: white;
 }
 
-.irc7-mode-btn--delete.irc7-mode-btn--active {
+.irc7-icon-btn--delete.irc7-icon-btn--active {
   background: #c0392b;
   border-color: #c0392b;
   color: white;
 }
 
+.irc7-toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #e0e0e0;
+  margin: 0 4px;
+}
+
 /* ---------- Table ---------- */
-/* table-layout: auto (default) lets columns size to their content;
-   padding provides the "subtle margin" instead of forced min-widths. */
+/* table-layout: fixed is required so <col> widths (percentage or px) are
+   respected exactly instead of being overridden by cell content. The
+   table's own width and each <col>'s width are both set by irc7.js's
+   recalcLayout(): when every column's minimum width still fits the
+   wrapper, the table is set to 100% and columns get percentage widths
+   (fluid — fills the table, shrinks together as columns are added).
+   Once the combined minimums no longer fit, the table is pinned to that
+   total in px and each column to its px minimum, so nothing shrinks
+   further — instead .irc7-table-wrapper's overflow-x: auto scrolls. */
 
 .irc7-table-wrapper {
   background: white;
@@ -131,7 +148,7 @@
 }
 
 .irc7-table {
-  width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -170,6 +187,24 @@
   white-space: nowrap;
 }
 
+/* Columns whose header label is long: wrap the header text within the
+   column's current width instead of forcing the column wide.
+   Needs to out-specificity ".irc7-table thead th { white-space: nowrap; }". */
+.irc7-table thead th.irc7-wrap-header {
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-height: 1.3;
+}
+
+/* Same wrapping treatment for headers of columns added via "Add Column". */
+.irc7-table thead th.irc7-added-header {
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-height: 1.3;
+}
+
 .irc7-table tbody tr {
   border-bottom: 1px solid #f0f0f0;
   transition: background-color 0.15s ease;
@@ -191,7 +226,10 @@
   padding: 10px 18px;
   border-right: 1px solid #e8e8e8;
   color: #333;
-  white-space: nowrap;
+  /* Wrap within the column's current width rather than force it wider. */
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 .irc7-table tbody td:last-child {
@@ -202,6 +240,7 @@
 
 .irc7-editable-cell {
   padding: 6px 10px !important;
+  white-space: normal;
 }
 
 .irc7-cell-input {
@@ -416,6 +455,7 @@
   border-radius: 6px;
   width: 32px;
   height: 32px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -466,13 +506,15 @@
   flex-shrink: 0;
 }
 
+/* Remove-column button (in Add Column modal) — trash icon, clearly visible */
 .irc7-remove-column-btn {
   background: none;
-  border: 1px solid #ddd;
-  color: #888;
+  border: 1px solid #e2b0b0;
+  color: #c0392b;
   border-radius: 6px;
   width: 30px;
   height: 30px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -485,7 +527,6 @@
 
 .irc7-remove-column-btn:hover {
   background: #fbe9e9;
-  color: #c0392b;
 }
 
 .irc7-add-column-btn {
@@ -562,6 +603,37 @@
 .irc7-modal-btn-submit:hover {
   background: #3d5a8a;
   border-color: #3d5a8a;
+}
+
+/* ---------- Inline SVG icons (no external font dependency) ---------- */
+
+.irc7-icon-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.irc7-add-column-toolbar-btn svg,
+.irc7-add-group-btn svg,
+.irc7-add-column-btn svg {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.irc7-remove-column-btn svg,
+.irc7-remove-group-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.irc7-banner-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 /* ---------- Responsive ---------- */

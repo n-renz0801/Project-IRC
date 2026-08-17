@@ -22,7 +22,19 @@ block content %}
         id="editModeBanner"
         style="display: none"
       >
-        <i class="ti ti-pencil"></i>
+        <svg
+          class="irc7-banner-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+          ></path>
+        </svg>
         Edit mode is ON — click a column or group header to rename or change it.
       </div>
       <div
@@ -30,7 +42,21 @@ block content %}
         id="deleteModeBanner"
         style="display: none"
       >
-        <i class="ti ti-alert-triangle"></i>
+        <svg
+          class="irc7-banner-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 9v4"></path>
+          <path d="M12 17h.01"></path>
+          <path
+            d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+          ></path>
+        </svg>
         Delete mode is ON — clicking a column or group header will permanently
         remove it. This cannot be undone.
       </div>
@@ -39,40 +65,93 @@ block content %}
     <div class="irc7-toolbar-actions">
       <button
         type="button"
-        class="irc7-mode-btn irc7-mode-btn--edit"
+        class="irc7-icon-btn irc7-icon-btn--edit"
         id="editModeBtn"
+        title="Toggle edit mode"
+        aria-label="Toggle edit mode"
       >
-        <i class="ti ti-pencil" style="margin-right: 6px"></i> Edit Mode
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+          ></path>
+        </svg>
       </button>
       <button
         type="button"
-        class="irc7-mode-btn irc7-mode-btn--delete"
+        class="irc7-icon-btn irc7-icon-btn--delete"
         id="deleteModeBtn"
+        title="Toggle delete mode"
+        aria-label="Toggle delete mode"
       >
-        <i class="ti ti-trash" style="margin-right: 6px"></i> Delete Mode
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+          <path d="M10 11v6"></path>
+          <path d="M14 11v6"></path>
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+        </svg>
       </button>
+      <span class="irc7-toolbar-divider"></span>
       <button
         type="button"
         class="irc7-add-column-toolbar-btn"
         id="addColumnBtn"
       >
-        <i class="ti ti-plus" style="margin-right: 6px"></i> Add Column
+        <svg
+          class="irc7-inline-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 5v14M5 12h14"></path>
+        </svg>
+        Add Column
       </button>
     </div>
   </div>
 
   <div class="irc7-table-wrapper">
     <table id="irc7-table" class="irc7-table">
+      <colgroup id="irc7-colgroup">
+        <col data-min-width="90" />
+        <col data-min-width="240" />
+        <col data-min-width="130" />
+        <col data-min-width="110" />
+        <col data-min-width="90" />
+        <col data-min-width="130" />
+      </colgroup>
+
       <thead>
         <tr id="irc7-group-row">
-          <th rowspan="2" class="irc7-fixed-col">School ID</th>
-          <th rowspan="2" class="irc7-fixed-col irc7-name-col">School Name</th>
-          <th rowspan="2" class="irc7-fixed-col">Curricular Offering</th>
-          <th rowspan="2" class="irc7-fixed-col">
+          <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">School ID</th>
+          <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+            School Name
+          </th>
+          <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+            Curricular Offering
+          </th>
+          <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
             District Learning Cluster (DLC)
           </th>
           <th rowspan="2" class="irc7-fixed-col">Status</th>
-          <th rowspan="2" class="irc7-fixed-col">
+          <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
             School Classification (2024)
           </th>
         </tr>

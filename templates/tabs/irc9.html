@@ -10,15 +10,21 @@ block content %}
   <div class="irc9-header">
     <div class="irc9-header-text">
       <h2>IRC9 &mdash; Performance Monitoring &amp; Coaching Form (PMCF)</h2>
-      <p class="irc9-subtitle">
-        Log <strong>critical incidents</strong> — actual events and behaviors
-        that reinforce or hinder performance — along with the resulting output
-        and impact on the job or action plan.
-      </p>
     </div>
-    <button type="button" id="irc9-add-btn" class="irc9-add-btn">
-      <span class="irc9-add-icon">+</span> Add Entry
-    </button>
+    <div class="irc9-header-actions">
+      <input
+        type="file"
+        id="irc9-file-input"
+        accept=".pdf"
+        style="display: none"
+      />
+      <button type="button" id="irc9-import-btn" class="irc9-import-btn">
+        <i class="ti ti-file-upload"></i> Import from PDF
+      </button>
+      <button type="button" id="irc9-add-btn" class="irc9-add-btn">
+        <span class="irc9-add-icon">+</span> Add Entry
+      </button>
+    </div>
   </div>
 
   <!-- ================= MAIN TABLE ================= -->
@@ -26,7 +32,6 @@ block content %}
     <table id="irc9-table" class="irc9-table">
       <thead>
         <tr>
-          <th class="irc9-col-no">No.</th>
           <th class="irc9-col-date">Date</th>
           <th class="irc9-col-incident">
             Critical Incidence Description
@@ -48,7 +53,7 @@ block content %}
     <div id="irc9-empty-state" class="irc9-empty-state">
       <p>
         No entries yet. Click <strong>“+ Add Entry”</strong> to log your first
-        critical incident.
+        critical incident, or import one from a PMCF PDF.
       </p>
     </div>
   </div>
@@ -121,8 +126,7 @@ block content %}
   <div class="irc9-confirm-box">
     <h4>Delete this entry?</h4>
     <p>
-      This action cannot be undone. Remaining entries will be renumbered. Are
-      you sure you want to delete this entry?
+      This action cannot be undone. Are you sure you want to delete this entry?
     </p>
     <div class="irc9-confirm-actions">
       <button type="button" id="irc9-confirm-cancel" class="irc9-btn-secondary">
@@ -130,6 +134,47 @@ block content %}
       </button>
       <button type="button" id="irc9-confirm-delete" class="irc9-btn-danger">
         Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PDF IMPORT PREVIEW MODAL ================= -->
+<div id="irc9-import-modal-overlay" class="irc9-modal-overlay">
+  <div class="irc9-modal irc9-import-modal">
+    <div class="irc9-modal-header">
+      <h3>Review Extracted Entries</h3>
+      <button
+        type="button"
+        id="irc9-import-modal-close"
+        class="irc9-modal-close"
+      >
+        &times;
+      </button>
+    </div>
+
+    <div class="irc9-modal-body">
+      <p class="irc9-import-hint">
+        Review the entries extracted from the PDF below. You can edit any field,
+        or remove an entry so it isn't imported.
+      </p>
+      <div id="irc9-import-list" class="irc9-import-list"></div>
+    </div>
+
+    <div class="irc9-modal-footer">
+      <button
+        type="button"
+        id="irc9-import-cancel-btn"
+        class="irc9-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc9-import-confirm-btn"
+        class="irc9-btn-primary"
+      >
+        Import Entries
       </button>
     </div>
   </div>
