@@ -25,13 +25,49 @@
   const editTypeWrapper = document.getElementById("editItemTypeWrapper");
   const editTypeSelect = document.getElementById("editItemTypeSelect");
 
+  const editModeBtn = document.getElementById("editModeBtn");
+  const deleteModeBtn = document.getElementById("deleteModeBtn");
+  const editModeBanner = document.getElementById("editModeBanner");
+  const deleteModeBanner = document.getElementById("deleteModeBanner");
+
   // ---------- Data model for added groups/columns ----------
-  // groups: Map<groupId, { id, name }>
-  // columns: array of { id, name, type, groupId|null } in display order
-  const groups = new Map();
-  let columns = [];
+  const groups = new Map(); // groupId -> { id, name }
+  let columns = []; // ordered array of { id, name, type, groupId|null }
   let colCounter = 0;
   let groupCounter = 0;
+
+  // ---------- Mode state: null | 'edit' | 'delete' ----------
+  let activeMode = null;
+
+  function deactivateModes() {
+    activeMode = null;
+    editModeBtn.classList.remove("irc7-mode-btn--active");
+    deleteModeBtn.classList.remove("irc7-mode-btn--active");
+    editModeBanner.style.display = "none";
+    deleteModeBanner.style.display = "none";
+    table.classList.remove("irc7-mode-edit", "irc7-mode-delete");
+  }
+
+  function setMode(mode) {
+    if (activeMode === mode) {
+      deactivateModes();
+      return;
+    }
+    deactivateModes();
+    activeMode = mode;
+    if (mode === "edit") {
+      editModeBtn.classList.add("irc7-mode-btn--active");
+      editModeBanner.style.display = "flex";
+      table.classList.add("irc7-mode-edit");
+    } else if (mode === "delete") {
+      deleteModeBtn.classList.add("irc7-mode-btn--active");
+      deleteModeBanner.style.display = "flex";
+      table.classList.add("irc7-mode-delete");
+    }
+  }
+
+  editModeBtn.addEventListener("click", () => setMode("edit"));
+  deleteModeBtn.addEventListener("click", () => setMode("delete"));
 
   // ================= ADD COLUMN MODAL =================
 
@@ -93,6 +129,7 @@
   }
 
   function showAddModal() {
+    deactivateModes(); // avoid confusing overlap between "add" and edit/delete modes
     resetAddModal();
     modal.style.display = "flex";
   }
@@ -147,7 +184,6 @@
       const col = newColumns[i];
 
       if (col.groupName) {
-        // Gather consecutive columns that share this same group name
         let j = i;
         const batch = [];
         while (
@@ -196,22 +232,13 @@
     }
   }
 
+  // Plain text headers — no icons, so centered text never shifts off-center.
   function buildGroupHeaderCell(groupId, name, span) {
     const th = document.createElement("th");
     th.className = "irc7-group-header irc7-added-header";
     th.colSpan = span;
     th.dataset.groupId = groupId;
-    th.innerHTML = `
-      <span class="irc7-header-text">${escapeHtml(name)}</span>
-      <span class="irc7-header-actions">
-        <button type="button" class="irc7-header-action-btn irc7-edit-btn" data-kind="group" data-id="${groupId}" title="Edit group">
-          <i class="ti ti-pencil"></i>
-        </button>
-        <button type="button" class="irc7-header-action-btn irc7-remove-btn" data-kind="group" data-id="${groupId}" title="Remove group">
-          <i class="ti ti-trash"></i>
-        </button>
-      </span>
-    `;
+    th.textContent = name;
     return th;
   }
 
@@ -219,17 +246,7 @@
     const th = document.createElement("th");
     th.className = "irc7-sub-header irc7-added-header irc7-fixed-col";
     th.dataset.colId = colId;
-    th.innerHTML = `
-      <span class="irc7-header-text">${escapeHtml(name)}</span>
-      <span class="irc7-header-actions">
-        <button type="button" class="irc7-header-action-btn irc7-edit-btn" data-kind="column" data-id="${colId}" title="Edit column">
-          <i class="ti ti-pencil"></i>
-        </button>
-        <button type="button" class="irc7-header-action-btn irc7-remove-btn" data-kind="column" data-id="${colId}" title="Remove column">
-          <i class="ti ti-trash"></i>
-        </button>
-      </span>
-    `;
+    th.textContent = name;
     return th;
   }
 
@@ -254,29 +271,30 @@
     return input;
   }
 
-  function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  // ================= EDIT / REMOVE (event delegation on headers) =================
-
-  let editingTarget = null; // { kind: 'column'|'group', id }
+  // ================= EDIT / DELETE MODE: header clicks =================
 
   function onHeaderClick(e) {
-    const editBtn = e.target.closest(".irc7-edit-btn");
-    const removeBtn = e.target.closest(".irc7-remove-btn");
+    if (!activeMode) return; // clicking headers does nothing outside a mode
 
-    if (editBtn) {
-      openEditModal(editBtn.dataset.kind, editBtn.dataset.id);
-    } else if (removeBtn) {
-      handleRemove(removeBtn.dataset.kind, removeBtn.dataset.id);
+    const th = e.target.closest("th[data-group-id], th[data-col-id]");
+    if (!th) return; // fixed (original) columns have no data-* id, so they're never affected
+
+    const kind = th.dataset.groupId ? "group" : "column";
+    const id = th.dataset.groupId || th.dataset.colId;
+
+    if (activeMode === "edit") {
+      openEditModal(kind, id);
+    } else if (activeMode === "delete") {
+      handleRemove(kind, id);
     }
   }
 
   groupRow.addEventListener("click", onHeaderClick);
   colRow.addEventListener("click", onHeaderClick);
+
+  // ---------- Edit modal ----------
+
+  let editingTarget = null; // { kind: 'column'|'group', id }
 
   function openEditModal(kind, id) {
     editingTarget = { kind, id };
@@ -324,7 +342,7 @@
       const group = groups.get(editingTarget.id);
       group.name = newName;
       const th = groupRow.querySelector(
-        `th[data-group-id="${editingTarget.id}"] .irc7-header-text`,
+        `th[data-group-id="${editingTarget.id}"]`,
       );
       if (th) th.textContent = newName;
     } else {
@@ -334,9 +352,7 @@
       col.name = newName;
       col.type = newType;
 
-      const th = colRow.querySelector(
-        `th[data-col-id="${editingTarget.id}"] .irc7-header-text`,
-      );
+      const th = colRow.querySelector(`th[data-col-id="${editingTarget.id}"]`);
       if (th) th.textContent = newName;
 
       if (typeChanged) {
@@ -346,7 +362,6 @@
             const oldVal = td.querySelector("input")?.value || "";
             td.innerHTML = "";
             const input = buildCellInput(newType);
-            // Only carry the value over if it's still valid for the new type
             if (
               newType !== "number" ||
               oldVal === "" ||
@@ -360,7 +375,10 @@
     }
 
     hideEditModal();
+    // Stay in edit mode so the user can edit another header right away.
   });
+
+  // ---------- Delete ----------
 
   function handleRemove(kind, id) {
     if (kind === "group") {
@@ -382,24 +400,22 @@
       }
       removeColumn(id);
     }
+    // Stay in delete mode so the user can remove more without retoggling.
   }
 
   function removeColumn(colId) {
     const col = columns.find((c) => c.id === colId);
     if (!col) return;
 
-    // Remove header cell
     const th =
       colRow.querySelector(`th[data-col-id="${colId}"]`) ||
       groupRow.querySelector(`th[data-col-id="${colId}"]`);
     if (th) th.remove();
 
-    // Remove body cells
     tbody
       .querySelectorAll(`td[data-col-id="${colId}"]`)
       .forEach((td) => td.remove());
 
-    // Update or remove parent group header's colspan
     if (col.groupId) {
       const remaining = columns.filter(
         (c) => c.groupId === col.groupId && c.id !== colId,

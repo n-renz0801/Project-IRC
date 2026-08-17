@@ -16,9 +16,49 @@ block content %}
   </div>
 
   <div class="irc7-toolbar">
-    <button type="button" class="irc7-add-column-toolbar-btn" id="addColumnBtn">
-      <i class="ti ti-plus" style="margin-right: 6px"></i> Add Column
-    </button>
+    <div class="irc7-mode-banners">
+      <div
+        class="irc7-mode-banner irc7-mode-banner--edit"
+        id="editModeBanner"
+        style="display: none"
+      >
+        <i class="ti ti-pencil"></i>
+        Edit mode is ON — click a column or group header to rename or change it.
+      </div>
+      <div
+        class="irc7-mode-banner irc7-mode-banner--delete"
+        id="deleteModeBanner"
+        style="display: none"
+      >
+        <i class="ti ti-alert-triangle"></i>
+        Delete mode is ON — clicking a column or group header will permanently
+        remove it. This cannot be undone.
+      </div>
+    </div>
+
+    <div class="irc7-toolbar-actions">
+      <button
+        type="button"
+        class="irc7-mode-btn irc7-mode-btn--edit"
+        id="editModeBtn"
+      >
+        <i class="ti ti-pencil" style="margin-right: 6px"></i> Edit Mode
+      </button>
+      <button
+        type="button"
+        class="irc7-mode-btn irc7-mode-btn--delete"
+        id="deleteModeBtn"
+      >
+        <i class="ti ti-trash" style="margin-right: 6px"></i> Delete Mode
+      </button>
+      <button
+        type="button"
+        class="irc7-add-column-toolbar-btn"
+        id="addColumnBtn"
+      >
+        <i class="ti ti-plus" style="margin-right: 6px"></i> Add Column
+      </button>
+    </div>
   </div>
 
   <div class="irc7-table-wrapper">
