@@ -49,6 +49,8 @@
 }
 
 /* ---------- Table ---------- */
+/* table-layout: auto (default) lets columns size to their content;
+   padding provides the "subtle margin" instead of forced min-widths. */
 
 .irc7-table-wrapper {
   background: white;
@@ -66,9 +68,14 @@
   font-size: 13px;
 }
 
+.irc7-table th,
+.irc7-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
 .irc7-table thead th {
-  padding: 12px 10px;
-  text-align: left;
+  padding: 12px 18px;
   font-weight: 600;
   color: #f3f4f6;
   white-space: nowrap;
@@ -86,27 +93,16 @@
 }
 
 .irc7-group-header {
-  text-align: center !important;
   background: #16202e !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
 }
 
 .irc7-sub-header {
-  text-align: center;
-  white-space: normal;
-  min-width: 140px;
+  white-space: nowrap;
 }
 
 .irc7-fixed-col {
-  min-width: 140px;
-}
-
-.irc7-name-col {
-  min-width: 260px;
-}
-
-.irc7-added-col {
-  min-width: 140px;
+  white-space: nowrap;
 }
 
 .irc7-table tbody tr {
@@ -127,7 +123,7 @@
 }
 
 .irc7-table tbody td {
-  padding: 10px 10px;
+  padding: 10px 18px;
   border-right: 1px solid #e8e8e8;
   color: #333;
   white-space: nowrap;
@@ -140,17 +136,17 @@
 /* Editable cells added via "Add Column" */
 
 .irc7-editable-cell {
-  padding: 6px 8px !important;
+  padding: 6px 10px !important;
 }
 
 .irc7-cell-input {
   width: 100%;
-  min-width: 130px;
   box-sizing: border-box;
-  padding: 7px 8px;
+  padding: 7px 10px;
   border: 1px solid #e2e5ea;
   border-radius: 6px;
   font-size: 13px;
+  text-align: center;
   background: #fbfbfc;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   transition:
@@ -166,7 +162,6 @@
   box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
 }
 
-/* Number inputs: no spin buttons */
 .irc7-cell-input--number::-webkit-outer-spin-button,
 .irc7-cell-input--number::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -178,7 +173,56 @@
   appearance: textfield;
 }
 
-/* ---------- Modal ---------- */
+/* ---------- Added header cells: edit/remove actions ---------- */
+
+.irc7-added-header {
+  position: relative;
+}
+
+.irc7-header-text {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.irc7-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  vertical-align: middle;
+}
+
+.irc7-added-header:hover .irc7-header-actions {
+  opacity: 1;
+}
+
+.irc7-header-action-btn {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: #f3f4f6;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+  transition: background 0.15s ease;
+}
+
+.irc7-header-action-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.irc7-remove-btn:hover {
+  background: #c0392b;
+}
+
+/* ---------- Modal (shared: Add Column & Edit) ---------- */
 
 .irc7-modal {
   position: fixed;
@@ -212,6 +256,10 @@
   display: flex;
   flex-direction: column;
   z-index: 1001;
+}
+
+.irc7-modal-content--small {
+  max-width: 420px;
 }
 
 .irc7-modal-header {
@@ -257,7 +305,40 @@
   line-height: 1.5;
 }
 
-/* Group blocks */
+/* Edit modal fields */
+
+.irc7-edit-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 6px 0;
+}
+
+.irc7-edit-name-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1px solid #e2e5ea;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fbfbfc;
+  margin-bottom: 16px;
+}
+
+.irc7-edit-name-input:focus {
+  outline: none;
+  border-color: #4a6fa5;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+}
+
+#editItemTypeWrapper .irc7-column-type-select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Group blocks (Add Column modal) */
 
 .irc7-group-block {
   border: 1px solid #e2e5ea;
@@ -458,7 +539,7 @@
 
   .irc7-table thead th,
   .irc7-table tbody td {
-    padding: 8px 6px;
+    padding: 8px 10px;
   }
 
   .irc7-column-row {
@@ -468,5 +549,10 @@
   .irc7-column-type-select {
     width: auto;
     flex: 1;
+  }
+
+  /* On touch devices hover doesn't work well — keep actions visible */
+  .irc7-header-actions {
+    opacity: 1;
   }
 }

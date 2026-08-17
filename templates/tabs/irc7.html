@@ -635,6 +635,54 @@ block content %}
     </div>
     <div class="irc7-modal-overlay" id="irc7ModalOverlay"></div>
   </div>
+
+  <!-- Edit Column/Group Modal -->
+  <div id="editItemModal" class="irc7-modal" style="display: none">
+    <div class="irc7-modal-content irc7-modal-content--small">
+      <div class="irc7-modal-header">
+        <h2 id="editItemModalTitle">Edit Column</h2>
+        <button type="button" class="irc7-modal-close" id="editItemModalClose">
+          &times;
+        </button>
+      </div>
+      <div class="irc7-modal-body">
+        <label class="irc7-edit-label" for="editItemNameInput">Name</label>
+        <input
+          type="text"
+          id="editItemNameInput"
+          class="irc7-edit-name-input"
+          placeholder="Name"
+        />
+        <div id="editItemTypeWrapper">
+          <label class="irc7-edit-label" for="editItemTypeSelect"
+            >Entry Type</label
+          >
+          <select id="editItemTypeSelect" class="irc7-column-type-select">
+            <option value="text">Text</option>
+            <option value="number">Number</option>
+            <option value="paragraph">Paragraph</option>
+          </select>
+        </div>
+      </div>
+      <div class="irc7-modal-footer">
+        <button
+          type="button"
+          class="irc7-modal-btn irc7-modal-btn-cancel"
+          id="editItemCancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="irc7-modal-btn irc7-modal-btn-submit"
+          id="editItemSave"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+    <div class="irc7-modal-overlay" id="editItemModalOverlay"></div>
+  </div>
 </section>
 
 <script src="{{ url_for('static', filename='js/irc7.js') }}"></script>
