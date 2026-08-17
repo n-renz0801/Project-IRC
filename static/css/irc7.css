@@ -26,8 +26,45 @@
 
 .irc7-toolbar {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.irc7-mode-banners {
+  flex: 1;
+  min-width: 0;
+}
+
+.irc7-mode-banner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.irc7-mode-banner--edit {
+  background: #eaf1fb;
+  color: #1f4f8a;
+  border: 1px solid #bcd4f0;
+}
+
+.irc7-mode-banner--delete {
+  background: #fdecea;
+  color: #a5271f;
+  border: 1px solid #f3bcb7;
+}
+
+.irc7-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .irc7-add-column-toolbar-btn {
@@ -46,6 +83,37 @@
 
 .irc7-add-column-toolbar-btn:hover {
   background: #3d5a8a;
+}
+
+.irc7-mode-btn {
+  background: white;
+  border: 1px solid #d0d0d0;
+  color: #444;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.irc7-mode-btn:hover {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.irc7-mode-btn--edit.irc7-mode-btn--active {
+  background: #1f4f8a;
+  border-color: #1f4f8a;
+  color: white;
+}
+
+.irc7-mode-btn--delete.irc7-mode-btn--active {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: white;
 }
 
 /* ---------- Table ---------- */
@@ -97,10 +165,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
 }
 
-.irc7-sub-header {
-  white-space: nowrap;
-}
-
+.irc7-sub-header,
 .irc7-fixed-col {
   white-space: nowrap;
 }
@@ -173,53 +238,26 @@
   appearance: textfield;
 }
 
-/* ---------- Added header cells: edit/remove actions ---------- */
+/* ---------- Edit / Delete mode: header interaction cues ---------- */
+/* No icons in headers — keeps text perfectly centered. Instead, added
+   headers get a hover highlight + pointer cursor only while a mode is on,
+   so it's clear they're clickable without disturbing the layout. */
 
-.irc7-added-header {
-  position: relative;
-}
-
-.irc7-header-text {
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.irc7-header-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  vertical-align: middle;
-}
-
-.irc7-added-header:hover .irc7-header-actions {
-  opacity: 1;
-}
-
-.irc7-header-action-btn {
-  background: rgba(255, 255, 255, 0.12);
-  border: none;
-  color: #f3f4f6;
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.irc7-table.irc7-mode-edit .irc7-added-header,
+.irc7-table.irc7-mode-delete .irc7-added-header {
   cursor: pointer;
-  font-size: 11px;
-  padding: 0;
-  transition: background 0.15s ease;
 }
 
-.irc7-header-action-btn:hover {
-  background: rgba(255, 255, 255, 0.28);
+.irc7-table.irc7-mode-edit .irc7-added-header:hover {
+  background: #2c5da8 !important;
+  outline: 2px solid #7fa8e0;
+  outline-offset: -2px;
 }
 
-.irc7-remove-btn:hover {
-  background: #c0392b;
+.irc7-table.irc7-mode-delete .irc7-added-header:hover {
+  background: #8e2a20 !important;
+  outline: 2px solid #e08b80;
+  outline-offset: -2px;
 }
 
 /* ---------- Modal (shared: Add Column & Edit) ---------- */
@@ -533,6 +571,16 @@
     font-size: 22px;
   }
 
+  .irc7-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .irc7-toolbar-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
   .irc7-table-wrapper {
     font-size: 12px;
   }
@@ -549,10 +597,5 @@
   .irc7-column-type-select {
     width: auto;
     flex: 1;
-  }
-
-  /* On touch devices hover doesn't work well — keep actions visible */
-  .irc7-header-actions {
-    opacity: 1;
   }
 }
