@@ -1,11 +1,140 @@
 {% extends "base.html" %} {% block title %}IRC9 - SGOD PMES{% endblock %} {%
 block content %}
-<div class="content__header">
-  <h1>{{ active_tab.name }}</h1>
-  <span class="content__badge">{{ active_tab.short }}</span>
+
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/irc9.css') }}"
+/>
+
+<section id="irc9-tab" class="tab-panel irc9-panel">
+  <div class="irc9-header">
+    <div class="irc9-header-text">
+      <h2>IRC9 &mdash; Performance Monitoring &amp; Coaching Form (PMCF)</h2>
+      <p class="irc9-subtitle">
+        Log <strong>critical incidents</strong> — actual events and behaviors
+        that reinforce or hinder performance — along with the resulting output
+        and impact on the job or action plan.
+      </p>
+    </div>
+    <button type="button" id="irc9-add-btn" class="irc9-add-btn">
+      <span class="irc9-add-icon">+</span> Add Entry
+    </button>
+  </div>
+
+  <!-- ================= MAIN TABLE ================= -->
+  <div class="irc9-table-wrapper">
+    <table id="irc9-table" class="irc9-table">
+      <thead>
+        <tr>
+          <th class="irc9-col-no">No.</th>
+          <th class="irc9-col-date">Date</th>
+          <th class="irc9-col-incident">
+            Critical Incidence Description
+            <span class="irc9-col-subtext"
+              >Actual events and behaviors reinforcing and hindering performance
+              which are observed</span
+            >
+          </th>
+          <th class="irc9-col-output">Output</th>
+          <th class="irc9-col-impact">Impact on Job / Action Plan</th>
+          <th class="irc9-col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="irc9-table-body">
+        <!-- rows injected by irc9.js -->
+      </tbody>
+    </table>
+
+    <div id="irc9-empty-state" class="irc9-empty-state">
+      <p>
+        No entries yet. Click <strong>“+ Add Entry”</strong> to log your first
+        critical incident.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ADD / EDIT ENTRY MODAL ================= -->
+<div id="irc9-modal-overlay" class="irc9-modal-overlay">
+  <div class="irc9-modal">
+    <div class="irc9-modal-header">
+      <h3 id="irc9-modal-title">Add Entry</h3>
+      <button type="button" id="irc9-modal-close" class="irc9-modal-close">
+        &times;
+      </button>
+    </div>
+
+    <form id="irc9-form" class="irc9-modal-body">
+      <div class="irc9-form-stack">
+        <div class="irc9-field">
+          <label for="irc9-f-date">Date</label>
+          <input type="date" id="irc9-f-date" required />
+        </div>
+
+        <div class="irc9-field">
+          <label for="irc9-f-incident">Critical Incidence Description</label>
+          <span class="irc9-field-hint"
+            >Actual events and behaviors reinforcing and hindering performance
+            which are observed.</span
+          >
+          <textarea
+            id="irc9-f-incident"
+            rows="4"
+            placeholder="Describe the observed event or behavior..."
+            required
+          ></textarea>
+        </div>
+
+        <div class="irc9-field">
+          <label for="irc9-f-output">Output</label>
+          <textarea
+            id="irc9-f-output"
+            rows="4"
+            placeholder="Describe the resulting output..."
+          ></textarea>
+        </div>
+
+        <div class="irc9-field">
+          <label for="irc9-f-impact">Impact on Job / Action Plan</label>
+          <textarea
+            id="irc9-f-impact"
+            rows="4"
+            placeholder="Describe the impact and any action plan..."
+          ></textarea>
+        </div>
+      </div>
+    </form>
+
+    <div class="irc9-modal-footer">
+      <button type="button" id="irc9-cancel-btn" class="irc9-btn-secondary">
+        Cancel
+      </button>
+      <button type="submit" form="irc9-form" class="irc9-btn-primary">
+        Save Entry
+      </button>
+    </div>
+  </div>
 </div>
 
-<div class="content__body">
-  <p class="placeholder-text">Content for IRC9 goes here.</p>
+<!-- ================= DELETE CONFIRMATION MODAL ================= -->
+<div id="irc9-confirm-overlay" class="irc9-confirm-overlay">
+  <div class="irc9-confirm-box">
+    <h4>Delete this entry?</h4>
+    <p>
+      This action cannot be undone. Remaining entries will be renumbered. Are
+      you sure you want to delete this entry?
+    </p>
+    <div class="irc9-confirm-actions">
+      <button type="button" id="irc9-confirm-cancel" class="irc9-btn-secondary">
+        Cancel
+      </button>
+      <button type="button" id="irc9-confirm-delete" class="irc9-btn-danger">
+        Delete
+      </button>
+    </div>
+  </div>
 </div>
+
+<script src="{{ url_for('static', filename='js/irc9.js') }}"></script>
+
 {% endblock %}
