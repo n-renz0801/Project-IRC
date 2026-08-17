@@ -22,6 +22,7 @@ TABS = [
     {"id": "irc8b", "short": "IRC8b", "name": "Individual Report Card No. 8b"},
     {"id": "irc8c", "short": "IRC8c", "name": "Individual Report Card No. 8c"},
     {"id": "irc8d", "short": "IRC8d", "name": "Individual Report Card No. 8d"},
+    {"id": "irc9",  "short": "IRC9",  "name": "Individual Report Card No. 9"},
 ]
 
 # Quick lookup by id, e.g. TAB_LOOKUP["irc1a"]
@@ -47,6 +48,7 @@ GROUPS = [
     {"code": "IRC8", "label": "Individual Report Card No. 8", "tabs": [
         TAB_LOOKUP["irc8a"], TAB_LOOKUP["irc8b"], TAB_LOOKUP["irc8c"], TAB_LOOKUP["irc8d"],
     ]},
+    {"code": "IRC9", "label": "Individual Report Card No. 9", "tabs": [TAB_LOOKUP["irc9"]]},
 ]
 
 # Shared by every "extract month from header" route, since every one of these
