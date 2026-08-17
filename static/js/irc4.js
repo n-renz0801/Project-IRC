@@ -180,24 +180,6 @@
     }));
   }
 
-  // ============================================================
-  // Fixed-position dropdowns
-  //
-  // The modal clips its own contents (overflow: hidden/auto) so its own
-  // height can stay capped even as the school list grows. `position: fixed`
-  // is the escape hatch: a fixed element is placed relative to the
-  // viewport, not to any scrolling/clipping ancestor, so anchoring the
-  // suggestion panels this way lets them extend past the modal's edges
-  // and show more rows at once instead of being cut off at the modal
-  // boundary. We compute the anchor position in JS (from the input's own
-  // on-screen position) and keep it in sync while the panel is open.
-  //
-  // Both the school-search dropdown and the schedule dropdown share this
-  // same tracking mechanism (see renderSuggestions/hideSuggestions and
-  // renderScheduleSuggestions/hideScheduleSuggestions below) so they
-  // behave identically with respect to the modal's boundaries.
-  // ============================================================
-
   let activeDropdown = null; // { inputEl, dropdownEl } | null
 
   function positionFixedDropdown(inputEl, dropdownEl) {
