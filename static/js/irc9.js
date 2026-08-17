@@ -11,6 +11,11 @@
   let nextId = 1;
   let pendingDeleteId = null;
 
+  // Entries staged from a PDF import, awaiting user review/confirmation.
+  // Each item: { date, incident, output, impact } (no id yet — assigned
+  // on actual import).
+  let pendingImportEntries = [];
+
   // ------------------------------------------------------------------
   // DOM refs
   // ------------------------------------------------------------------
@@ -33,6 +38,17 @@
   const confirmOverlay = document.getElementById("irc9-confirm-overlay");
   const confirmCancelBtn = document.getElementById("irc9-confirm-cancel");
   const confirmDeleteBtn = document.getElementById("irc9-confirm-delete");
+
+  // PDF import
+  const importBtn = document.getElementById("irc9-import-btn");
+  const fileInput = document.getElementById("irc9-file-input");
+  const importModalOverlay = document.getElementById(
+    "irc9-import-modal-overlay",
+  );
+  const importModalClose = document.getElementById("irc9-import-modal-close");
+  const importCancelBtn = document.getElementById("irc9-import-cancel-btn");
+  const importConfirmBtn = document.getElementById("irc9-import-confirm-btn");
+  const importList = document.getElementById("irc9-import-list");
 
   // ------------------------------------------------------------------
   // Helpers
@@ -57,7 +73,7 @@
   }
 
   // ------------------------------------------------------------------
-  // Modal open / close
+  // Add/Edit modal open / close
   // ------------------------------------------------------------------
   function resetForm() {
     form.reset();
@@ -125,10 +141,8 @@
   // ------------------------------------------------------------------
   // Table rendering
   // ------------------------------------------------------------------
-  function cell(value, extraClass) {
-    return `<td class="irc9-cell-text${
-      extraClass ? " " + extraClass : ""
-    }">${escapeHtml(value) || "N/A"}</td>`;
+  function cell(value) {
+    return `<td class="irc9-cell-text">${escapeHtml(value) || "N/A"}</td>`;
   }
 
   function renderTable() {
@@ -142,11 +156,10 @@
     tableWrapper.classList.remove("irc9-is-empty");
     emptyState.style.display = "none";
 
-    entries.forEach((entry, index) => {
+    entries.forEach((entry) => {
       const tr = document.createElement("tr");
 
       tr.innerHTML = `
-        <td>${index + 1}</td>
         <td class="irc9-cell-date">${formatDate(entry.date)}</td>
         ${cell(entry.incident)}
         ${cell(entry.output)}
@@ -182,7 +195,7 @@
   });
 
   // ------------------------------------------------------------------
-  // Form submit
+  // Form submit (manual add/edit)
   // ------------------------------------------------------------------
   form.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -203,6 +216,179 @@
 
     renderTable();
     closeModal();
+  });
+
+  // ------------------------------------------------------------------
+  // PDF import
+  // ------------------------------------------------------------------
+  importBtn.addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", (e) => {
+    if (e.target.files.length > 0) {
+      handlePdfUpload(e.target.files[0]);
+      // reset so re-selecting the same file re-triggers change
+      fileInput.value = "";
+    }
+  });
+
+  function handlePdfUpload(file) {
+    if (!file.type.includes("pdf")) {
+      alert("Please upload a PDF file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    importBtn.disabled = true;
+    importBtn.textContent = "Extracting...";
+
+    fetch("/irc/irc9/extract", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        importBtn.disabled = false;
+        importBtn.innerHTML =
+          '<i class="ti ti-file-upload"></i> Import from PDF';
+
+        if (data.error) {
+          alert("Error: " + data.error);
+          return;
+        }
+
+        pendingImportEntries = data.entries.map((e) => ({
+          date: e.date_iso || "",
+          dateRaw: e.date_raw || "",
+          incident: e.incident || "",
+          output: e.output || "",
+          impact: e.impact || "",
+        }));
+
+        renderImportList();
+        importModalOverlay.classList.add("visible");
+      })
+      .catch((err) => {
+        importBtn.disabled = false;
+        importBtn.innerHTML =
+          '<i class="ti ti-file-upload"></i> Import from PDF';
+        alert("Upload failed: " + err.message);
+      });
+  }
+
+  function renderImportList() {
+    importList.innerHTML = "";
+
+    if (pendingImportEntries.length === 0) {
+      importList.innerHTML =
+        '<p class="irc9-import-empty">No entries left to import.</p>';
+      return;
+    }
+
+    pendingImportEntries.forEach((entry, index) => {
+      const card = document.createElement("div");
+      card.className = "irc9-import-card";
+      card.dataset.index = index;
+
+      const dateWarning = !entry.date
+        ? `<span class="irc9-import-warning">Could not auto-read this date${
+            entry.dateRaw ? ` ("${escapeHtml(entry.dateRaw)}")` : ""
+          } — please set it manually.</span>`
+        : "";
+
+      card.innerHTML = `
+        <div class="irc9-import-card-header">
+          <span class="irc9-import-card-title">Entry ${index + 1}</span>
+          <button type="button" class="irc9-icon-btn irc9-import-remove-btn" title="Remove from import">&#128465;</button>
+        </div>
+        <div class="irc9-field">
+          <label>Date</label>
+          <input type="date" class="irc9-import-f-date" value="${escapeHtml(
+            entry.date,
+          )}" />
+          ${dateWarning}
+        </div>
+        <div class="irc9-field">
+          <label>Critical Incidence Description</label>
+          <textarea class="irc9-import-f-incident" rows="4">${escapeHtml(
+            entry.incident,
+          )}</textarea>
+        </div>
+        <div class="irc9-field">
+          <label>Output</label>
+          <textarea class="irc9-import-f-output" rows="4">${escapeHtml(
+            entry.output,
+          )}</textarea>
+        </div>
+        <div class="irc9-field">
+          <label>Impact on Job / Action Plan</label>
+          <textarea class="irc9-import-f-impact" rows="4">${escapeHtml(
+            entry.impact,
+          )}</textarea>
+        </div>
+      `;
+
+      importList.appendChild(card);
+    });
+  }
+
+  // Keep pendingImportEntries in sync as the user edits preview fields
+  importList.addEventListener("input", (e) => {
+    const card = e.target.closest(".irc9-import-card");
+    if (!card) return;
+    const index = Number(card.dataset.index);
+    const entry = pendingImportEntries[index];
+    if (!entry) return;
+
+    if (e.target.matches(".irc9-import-f-date")) entry.date = e.target.value;
+    if (e.target.matches(".irc9-import-f-incident"))
+      entry.incident = e.target.value;
+    if (e.target.matches(".irc9-import-f-output"))
+      entry.output = e.target.value;
+    if (e.target.matches(".irc9-import-f-impact"))
+      entry.impact = e.target.value;
+  });
+
+  importList.addEventListener("click", (e) => {
+    const removeBtn = e.target.closest(".irc9-import-remove-btn");
+    if (!removeBtn) return;
+    const card = removeBtn.closest(".irc9-import-card");
+    const index = Number(card.dataset.index);
+    pendingImportEntries.splice(index, 1);
+    renderImportList();
+  });
+
+  function closeImportModal() {
+    importModalOverlay.classList.remove("visible");
+    pendingImportEntries = [];
+    importList.innerHTML = "";
+  }
+
+  importModalClose.addEventListener("click", closeImportModal);
+  importCancelBtn.addEventListener("click", closeImportModal);
+  importModalOverlay.addEventListener("click", (e) => {
+    if (e.target === importModalOverlay) closeImportModal();
+  });
+
+  importConfirmBtn.addEventListener("click", () => {
+    if (pendingImportEntries.length === 0) {
+      closeImportModal();
+      return;
+    }
+
+    pendingImportEntries.forEach((entry) => {
+      entries.push({
+        id: nextId++,
+        date: entry.date,
+        incident: entry.incident.trim(),
+        output: entry.output.trim(),
+        impact: entry.impact.trim(),
+      });
+    });
+
+    renderTable();
+    closeImportModal();
   });
 
   // ------------------------------------------------------------------
