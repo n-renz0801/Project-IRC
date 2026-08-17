@@ -15,9 +15,25 @@
   const groupsContainer = document.getElementById("irc7-groups-container");
   const addGroupBtn = document.getElementById("irc7AddGroupBtn");
 
-  let colCounter = 0;
+  const editModal = document.getElementById("editItemModal");
+  const editModalTitle = document.getElementById("editItemModalTitle");
+  const editModalClose = document.getElementById("editItemModalClose");
+  const editModalOverlay = document.getElementById("editItemModalOverlay");
+  const editModalCancel = document.getElementById("editItemCancel");
+  const editModalSave = document.getElementById("editItemSave");
+  const editNameInput = document.getElementById("editItemNameInput");
+  const editTypeWrapper = document.getElementById("editItemTypeWrapper");
+  const editTypeSelect = document.getElementById("editItemTypeSelect");
 
-  // ---------- Modal: building group/column rows dynamically ----------
+  // ---------- Data model for added groups/columns ----------
+  // groups: Map<groupId, { id, name }>
+  // columns: array of { id, name, type, groupId|null } in display order
+  const groups = new Map();
+  let columns = [];
+  let colCounter = 0;
+  let groupCounter = 0;
+
+  // ================= ADD COLUMN MODAL =================
 
   function createColumnRow() {
     const row = document.createElement("div");
@@ -71,33 +87,31 @@
     return block;
   }
 
-  function resetModal() {
+  function resetAddModal() {
     groupsContainer.innerHTML = "";
     groupsContainer.appendChild(createGroupBlock());
   }
 
-  function showModal() {
-    resetModal();
+  function showAddModal() {
+    resetAddModal();
     modal.style.display = "flex";
   }
 
-  function hideModal() {
+  function hideAddModal() {
     modal.style.display = "none";
   }
 
-  addColumnBtn.addEventListener("click", showModal);
-  modalClose.addEventListener("click", hideModal);
-  modalCancel.addEventListener("click", hideModal);
-  modalOverlay.addEventListener("click", hideModal);
+  addColumnBtn.addEventListener("click", showAddModal);
+  modalClose.addEventListener("click", hideAddModal);
+  modalCancel.addEventListener("click", hideAddModal);
+  modalOverlay.addEventListener("click", hideAddModal);
   document
-    .querySelector(".irc7-modal-content")
+    .querySelector("#addColumnModal .irc7-modal-content")
     .addEventListener("click", (e) => e.stopPropagation());
 
   addGroupBtn.addEventListener("click", () => {
     groupsContainer.appendChild(createGroupBlock());
   });
-
-  // ---------- Submit: collect columns and add them to the table ----------
 
   modalSubmit.addEventListener("click", () => {
     const newColumns = [];
@@ -111,11 +125,7 @@
         const name = row.querySelector(".irc7-column-name-input").value.trim();
         const type = row.querySelector(".irc7-column-type-select").value;
         if (name) {
-          newColumns.push({
-            name,
-            type,
-            group: groupName || null,
-          });
+          newColumns.push({ name, type, groupName: groupName || null });
         }
       });
     });
@@ -126,74 +136,305 @@
     }
 
     addColumnsToTable(newColumns);
-    hideModal();
+    hideAddModal();
   });
 
-  // ---------- Table mutation: append new columns to header + body ----------
+  // ================= BUILDING NEW COLUMNS INTO THE TABLE =================
 
   function addColumnsToTable(newColumns) {
     let i = 0;
     while (i < newColumns.length) {
       const col = newColumns[i];
 
-      if (col.group) {
+      if (col.groupName) {
         // Gather consecutive columns that share this same group name
         let j = i;
-        const groupCols = [];
-        while (j < newColumns.length && newColumns[j].group === col.group) {
-          groupCols.push(newColumns[j]);
+        const batch = [];
+        while (
+          j < newColumns.length &&
+          newColumns[j].groupName === col.groupName
+        ) {
+          batch.push(newColumns[j]);
           j++;
         }
 
-        const groupTh = document.createElement("th");
-        groupTh.colSpan = groupCols.length;
-        groupTh.className = "irc7-group-header";
-        groupTh.textContent = col.group;
+        const groupId = "g" + ++groupCounter;
+        groups.set(groupId, { id: groupId, name: col.groupName });
+
+        const groupTh = buildGroupHeaderCell(
+          groupId,
+          col.groupName,
+          batch.length,
+        );
         groupRow.appendChild(groupTh);
 
-        groupCols.forEach((c) => {
-          const th = document.createElement("th");
-          th.className = "irc7-sub-header";
-          th.textContent = c.name;
+        batch.forEach((c) => {
+          const colId = "c" + ++colCounter;
+          columns.push({ id: colId, name: c.name, type: c.type, groupId });
+
+          const th = buildColumnHeaderCell(colId, c.name);
           colRow.appendChild(th);
-          appendCellToRows(c);
+          appendCellToRows(colId, c.type);
         });
 
         i = j;
       } else {
-        const th = document.createElement("th");
+        const colId = "c" + ++colCounter;
+        columns.push({
+          id: colId,
+          name: col.name,
+          type: col.type,
+          groupId: null,
+        });
+
+        const th = buildColumnHeaderCell(colId, col.name);
         th.rowSpan = 2;
-        th.className = "irc7-fixed-col irc7-added-col";
-        th.textContent = col.name;
         groupRow.appendChild(th);
-        appendCellToRows(col);
+        appendCellToRows(colId, col.type);
         i++;
       }
     }
   }
 
-  function appendCellToRows(col) {
-    colCounter++;
-    const colId = "custom-" + colCounter;
+  function buildGroupHeaderCell(groupId, name, span) {
+    const th = document.createElement("th");
+    th.className = "irc7-group-header irc7-added-header";
+    th.colSpan = span;
+    th.dataset.groupId = groupId;
+    th.innerHTML = `
+      <span class="irc7-header-text">${escapeHtml(name)}</span>
+      <span class="irc7-header-actions">
+        <button type="button" class="irc7-header-action-btn irc7-edit-btn" data-kind="group" data-id="${groupId}" title="Edit group">
+          <i class="ti ti-pencil"></i>
+        </button>
+        <button type="button" class="irc7-header-action-btn irc7-remove-btn" data-kind="group" data-id="${groupId}" title="Remove group">
+          <i class="ti ti-trash"></i>
+        </button>
+      </span>
+    `;
+    return th;
+  }
 
+  function buildColumnHeaderCell(colId, name) {
+    const th = document.createElement("th");
+    th.className = "irc7-sub-header irc7-added-header irc7-fixed-col";
+    th.dataset.colId = colId;
+    th.innerHTML = `
+      <span class="irc7-header-text">${escapeHtml(name)}</span>
+      <span class="irc7-header-actions">
+        <button type="button" class="irc7-header-action-btn irc7-edit-btn" data-kind="column" data-id="${colId}" title="Edit column">
+          <i class="ti ti-pencil"></i>
+        </button>
+        <button type="button" class="irc7-header-action-btn irc7-remove-btn" data-kind="column" data-id="${colId}" title="Remove column">
+          <i class="ti ti-trash"></i>
+        </button>
+      </span>
+    `;
+    return th;
+  }
+
+  function appendCellToRows(colId, type) {
     tbody.querySelectorAll("tr").forEach((tr) => {
       const td = document.createElement("td");
       td.className = "irc7-editable-cell";
       td.dataset.colId = colId;
-      td.dataset.colType = col.type;
 
-      const input = document.createElement("input");
-      input.type = col.type === "number" ? "number" : "text";
-      input.className = "irc7-cell-input irc7-cell-input--" + col.type;
-      if (col.type === "number") {
-        input.step = "any";
-      }
-      if (col.type === "paragraph") {
-        input.placeholder = "Enter text...";
-      }
-
+      const input = buildCellInput(type);
       td.appendChild(input);
       tr.appendChild(td);
     });
+  }
+
+  function buildCellInput(type) {
+    const input = document.createElement("input");
+    input.type = type === "number" ? "number" : "text";
+    input.className = "irc7-cell-input irc7-cell-input--" + type;
+    if (type === "number") input.step = "any";
+    if (type === "paragraph") input.placeholder = "Enter text...";
+    return input;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ================= EDIT / REMOVE (event delegation on headers) =================
+
+  let editingTarget = null; // { kind: 'column'|'group', id }
+
+  function onHeaderClick(e) {
+    const editBtn = e.target.closest(".irc7-edit-btn");
+    const removeBtn = e.target.closest(".irc7-remove-btn");
+
+    if (editBtn) {
+      openEditModal(editBtn.dataset.kind, editBtn.dataset.id);
+    } else if (removeBtn) {
+      handleRemove(removeBtn.dataset.kind, removeBtn.dataset.id);
+    }
+  }
+
+  groupRow.addEventListener("click", onHeaderClick);
+  colRow.addEventListener("click", onHeaderClick);
+
+  function openEditModal(kind, id) {
+    editingTarget = { kind, id };
+
+    if (kind === "group") {
+      const group = groups.get(id);
+      if (!group) return;
+      editModalTitle.textContent = "Edit Group";
+      editNameInput.value = group.name;
+      editTypeWrapper.style.display = "none";
+    } else {
+      const col = columns.find((c) => c.id === id);
+      if (!col) return;
+      editModalTitle.textContent = "Edit Column";
+      editNameInput.value = col.name;
+      editTypeSelect.value = col.type;
+      editTypeWrapper.style.display = "";
+    }
+
+    editModal.style.display = "flex";
+    editNameInput.focus();
+  }
+
+  function hideEditModal() {
+    editModal.style.display = "none";
+    editingTarget = null;
+  }
+
+  editModalClose.addEventListener("click", hideEditModal);
+  editModalCancel.addEventListener("click", hideEditModal);
+  editModalOverlay.addEventListener("click", hideEditModal);
+  document
+    .querySelector("#editItemModal .irc7-modal-content")
+    .addEventListener("click", (e) => e.stopPropagation());
+
+  editModalSave.addEventListener("click", () => {
+    if (!editingTarget) return;
+    const newName = editNameInput.value.trim();
+    if (!newName) {
+      alert("Name cannot be empty.");
+      return;
+    }
+
+    if (editingTarget.kind === "group") {
+      const group = groups.get(editingTarget.id);
+      group.name = newName;
+      const th = groupRow.querySelector(
+        `th[data-group-id="${editingTarget.id}"] .irc7-header-text`,
+      );
+      if (th) th.textContent = newName;
+    } else {
+      const col = columns.find((c) => c.id === editingTarget.id);
+      const newType = editTypeSelect.value;
+      const typeChanged = col.type !== newType;
+      col.name = newName;
+      col.type = newType;
+
+      const th = colRow.querySelector(
+        `th[data-col-id="${editingTarget.id}"] .irc7-header-text`,
+      );
+      if (th) th.textContent = newName;
+
+      if (typeChanged) {
+        tbody
+          .querySelectorAll(`td[data-col-id="${editingTarget.id}"]`)
+          .forEach((td) => {
+            const oldVal = td.querySelector("input")?.value || "";
+            td.innerHTML = "";
+            const input = buildCellInput(newType);
+            // Only carry the value over if it's still valid for the new type
+            if (
+              newType !== "number" ||
+              oldVal === "" ||
+              !Number.isNaN(parseFloat(oldVal))
+            ) {
+              input.value = oldVal;
+            }
+            td.appendChild(input);
+          });
+      }
+    }
+
+    hideEditModal();
+  });
+
+  function handleRemove(kind, id) {
+    if (kind === "group") {
+      const group = groups.get(id);
+      if (!group) return;
+      if (
+        !confirm(
+          `Remove the group "${group.name}" and all its columns? This cannot be undone.`,
+        )
+      ) {
+        return;
+      }
+      removeGroup(id);
+    } else {
+      const col = columns.find((c) => c.id === id);
+      if (!col) return;
+      if (!confirm(`Remove the column "${col.name}"? This cannot be undone.`)) {
+        return;
+      }
+      removeColumn(id);
+    }
+  }
+
+  function removeColumn(colId) {
+    const col = columns.find((c) => c.id === colId);
+    if (!col) return;
+
+    // Remove header cell
+    const th =
+      colRow.querySelector(`th[data-col-id="${colId}"]`) ||
+      groupRow.querySelector(`th[data-col-id="${colId}"]`);
+    if (th) th.remove();
+
+    // Remove body cells
+    tbody
+      .querySelectorAll(`td[data-col-id="${colId}"]`)
+      .forEach((td) => td.remove());
+
+    // Update or remove parent group header's colspan
+    if (col.groupId) {
+      const remaining = columns.filter(
+        (c) => c.groupId === col.groupId && c.id !== colId,
+      );
+      const groupTh = groupRow.querySelector(
+        `th[data-group-id="${col.groupId}"]`,
+      );
+      if (remaining.length === 0) {
+        if (groupTh) groupTh.remove();
+        groups.delete(col.groupId);
+      } else if (groupTh) {
+        groupTh.colSpan = remaining.length;
+      }
+    }
+
+    columns = columns.filter((c) => c.id !== colId);
+  }
+
+  function removeGroup(groupId) {
+    const colsInGroup = columns
+      .filter((c) => c.groupId === groupId)
+      .map((c) => c.id);
+
+    const groupTh = groupRow.querySelector(`th[data-group-id="${groupId}"]`);
+    if (groupTh) groupTh.remove();
+
+    colsInGroup.forEach((colId) => {
+      const th = colRow.querySelector(`th[data-col-id="${colId}"]`);
+      if (th) th.remove();
+      tbody
+        .querySelectorAll(`td[data-col-id="${colId}"]`)
+        .forEach((td) => td.remove());
+    });
+
+    columns = columns.filter((c) => c.groupId !== groupId);
+    groups.delete(groupId);
   }
 })();
