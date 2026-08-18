@@ -132,6 +132,12 @@ def _parse_numbered_school_list(section_text):
 # x-range within a row's y-range and extract that whole region as one block
 # of text — so a paragraph that wraps across many lines, or spans multiple
 # pages, comes back intact as a single field.
+#
+# Within that block, _extract_text_with_paragraph_breaks further tells
+# apart an ordinary hard-wrapped line (part of the same paragraph) from a
+# genuine paragraph break (an intentionally blank line the writer left in
+# the form), by comparing the vertical gap between consecutive lines
+# against that cell's own typical line spacing.
 # ---------------------------------------------------------------------------
 
 def _is_full_width_row(row_bbox, table_bbox, tol=3):
@@ -193,13 +199,91 @@ def _derive_irc9_column_bounds(header_cells, table_bbox):
     return bounds
 
 
+def _extract_text_with_paragraph_breaks(page, bbox):
+    """Extracts text from a cropped region of a page, preserving
+    paragraph breaks.
+
+    pdfplumber's extract_text() joins every line in a region with a
+    plain "\\n", whether that line is a hard-wrap continuation of the
+    same paragraph or the start of a brand-new paragraph — so a
+    two-paragraph cell comes back looking like one long paragraph. This
+    reconstructs line positions from word geometry instead, measures the
+    vertical gap between consecutive lines, and treats any gap noticeably
+    larger than the region's typical line spacing as a paragraph break
+    (represented as a blank line, i.e. two consecutive "\\n"s) rather than
+    an ordinary line wrap (a single "\\n").
+    """
+    cropped = page.crop(bbox)
+    words = cropped.extract_words(use_text_flow=False, keep_blank_chars=False)
+    if not words:
+        return ""
+
+    # Group words into lines using their vertical ("top") position.
+    line_tol = 3  # px tolerance for words considered to be on the same line
+    words_sorted = sorted(words, key=lambda w: (w["top"], w["x0"]))
+
+    lines = []  # list of (top, [words])
+    current_line = []
+    current_top = None
+    for w in words_sorted:
+        if current_top is None or abs(w["top"] - current_top) <= line_tol:
+            current_line.append(w)
+            current_top = w["top"] if current_top is None else current_top
+        else:
+            lines.append((current_top, current_line))
+            current_line = [w]
+            current_top = w["top"]
+    if current_line:
+        lines.append((current_top, current_line))
+
+    if len(lines) <= 1:
+        return " ".join(w["text"] for w in words_sorted)
+
+    tops = [t for t, _ in lines]
+    gaps = [tops[i + 1] - tops[i] for i in range(len(tops) - 1)]
+    sorted_gaps = sorted(gaps)
+    median_gap = sorted_gaps[len(sorted_gaps) // 2]
+    # A gap noticeably bigger than the typical line-to-line spacing
+    # signals extra whitespace in the original layout, i.e. a new
+    # paragraph rather than a wrapped continuation line.
+    paragraph_threshold = median_gap * 1.5 if median_gap else float("inf")
+
+    out_lines = []
+    for i, (top, line_words) in enumerate(lines):
+        line_text = " ".join(
+            w["text"] for w in sorted(line_words, key=lambda w: w["x0"])
+        )
+        if i > 0 and (top - tops[i - 1]) > paragraph_threshold:
+            out_lines.append("")  # blank line marks a paragraph break
+        out_lines.append(line_text)
+
+    return "\n".join(out_lines)
+
+
 def _normalize_irc9_text(text):
-    """Collapses a cell's hard-wrapped PDF lines into a single flowing
-    paragraph. Words that were hyphenated across a line wrap (e.g.
-    "priority-\\nschool") are rejoined without an extra space; all other
-    line breaks become single spaces."""
-    text = re.sub(r"-\n", "-", text or "")
-    return re.sub(r"\s+", " ", text).strip()
+    """Collapses a cell's hard-wrapped PDF lines into flowing paragraphs,
+    while preserving genuine paragraph breaks.
+
+    A paragraph break comes out of _extract_text_with_paragraph_breaks as
+    a blank line (two or more consecutive "\\n"s) and is kept here as a
+    single "\\n\\n" between paragraphs. Within a paragraph, ordinary
+    hard-wrapped line breaks are collapsed into spaces, and words
+    hyphenated across a line wrap (e.g. "priority-\\nschool") are rejoined
+    without an extra space.
+    """
+    if not text:
+        return ""
+
+    text = re.sub(r"-\n", "-", text)
+
+    paragraphs = re.split(r"\n\s*\n", text)
+    cleaned_paragraphs = []
+    for para in paragraphs:
+        para = re.sub(r"\s+", " ", para).strip()
+        if para:
+            cleaned_paragraphs.append(para)
+
+    return "\n\n".join(cleaned_paragraphs)
 
 
 def _parse_date_to_iso(date_str):
@@ -230,14 +314,17 @@ def _extract_irc9_entries(pdf):
     2. Walk every page's table from there. Each "full width" table row
        (spanning the whole table, as opposed to a header sub-row) is a
        candidate entry row. Its 4 fields are read by cropping the page
-       to each column's x-range within that row's y-range and calling
-       extract_text() — so multi-line paragraphs stay intact as single
-       cells instead of being split into separate rows.
+       to each column's x-range within that row's y-range and running
+       _extract_text_with_paragraph_breaks on it — so multi-line
+       paragraphs stay intact as single cells (with real paragraph
+       breaks preserved) instead of being split into separate rows or
+       flattened into one run-on paragraph.
     3. A row whose Date cell is non-empty starts a new entry. A row
        whose Date cell is empty is a continuation of the current entry
        (this is how a single entry's paragraphs that span multiple
        pages are stitched back together, since continuation pages have
-       no divider line in the Date column at all).
+       no divider line in the Date column at all) — and is itself
+       treated as starting a new paragraph within that field.
 
     This is template-specific (DepEd PMCF "Annex E" form), like the
     other IRC extractors in this app — if the PMCF layout changes, the
@@ -280,12 +367,15 @@ def _extract_irc9_entries(pdf):
 
             # Read this row's 4 fields directly from the known column
             # x-boundaries (not from row.cells indices, since the
-            # detected column count can vary row-to-row).
+            # detected column count can vary row-to-row), preserving
+            # any genuine paragraph breaks within each field.
             field_texts = []
             for col_idx in range(4):
                 cx0, cx1 = col_bounds[col_idx], col_bounds[col_idx + 1]
                 try:
-                    text = page.crop((cx0, row_top, cx1, row_bottom)).extract_text() or ""
+                    text = _extract_text_with_paragraph_breaks(
+                        page, (cx0, row_top, cx1, row_bottom)
+                    )
                 except Exception:
                     text = ""
                 field_texts.append(text.strip())
@@ -315,7 +405,11 @@ def _extract_irc9_entries(pdf):
                     ("impact", impact_val),
                 ):
                     if val:
-                        current[key] = (current[key] + "\n" + val).strip() if current[key] else val
+                        # Joined with a blank line so a continuation
+                        # page's field starts as its own paragraph
+                        # rather than merging into the prior page's
+                        # last line.
+                        current[key] = (current[key] + "\n\n" + val).strip() if current[key] else val
 
     if current:
         entries.append(current)
@@ -554,7 +648,9 @@ def extract_irc9_pdf():
     """Extract PMCF entries (Date, Critical Incidence Description,
     Output, Impact on Job/Action Plan) from a DepEd PMCF PDF.
 
-    See _extract_irc9_entries for how the table structure is parsed.
+    See _extract_irc9_entries for how the table structure is parsed,
+    including how paragraph breaks within a field are detected and
+    preserved.
     """
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400

@@ -178,11 +178,40 @@
   vertical-align: middle;
 }
 
-.irc9-cell-text {
+/* Body text cells (Incidence Description / Output / Impact) are
+   justified rather than centered — these are extracted/typed
+   paragraphs meant to read like a written report, not short labels.
+   text-align-last keeps the final line of each paragraph left-aligned
+   instead of stretching it to fill the row, which looks awkward on
+   short trailing lines.
+
+   NOTE on selector: ".irc9-table tbody td" above has specificity
+   (0,1,2) — one class plus two tag selectors — which beats a
+   lone ".irc9-cell-text" class (0,1,0) no matter the source order,
+   so a plain single-class rule here would silently lose to that
+   generic centered rule. Repeating ".irc9-table tbody td" in this
+   selector raises it to (0,2,2) so justify/left actually wins. */
+.irc9-table tbody td.irc9-cell-text {
   color: #374151;
   font-size: 12.5px;
   line-height: 1.5;
-  text-align: left;
+  text-align: justify;
+  text-align-last: left;
+}
+
+/* Each paragraph (split on real paragraph breaks by irc9.js) gets a
+   little breathing room between it and the next; the last paragraph
+   in a cell doesn't need trailing margin. Paragraphs also need their
+   own justify/text-align-last, since <p> doesn't automatically
+   inherit text-align-last across all browsers. */
+.irc9-cell-text p {
+  margin: 0 0 8px 0;
+  text-align: justify;
+  text-align-last: left;
+}
+
+.irc9-cell-text p:last-child {
+  margin-bottom: 0;
 }
 
 .irc9-is-empty .irc9-table {
