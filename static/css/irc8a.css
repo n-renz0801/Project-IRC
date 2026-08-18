@@ -174,6 +174,103 @@
   font-size: 14px;
 }
 
+/* ================================================================
+   KRA color palette
+   Cycles by list position (kraIndex % 5), assigned via a
+   irc8a-kra-palette-N class added in JS. Each color has:
+   light (very pale body tint) / solid (badge fill, white text on
+   top) / border (mid-tone card border) / dark (score strip bg).
+
+   ---> To retune any color, edit the six variables for that
+   number below. Nothing else in this file, irc8a.js, or
+   irc8a.html needs to change — everything downstream reads
+   from these variables via cascading custom properties.
+   ================================================================ */
+
+:root {
+  --kra-header-bg: #1f2937;
+  --kra-header-bg-hover: #29323f;
+
+  --kra-1-light: #f5f3fe; /* Violet */
+  --kra-1-solid: #6b46c1;
+  --kra-1-border: #a78bfa;
+  --kra-1-dark: #3b2a66;
+
+  --kra-2-light: #e6fbf8; /* Teal */
+  --kra-2-solid: #0f766e;
+  --kra-2-border: #5eead4;
+  --kra-2-dark: #0b3b38;
+
+  --kra-3-light: #fef1ef; /* Coral */
+  --kra-3-solid: #c2410c;
+  --kra-3-border: #f0917a;
+  --kra-3-dark: #6b2712;
+
+  --kra-4-light: #fdf1f8; /* Pink */
+  --kra-4-solid: #be185d;
+  --kra-4-border: #f472b6;
+  --kra-4-dark: #6b1140;
+
+  --kra-5-light: #fffaeb; /* Amber */
+  --kra-5-solid: #b45309;
+  --kra-5-border: #fbbf24;
+  --kra-5-dark: #5c3403;
+}
+
+.irc8a-kra-card.irc8a-kra-palette-1 {
+  --kra-light: var(--kra-1-light);
+  --kra-solid: var(--kra-1-solid);
+  --kra-border: var(--kra-1-border);
+  --kra-dark: var(--kra-1-dark);
+}
+.irc8a-kra-card.irc8a-kra-palette-2 {
+  --kra-light: var(--kra-2-light);
+  --kra-solid: var(--kra-2-solid);
+  --kra-border: var(--kra-2-border);
+  --kra-dark: var(--kra-2-dark);
+}
+.irc8a-kra-card.irc8a-kra-palette-3 {
+  --kra-light: var(--kra-3-light);
+  --kra-solid: var(--kra-3-solid);
+  --kra-border: var(--kra-3-border);
+  --kra-dark: var(--kra-3-dark);
+}
+.irc8a-kra-card.irc8a-kra-palette-4 {
+  --kra-light: var(--kra-4-light);
+  --kra-solid: var(--kra-4-solid);
+  --kra-border: var(--kra-4-border);
+  --kra-dark: var(--kra-4-dark);
+}
+.irc8a-kra-card.irc8a-kra-palette-5 {
+  --kra-light: var(--kra-5-light);
+  --kra-solid: var(--kra-5-solid);
+  --kra-border: var(--kra-5-border);
+  --kra-dark: var(--kra-5-dark);
+}
+
+/* Card border reads the assigned mid-tone, tying the dark header
+   and pastel body together as one unit. */
+.irc8a-kra-card[class*="irc8a-kra-palette-"] {
+  border: 1px solid var(--kra-border);
+}
+
+/* Index badge + weight badge are filled with the assigned solid color */
+.irc8a-kra-card[class*="irc8a-kra-palette-"] .irc8a-kra-index {
+  background: var(--kra-solid);
+  color: #fff;
+}
+
+.irc8a-kra-card[class*="irc8a-kra-palette-"] .irc8a-weight-badge--kra {
+  background: var(--kra-solid);
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* Body gets the pale tint fill */
+.irc8a-kra-card[class*="irc8a-kra-palette-"] .irc8a-kra-body {
+  background: var(--kra-light);
+}
+
 /* ---------- KRA cards ---------- */
 
 .irc8a-kra-list {
@@ -190,28 +287,29 @@
   overflow: hidden;
 }
 
+/* Header: always the same dark charcoal, open or collapsed */
 .irc8a-kra-header {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 16px 18px;
   cursor: pointer;
-  background: #f7f9fc;
+  background: var(--kra-header-bg);
   border-bottom: 1px solid transparent;
   transition: background 0.15s ease;
 }
 
 .irc8a-kra-header:hover {
-  background: #eef2f8;
+  background: var(--kra-header-bg-hover);
 }
 
 .irc8a-kra-card.is-open .irc8a-kra-header {
-  border-bottom-color: #e2e5ea;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .irc8a-kra-index {
   flex-shrink: 0;
-  background: #1f2937;
+  background: #1f2937; /* fallback if no palette class present */
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -224,7 +322,7 @@
   flex: 1;
   font-size: 14.5px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #fff;
   line-height: 1.45;
   white-space: pre-wrap;
 }
@@ -243,7 +341,7 @@
 }
 
 .irc8a-weight-badge--kra {
-  background: #1f4f8a;
+  background: #1f4f8a; /* fallback if no palette class present */
   color: #fff;
   font-size: 15px;
   padding: 8px 18px;
@@ -259,9 +357,25 @@
   margin-top: 1px;
 }
 
+/* Icon buttons in the KRA header sit on the dark background */
+.irc8a-kra-header .irc8a-icon-btn {
+  color: #cbd5e1;
+}
+
+.irc8a-kra-header .irc8a-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.irc8a-kra-header .irc8a-icon-btn--danger:hover {
+  background: rgba(220, 53, 69, 0.3);
+  color: #ff9c92;
+}
+
 .irc8a-kra-body {
   display: none;
   padding: 16px 18px 18px;
+  background: #fff; /* fallback if no palette class present */
 }
 
 .irc8a-kra-card.is-open .irc8a-kra-body {
@@ -290,7 +404,7 @@
   gap: 10px;
 }
 
-/* ---------- Objective cards ---------- */
+/* ---------- Objective cards (stay neutral/white — no KRA coloring) ---------- */
 
 .irc8a-objective-card {
   border: 1px solid #e8eaee;
@@ -622,12 +736,15 @@
   text-align: center;
 }
 
+/* Score strip now adapts to the ancestor KRA's dark tone via the
+   inherited --kra-dark custom property; falls back to the old
+   navy if it's ever rendered outside a palette context. */
 .irc8a-score-strip {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: #16202e;
+  background: var(--kra-dark, #16202e);
   border-radius: 8px;
   color: #f3f4f6;
 }

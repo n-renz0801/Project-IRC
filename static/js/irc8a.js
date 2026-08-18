@@ -48,6 +48,14 @@
     { key: "timeliness", label: "Timeliness" },
   ];
 
+  // Fixed color palette for KRA cards — cycles by list position, not by id,
+  // so deleting a KRA re-flows the colors of the ones that remain.
+  const KRA_PALETTE_SIZE = 5;
+
+  function kraPaletteClass(kraIndex) {
+    return "irc8a-kra-palette-" + ((kraIndex % KRA_PALETTE_SIZE) + 1);
+  }
+
   // ================= State =================
   const state = { kras: [] };
   let kraCounter = 0;
@@ -177,9 +185,7 @@
           hasAnyScore = true;
         }
       });
-      summaryRatingEl.textContent = hasAnyScore
-        ? fmtNum(scoreSum) + " / 5.00"
-        : "—";
+      summaryRatingEl.textContent = hasAnyScore ? fmtNum(scoreSum) : "—";
     }
   }
 
@@ -188,14 +194,15 @@
     summaryWeightEl.textContent = fmtWeight(totalKraWeight);
     summaryWeightEl.classList.toggle("irc8a-summary-value--ok", ok);
     summaryWeightEl.classList.toggle("irc8a-summary-value--warn", !ok);
-    summaryWeightHintEl.textContent = ok
-      ? "Adds up to 100% ✓"
-      : "Should total 100%";
+    summaryWeightHintEl.textContent = ok ? "" : "Should total 100%";
   }
 
   function renderKraCard(kra, kraIndex) {
     const card = document.createElement("div");
-    card.className = "irc8a-kra-card" + (kra.isOpen ? " is-open" : "");
+    card.className =
+      "irc8a-kra-card " +
+      kraPaletteClass(kraIndex) +
+      (kra.isOpen ? " is-open" : "");
     card.dataset.kraId = kra.id;
 
     const totalObjWeight = sumWeights(kra.objectives);
@@ -451,18 +458,16 @@
   function openModal(ctx) {
     modalCtx = ctx;
     resetModalFields();
-    modalHint.textContent = "";
+    modalHint.textContent =
+      "Pick the rating level (1–5) this description corresponds to, then describe what earns that level.";
 
     if (ctx.mode === "add-kra" || ctx.mode === "edit-kra") {
       const isEdit = ctx.mode === "edit-kra";
       const kra = isEdit ? findKra(ctx.kraId) : null;
       modalTitle.textContent = isEdit ? "Edit KRA" : "Add KRA";
-      modalHint.textContent =
-        "Describe the Key Result Area and set its weight. Weights across all KRAs should total 100%.";
       fieldPrimaryWrap.style.display = "block";
       fieldPrimaryLabel.textContent = "KRA Description";
-      primaryInput.placeholder =
-        "e.g. Learning Environment, Human Resource Management...";
+      primaryInput.placeholder = "";
       fieldWeightWrap.style.display = "block";
       fieldWeightLabel.textContent = "Weight (%) — all KRAs should total 100%";
       if (isEdit && kra) {
@@ -474,7 +479,6 @@
       const kra = findKra(ctx.kraId);
       const obj = isEdit ? findObjective(ctx.kraId, ctx.objId) : null;
       modalTitle.textContent = isEdit ? "Edit Objective" : "Add Objective";
-      modalHint.textContent = `Describe the objective and set its weight. Objective weights within this KRA should total ${fmtWeight(kra ? kra.weight : null)}.`;
       fieldPrimaryWrap.style.display = "block";
       fieldPrimaryLabel.textContent = "Objective Description";
       primaryInput.placeholder = "Describe the objective...";
@@ -496,7 +500,6 @@
         : null;
       modalTitle.textContent =
         (isEdit ? "Edit " : "Add ") + catLabel + " Indicator";
-      modalHint.textContent = `Pick the rating level (1–5) this description corresponds to, then describe what earns that level. Format shown to raters: "{rate} - {description}".`;
       fieldRateWrap.style.display = "block";
       populateRateOptions(
         existingItems.map((i) => i.rate),
@@ -510,8 +513,6 @@
     } else if (ctx.mode === "edit-mov") {
       const obj = findObjective(ctx.kraId, ctx.objId);
       modalTitle.textContent = obj.mov ? "Edit MOV Link" : "Add MOV Link";
-      modalHint.textContent =
-        "Paste a link to the Means of Verification. It will open in a new tab when clicked.";
       fieldUrlWrap.style.display = "block";
       urlInput.value = obj.mov || "";
     } else if (ctx.mode === "edit-actual") {
@@ -773,9 +774,7 @@
           hasAnyScore = true;
         }
       });
-      summaryRatingEl.textContent = hasAnyScore
-        ? fmtNum(scoreSum) + " / 5.00"
-        : "—";
+      summaryRatingEl.textContent = hasAnyScore ? fmtNum(scoreSum) : "—";
     }
   });
 
