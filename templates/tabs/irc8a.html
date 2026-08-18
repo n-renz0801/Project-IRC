@@ -11,31 +11,16 @@ block content %}
     <h2>
       IRC8A &mdash; Individual Performance Commitment and Review Form (IPCRF)
     </h2>
-    <p class="irc8a-subtitle">
-      Set your KRAs, objectives, and performance indicators during planning.
-      Come back during evaluation to attach MOVs, actual results, and ratings
-      &mdash; scores update automatically as you go.
-    </p>
   </div>
 
-  <!-- MFO banner (constant, uneditable) -->
+  <!-- MFO banner (constant, uneditable) — reads as the main title for the form below -->
   <div class="irc8a-mfo-banner">
     <span class="irc8a-mfo-label">MFOs</span>
     <span class="irc8a-mfo-value">Basic Education Services</span>
-    <span class="irc8a-mfo-tag">Constant</span>
   </div>
 
-  <!-- Weight summary / warnings -->
-  <div
-    id="irc8a-kra-weight-warning"
-    class="irc8a-weight-banner"
-    style="display: none"
-  ></div>
-
   <div class="irc8a-toolbar">
-    <div class="irc8a-toolbar-info">
-      <span class="irc8a-section-eyebrow">A.</span> Key Result Areas (KRAs)
-    </div>
+    <div class="irc8a-toolbar-info">Key Result Areas (KRAs)</div>
     <button type="button" class="irc8a-add-btn" id="addKraBtn">
       <svg
         class="irc8a-inline-icon"
@@ -78,6 +63,9 @@ block content %}
     <div class="irc8a-summary-item">
       <span class="irc8a-summary-label">Total KRA Weight</span>
       <span class="irc8a-summary-value" id="irc8a-summary-weight">0%</span>
+      <span class="irc8a-summary-hint" id="irc8a-summary-weight-hint"
+        >Should total 100%</span
+      >
     </div>
     <div class="irc8a-summary-item">
       <span class="irc8a-summary-label">Overall Rating</span>

@@ -3,11 +3,11 @@
   if (!listEl) return;
 
   const emptyStateEl = document.getElementById("irc8a-empty-state");
-  const kraWeightWarningEl = document.getElementById(
-    "irc8a-kra-weight-warning",
-  );
   const summaryEl = document.getElementById("irc8a-summary");
   const summaryWeightEl = document.getElementById("irc8a-summary-weight");
+  const summaryWeightHintEl = document.getElementById(
+    "irc8a-summary-weight-hint",
+  );
   const summaryRatingEl = document.getElementById("irc8a-summary-rating");
   const addKraBtn = document.getElementById("addKraBtn");
 
@@ -37,7 +37,6 @@
   const weightInput = document.getElementById("irc8a-entry-weight");
 
   // ================= Icons =================
-  const ICON_CHEVRON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
   const ICON_EDIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`;
   const ICON_TRASH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>`;
   const ICON_PLUS = `<svg class="irc8a-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>`;
@@ -70,7 +69,6 @@
       text: "",
       weight: null,
       isOpen: true,
-      activeTab: "planning",
       quality: [],
       efficiency: [],
       timeliness: [],
@@ -156,30 +154,19 @@
       listEl.appendChild(renderKraCard(kra, kraIndex));
     });
 
-    // KRA weight warning
+    // Bottom summary: total KRA weight (always visible once a KRA exists, updates live)
+    // and overall rating (once at least one objective has a score).
     const totalKraWeight = sumWeights(state.kras);
-    if (state.kras.length === 0) {
-      kraWeightWarningEl.style.display = "none";
-    } else {
-      kraWeightWarningEl.style.display = "flex";
-      const ok = Math.abs(totalKraWeight - 100) < 0.005;
-      kraWeightWarningEl.classList.toggle("irc8a-weight-banner--ok", ok);
-      kraWeightWarningEl.textContent = ok
-        ? `KRA weights total ${fmtWeight(totalKraWeight)} — good, that adds up to 100%.`
-        : `Heads up: KRA weights currently total ${fmtWeight(totalKraWeight)}. They should add up to 100%. You can still continue and fix this later.`;
-    }
-
-    // Overall summary
     let allObjectives = [];
     state.kras.forEach(
       (k) => (allObjectives = allObjectives.concat(k.objectives)),
     );
 
-    if (allObjectives.length === 0) {
+    if (state.kras.length === 0) {
       summaryEl.style.display = "none";
     } else {
       summaryEl.style.display = "flex";
-      summaryWeightEl.textContent = fmtWeight(totalKraWeight);
+      updateWeightSummary(totalKraWeight);
 
       let scoreSum = 0;
       let hasAnyScore = false;
@@ -196,6 +183,16 @@
     }
   }
 
+  function updateWeightSummary(totalKraWeight) {
+    const ok = Math.abs(totalKraWeight - 100) < 0.005;
+    summaryWeightEl.textContent = fmtWeight(totalKraWeight);
+    summaryWeightEl.classList.toggle("irc8a-summary-value--ok", ok);
+    summaryWeightEl.classList.toggle("irc8a-summary-value--warn", !ok);
+    summaryWeightHintEl.textContent = ok
+      ? "Adds up to 100% ✓"
+      : "Should total 100%";
+  }
+
   function renderKraCard(kra, kraIndex) {
     const card = document.createElement("div");
     card.className = "irc8a-kra-card" + (kra.isOpen ? " is-open" : "");
@@ -209,11 +206,10 @@
       Math.abs(totalObjWeight - kraWeightNum) >= 0.005;
 
     card.innerHTML = `
-      <div class="irc8a-kra-header" data-action="toggle-kra">
-        <button type="button" class="irc8a-icon-btn irc8a-icon-btn--chevron${kra.isOpen ? " is-open" : ""}">${ICON_CHEVRON}</button>
+      <div class="irc8a-kra-header" data-action="toggle-kra" title="Click to ${kra.isOpen ? "collapse" : "expand"}">
         <span class="irc8a-kra-index">KRA ${kraIndex + 1}</span>
         <span class="irc8a-kra-text">${kra.text ? escapeHtml(kra.text) : '<em style="color:#aab1bb;">Untitled KRA — click the pencil to describe it</em>'}</span>
-        <span class="irc8a-weight-badge">${fmtWeight(kra.weight)}</span>
+        <span class="irc8a-weight-badge irc8a-weight-badge--kra">${fmtWeight(kra.weight)}</span>
         <div class="irc8a-kra-actions">
           <button type="button" class="irc8a-icon-btn" data-action="edit-kra" title="Edit KRA">${ICON_EDIT}</button>
           <button type="button" class="irc8a-icon-btn irc8a-icon-btn--danger" data-action="delete-kra" title="Delete KRA">${ICON_TRASH}</button>
@@ -255,13 +251,11 @@
     const score = computeScore(obj);
 
     card.innerHTML = `
-      <div class="irc8a-objective-header" data-action="toggle-objective">
-        <button type="button" class="irc8a-icon-btn irc8a-icon-btn--chevron${obj.isOpen ? " is-open" : ""}">${ICON_CHEVRON}</button>
+      <div class="irc8a-objective-header" data-action="toggle-objective" title="Click to ${obj.isOpen ? "collapse" : "expand"}">
         <span class="irc8a-objective-label">${letterLabel(objIndex)}</span>
         <span class="irc8a-objective-text">${obj.text ? escapeHtml(obj.text) : '<em style="color:#aab1bb;">Untitled objective — click the pencil to describe it</em>'}</span>
         <div class="irc8a-objective-meta">
           <span class="irc8a-weight-badge">${fmtWeight(obj.weight)}</span>
-          <span class="irc8a-score-badge${score === null ? " is-empty" : ""}">Score: ${score === null ? "—" : fmtNum(score)}</span>
         </div>
         <div class="irc8a-objective-actions">
           <button type="button" class="irc8a-icon-btn" data-action="edit-objective" title="Edit objective">${ICON_EDIT}</button>
@@ -269,19 +263,18 @@
         </div>
       </div>
       <div class="irc8a-objective-body">
-        <div class="irc8a-tabs">
-          <button type="button" class="irc8a-tab-btn${obj.activeTab === "planning" ? " is-active" : ""}" data-action="switch-tab" data-tab="planning">A. Planning</button>
-          <button type="button" class="irc8a-tab-btn${obj.activeTab === "evaluation" ? " is-active" : ""}" data-action="switch-tab" data-tab="evaluation">B. Evaluation</button>
-        </div>
-
-        <div class="irc8a-tab-panel${obj.activeTab === "planning" ? " is-active" : ""}" data-tab-panel="planning">
+        <div class="irc8a-obj-section irc8a-obj-section--planning">
+          <div class="irc8a-obj-section-title"><span class="irc8a-obj-section-dot"></span>A. To Be Filled During Planning</div>
           <div class="irc8a-field-block-header">
             <span class="irc8a-field-block-title">Performance Indicators</span>
           </div>
           <div class="irc8a-indicator-groups"></div>
         </div>
 
-        <div class="irc8a-tab-panel${obj.activeTab === "evaluation" ? " is-active" : ""}" data-tab-panel="evaluation">
+        <div class="irc8a-obj-section-divider"></div>
+
+        <div class="irc8a-obj-section irc8a-obj-section--evaluation">
+          <div class="irc8a-obj-section-title"><span class="irc8a-obj-section-dot"></span>B. To Be Filled During Evaluation</div>
           <div class="irc8a-field-block">
             <div class="irc8a-field-block-header">
               <span class="irc8a-field-block-title">Means of Verification (MOV)</span>
@@ -691,12 +684,6 @@
         )
           return;
         kra.objectives = kra.objectives.filter((o) => o.id !== objId);
-        render();
-        break;
-      }
-      case "switch-tab": {
-        const obj = findObjective(kraId, objId);
-        obj.activeTab = actionEl.dataset.tab;
         render();
         break;
       }
