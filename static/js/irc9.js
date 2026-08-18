@@ -6,6 +6,10 @@
   // Flask once a persistence layer exists for IRC9.
   //
   // Each entry: { id, date, incident, output, impact }
+  // Paragraph breaks within incident/output/impact are represented as
+  // "\n\n" (matching what the backend sends back from PDF extraction,
+  // and what a user typing blank lines in a <textarea> naturally
+  // produces).
   let entries = [];
   let editingId = null; // id of entry currently being edited, or null for "add"
   let nextId = 1;
@@ -141,8 +145,29 @@
   // ------------------------------------------------------------------
   // Table rendering
   // ------------------------------------------------------------------
+  // Renders a text field as one or more <p> paragraphs, splitting on
+  // blank lines ("\n\n", possibly with extra whitespace) so genuine
+  // paragraph breaks — whether typed by hand or detected from a PDF
+  // import — show up as separate justified paragraphs instead of one
+  // run-on block. A single leftover "\n" within a paragraph (an
+  // ordinary line break, not a paragraph break) is rendered as <br>.
   function cell(value) {
-    return `<td class="irc9-cell-text">${escapeHtml(value) || "N/A"}</td>`;
+    if (!value) return `<td class="irc9-cell-text">N/A</td>`;
+
+    const paragraphs = value
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    if (paragraphs.length === 0) {
+      return `<td class="irc9-cell-text">N/A</td>`;
+    }
+
+    const html = paragraphs
+      .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`)
+      .join("");
+
+    return `<td class="irc9-cell-text">${html}</td>`;
   }
 
   function renderTable() {
@@ -258,6 +283,9 @@
           return;
         }
 
+        // date_iso/date_raw/incident/output/impact come from the backend
+        // with paragraph breaks preserved as "\n\n" — passed straight
+        // through into the preview textareas, which render "\n" natively.
         pendingImportEntries = data.entries.map((e) => ({
           date: e.date_iso || "",
           dateRaw: e.date_raw || "",

@@ -1,9 +1,191 @@
-{% extends "base.html" %} {% block title %}IRC8a - SGOD PMES{% endblock %} {%
+{% extends "base.html" %} {% block title %}IRC8A - SGOD PMES{% endblock %} {%
 block content %}
-<div class="content__header">
-  <h1>Individual Report Card No. 8a</h1>
-  <span class="content__badge">IRC8a</span>
-</div>
 
-<div class="content__body"></div>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/irc8a.css') }}"
+/>
+
+<section id="irc8a-tab" class="tab-panel irc8a-panel">
+  <div class="irc8a-header">
+    <h2>
+      IRC8A &mdash; Individual Performance Commitment and Review Form (IPCRF)
+    </h2>
+    <p class="irc8a-subtitle">
+      Set your KRAs, objectives, and performance indicators during planning.
+      Come back during evaluation to attach MOVs, actual results, and ratings
+      &mdash; scores update automatically as you go.
+    </p>
+  </div>
+
+  <!-- MFO banner (constant, uneditable) -->
+  <div class="irc8a-mfo-banner">
+    <span class="irc8a-mfo-label">MFOs</span>
+    <span class="irc8a-mfo-value">Basic Education Services</span>
+    <span class="irc8a-mfo-tag">Constant</span>
+  </div>
+
+  <!-- Weight summary / warnings -->
+  <div
+    id="irc8a-kra-weight-warning"
+    class="irc8a-weight-banner"
+    style="display: none"
+  ></div>
+
+  <div class="irc8a-toolbar">
+    <div class="irc8a-toolbar-info">
+      <span class="irc8a-section-eyebrow">A.</span> Key Result Areas (KRAs)
+    </div>
+    <button type="button" class="irc8a-add-btn" id="addKraBtn">
+      <svg
+        class="irc8a-inline-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 5v14M5 12h14"></path>
+      </svg>
+      Add KRA
+    </button>
+  </div>
+
+  <div id="irc8a-kra-list" class="irc8a-kra-list">
+    <!-- KRA cards are rendered here by irc8a.js -->
+  </div>
+
+  <div id="irc8a-empty-state" class="irc8a-empty-state" style="display: none">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M9 11l3 3L22 4"></path>
+      <path
+        d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+      ></path>
+    </svg>
+    <p>No KRAs yet. Click <strong>Add KRA</strong> to start planning.</p>
+  </div>
+
+  <!-- Overall summary footer -->
+  <div id="irc8a-summary" class="irc8a-summary" style="display: none">
+    <div class="irc8a-summary-item">
+      <span class="irc8a-summary-label">Total KRA Weight</span>
+      <span class="irc8a-summary-value" id="irc8a-summary-weight">0%</span>
+    </div>
+    <div class="irc8a-summary-item">
+      <span class="irc8a-summary-label">Overall Rating</span>
+      <span class="irc8a-summary-value" id="irc8a-summary-rating">&mdash;</span>
+    </div>
+  </div>
+
+  <!-- ============= Generic entry modal (KRA / Objective / Rubric / MOV / Actual Results) ============= -->
+  <div id="irc8a-entry-modal" class="irc8a-modal" style="display: none">
+    <div class="irc8a-modal-content">
+      <div class="irc8a-modal-header">
+        <h2 id="irc8a-entry-modal-title">Add Entry</h2>
+        <button
+          type="button"
+          class="irc8a-modal-close"
+          id="irc8aEntryModalClose"
+        >
+          &times;
+        </button>
+      </div>
+      <div class="irc8a-modal-body">
+        <p class="irc8a-modal-hint" id="irc8a-entry-modal-hint"></p>
+
+        <div id="irc8a-field-primary" class="irc8a-field-group">
+          <label
+            class="irc8a-field-label"
+            id="irc8a-field-primary-label"
+            for="irc8a-entry-text"
+            >Description</label
+          >
+          <textarea
+            id="irc8a-entry-text"
+            class="irc8a-field-textarea"
+            rows="4"
+            placeholder="Type here..."
+          ></textarea>
+        </div>
+
+        <div
+          id="irc8a-field-url"
+          class="irc8a-field-group"
+          style="display: none"
+        >
+          <label class="irc8a-field-label" for="irc8a-entry-url"
+            >Link (MOV)</label
+          >
+          <input
+            type="url"
+            id="irc8a-entry-url"
+            class="irc8a-field-input"
+            placeholder="https://..."
+          />
+        </div>
+
+        <div
+          id="irc8a-field-rate"
+          class="irc8a-field-group"
+          style="display: none"
+        >
+          <label class="irc8a-field-label" for="irc8a-entry-rate"
+            >Rating Level</label
+          >
+          <select id="irc8a-entry-rate" class="irc8a-field-input"></select>
+        </div>
+
+        <div
+          id="irc8a-field-weight"
+          class="irc8a-field-group"
+          style="display: none"
+        >
+          <label
+            class="irc8a-field-label"
+            id="irc8a-field-weight-label"
+            for="irc8a-entry-weight"
+            >Weight (%)</label
+          >
+          <input
+            type="number"
+            id="irc8a-entry-weight"
+            class="irc8a-field-input"
+            min="0"
+            max="100"
+            step="0.01"
+            placeholder="e.g. 25"
+          />
+        </div>
+      </div>
+      <div class="irc8a-modal-footer">
+        <button
+          type="button"
+          class="irc8a-modal-btn irc8a-modal-btn-cancel"
+          id="irc8aEntryModalCancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="irc8a-modal-btn irc8a-modal-btn-submit"
+          id="irc8aEntryModalSubmit"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+    <div class="irc8a-modal-overlay" id="irc8aEntryModalOverlay"></div>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/irc8a.js') }}"></script>
+
 {% endblock %}
