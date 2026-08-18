@@ -130,7 +130,7 @@
 }
 
 .irc9-col-date {
-  width: 110px;
+  width: 85px;
 }
 .irc9-col-incident,
 .irc9-col-output,
@@ -138,7 +138,7 @@
   width: 23%;
 }
 .irc9-col-actions {
-  width: 80px;
+  width: 68px;
 }
 
 .irc9-table tbody tr {
@@ -168,6 +168,8 @@
 
 .irc9-table tbody td:last-child {
   border-right: none;
+  padding-left: 6px;
+  padding-right: 6px;
 }
 
 .irc9-cell-date {
@@ -230,6 +232,20 @@
   display: flex;
   gap: 6px;
   justify-content: center;
+}
+
+/* The table's Actions column is narrower than the import-preview
+   card's remove button area (which reuses .irc9-icon-btn too), so
+   shrink the two buttons and their gap specifically here to keep
+   both icons fitting comfortably side by side. */
+.irc9-table .irc9-actions-cell {
+  gap: 4px;
+}
+
+.irc9-table .irc9-actions-cell .irc9-icon-btn {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
 }
 
 .irc9-icon-btn {
@@ -377,13 +393,17 @@
   cursor: pointer;
 }
 
-/* Fixed-height, non-resizable textareas: entries are typewritten
-   paragraphs, not free-form notes, so no drag-resize handle. Content
-   that overflows simply scrolls within the box. */
+/* Larger, non-resizable textareas: entries are typewritten paragraphs,
+   not free-form notes, so no drag-resize handle. Taller boxes mean
+   less scrolling to read/edit a single field; if a field's content
+   still runs longer than that, it's the modal body (.irc9-modal-body,
+   which scrolls as a whole) that handles the overflow — not a tiny
+   scrollbar inside the textarea itself — so the whole entry stays
+   easy to scan top to bottom in one place. */
 .irc9-field textarea {
   resize: none;
   overflow-y: auto;
-  height: 100px;
+  height: 180px;
 }
 
 .irc9-field input:focus,
