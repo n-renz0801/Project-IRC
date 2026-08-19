@@ -15,11 +15,11 @@
   color: #1a1a1a;
 }
 
-/* ---------- MFO banner (reads as the page's main title) ---------- */
+/* ---------- MFO banner (reads as the page's main title; also hosts Add KRA) ---------- */
 
 .irc8a-mfo-banner {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 14px;
   background: linear-gradient(135deg, #1f2937, #131c28);
   color: #f3f4f6;
@@ -45,6 +45,11 @@
   color: #fff;
 }
 
+.irc8a-mfo-banner .irc8a-add-btn--banner {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 /* ---------- Weight warning banners ---------- */
 
 .irc8a-weight-banner-inline {
@@ -61,22 +66,7 @@
   border: 1px solid #f2d896;
 }
 
-/* ---------- Toolbar ---------- */
-
-.irc8a-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.irc8a-toolbar-info {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
+/* ---------- Buttons ---------- */
 
 .irc8a-add-btn {
   background: #4a6fa5;
@@ -176,94 +166,102 @@
 
 /* ================================================================
    KRA color palette
-   Cycles by list position (kraIndex % 5), assigned via a
-   irc8a-kra-palette-N class added in JS. Each color has:
-   light (very pale body tint) / solid (badge fill, white text on
-   top) / border (mid-tone card border) / dark (score strip bg).
+   Cycles by list position (kraIndex % 4), assigned via a
+   irc8a-kra-palette-N class added in JS. Coral has been removed —
+   only 4 hues remain: Violet, Teal, Pink, Amber.
 
-   ---> To retune any color, edit the six variables for that
-   number below. Nothing else in this file, irc8a.js, or
-   irc8a.html needs to change — everything downstream reads
-   from these variables via cascading custom properties.
+   Each KRA hue has FOUR lightness tiers (t1 darkest → t4 lightest),
+   all sharing the same hue/saturation family. Every colored header
+   in the card reads from a fixed pair of adjacent tiers, so the
+   color visibly fades the deeper you go:
+
+     irc8a-kra-header / irc8a-score-strip   -> t1 -> t2 (darkest)
+     irc8a-objective-header                  -> t2 -> t3
+     irc8a-obj-banner--planning              -> t3 -> t4 (lightest)
+     irc8a-obj-banner--evaluation             -> t4 -> t3 (reversed,
+                                                so siblings at the
+                                                same depth still
+                                                read as distinct)
+
+   --kra-light / --kra-border are unrelated pale/mid tones used for
+   the card's white-ish body fill and border, unchanged from before.
+
+   ---> To retune any KRA's color, edit its six variables below.
+   Nothing else in this file, irc8a.js, or irc8a.html needs to
+   change — everything downstream cascades from these variables.
    ================================================================ */
 
 :root {
-  --kra-header-bg: #1f2937;
-  --kra-header-bg-hover: #29323f;
-
   --kra-1-light: #f5f3fe; /* Violet */
-  --kra-1-solid: #6b46c1;
   --kra-1-border: #a78bfa;
-  --kra-1-dark: #3b2a66;
+  --kra-1-t1: #1e123a;
+  --kra-1-t2: #311f5c;
+  --kra-1-t3: #452d7b;
+  --kra-1-t4: #593e98;
 
   --kra-2-light: #e6fbf8; /* Teal */
-  --kra-2-solid: #0f766e;
   --kra-2-border: #5eead4;
-  --kra-2-dark: #0b3b38;
+  --kra-2-t1: #074541;
+  --kra-2-t2: #0e6c65;
+  --kra-2-t3: #189087;
+  --kra-2-t4: #25b1a6;
 
-  --kra-3-light: #fef1ef; /* Coral */
-  --kra-3-solid: #c2410c;
-  --kra-3-border: #f0917a;
-  --kra-3-dark: #6b2712;
+  --kra-3-light: #fdf1f8; /* Pink */
+  --kra-3-border: #f472b6;
+  --kra-3-t1: #450721;
+  --kra-3-t2: #6d0e35;
+  --kra-3-t3: #90184a;
+  --kra-3-t4: #b1255f;
 
-  --kra-4-light: #fdf1f8; /* Pink */
-  --kra-4-solid: #be185d;
-  --kra-4-border: #f472b6;
-  --kra-4-dark: #6b1140;
+  --kra-4-light: #fffaeb; /* Amber */
+  --kra-4-border: #fbbf24;
+  --kra-4-t1: #472206;
+  --kra-4-t2: #6f370c;
+  --kra-4-t3: #93481f;
+  --kra-4-t4: #b46122;
 
-  --kra-5-light: #fffaeb; /* Amber */
-  --kra-5-solid: #b45309;
-  --kra-5-border: #fbbf24;
-  --kra-5-dark: #5c3403;
+  /* Light gold accent used on KRA/objective index badges & eyebrows */
+  --gold-light: #f0cf7d;
+  --gold-light-soft: rgba(240, 207, 125, 0.7);
 }
 
 .irc8a-kra-card.irc8a-kra-palette-1 {
   --kra-light: var(--kra-1-light);
-  --kra-solid: var(--kra-1-solid);
   --kra-border: var(--kra-1-border);
-  --kra-dark: var(--kra-1-dark);
+  --kra-t1: var(--kra-1-t1);
+  --kra-t2: var(--kra-1-t2);
+  --kra-t3: var(--kra-1-t3);
+  --kra-t4: var(--kra-1-t4);
 }
 .irc8a-kra-card.irc8a-kra-palette-2 {
   --kra-light: var(--kra-2-light);
-  --kra-solid: var(--kra-2-solid);
   --kra-border: var(--kra-2-border);
-  --kra-dark: var(--kra-2-dark);
+  --kra-t1: var(--kra-2-t1);
+  --kra-t2: var(--kra-2-t2);
+  --kra-t3: var(--kra-2-t3);
+  --kra-t4: var(--kra-2-t4);
 }
 .irc8a-kra-card.irc8a-kra-palette-3 {
   --kra-light: var(--kra-3-light);
-  --kra-solid: var(--kra-3-solid);
   --kra-border: var(--kra-3-border);
-  --kra-dark: var(--kra-3-dark);
+  --kra-t1: var(--kra-3-t1);
+  --kra-t2: var(--kra-3-t2);
+  --kra-t3: var(--kra-3-t3);
+  --kra-t4: var(--kra-3-t4);
 }
 .irc8a-kra-card.irc8a-kra-palette-4 {
   --kra-light: var(--kra-4-light);
-  --kra-solid: var(--kra-4-solid);
   --kra-border: var(--kra-4-border);
-  --kra-dark: var(--kra-4-dark);
-}
-.irc8a-kra-card.irc8a-kra-palette-5 {
-  --kra-light: var(--kra-5-light);
-  --kra-solid: var(--kra-5-solid);
-  --kra-border: var(--kra-5-border);
-  --kra-dark: var(--kra-5-dark);
+  --kra-t1: var(--kra-4-t1);
+  --kra-t2: var(--kra-4-t2);
+  --kra-t3: var(--kra-4-t3);
+  --kra-t4: var(--kra-4-t4);
 }
 
 /* Card border reads the assigned mid-tone, tying the dark header
    and pastel body together as one unit. */
 .irc8a-kra-card[class*="irc8a-kra-palette-"] {
   border: 1px solid var(--kra-border);
-}
-
-/* Index badge + weight badge are filled with the assigned solid color */
-.irc8a-kra-card[class*="irc8a-kra-palette-"] .irc8a-kra-index {
-  background: var(--kra-solid);
-  color: #fff;
-}
-
-.irc8a-kra-card[class*="irc8a-kra-palette-"] .irc8a-weight-badge--kra {
-  background: var(--kra-solid);
-  color: #fff;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
 }
 
 /* Body gets the pale tint fill */
@@ -287,35 +285,63 @@
   overflow: hidden;
 }
 
-/* Header: always the same dark charcoal, open or collapsed */
+/* Header: darkest tier of the gradient (t1 -> t2). Two-row stack —
+   a small uppercase eyebrow ("Key Result Area 1") on top, then the
+   index/text/weight/actions row below — plus a bottom shadow so the
+   header visibly "lifts" off the body beneath it. */
 .irc8a-kra-header {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px 18px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 18px;
   cursor: pointer;
-  background: var(--kra-header-bg);
+  background: linear-gradient(
+    135deg,
+    var(--kra-t1, #1f2937),
+    var(--kra-t2, #29323f)
+  );
   border-bottom: 1px solid transparent;
-  transition: background 0.15s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+  transition: filter 0.15s ease;
 }
 
 .irc8a-kra-header:hover {
-  background: var(--kra-header-bg-hover);
+  filter: brightness(1.12);
 }
 
 .irc8a-kra-card.is-open .irc8a-kra-header {
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
+.irc8a-kra-header-top {
+  display: flex;
+}
+
+.irc8a-kra-eyebrow {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-light-soft);
+}
+
+.irc8a-kra-header-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .irc8a-kra-index {
   flex-shrink: 0;
-  background: #1f2937; /* fallback if no palette class present */
-  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--gold-light);
   font-size: 12px;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: 6px;
-  margin-top: 2px;
 }
 
 .irc8a-kra-text {
@@ -337,39 +363,42 @@
   border-radius: 8px;
   border: 1.5px solid #bcd4f0;
   white-space: nowrap;
-  margin-top: 0;
 }
 
 .irc8a-weight-badge--kra {
-  background: #1f4f8a; /* fallback if no palette class present */
-  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--kra-t1, #1f4f8a);
   font-size: 15px;
-  padding: 8px 18px;
+  font-weight: 800;
+  padding: 8px 16px;
   border: none;
-  box-shadow: 0 3px 8px rgba(31, 79, 138, 0.28);
+  border-radius: 8px;
+  box-shadow: none;
 }
 
 .irc8a-kra-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
-  margin-top: 1px;
 }
 
-/* Icon buttons in the KRA header sit on the dark background */
+/* Icon buttons in the KRA header sit on the gradient background */
 .irc8a-kra-header .irc8a-icon-btn {
-  color: #cbd5e1;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .irc8a-kra-header .irc8a-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
   color: #fff;
 }
 
 .irc8a-kra-header .irc8a-icon-btn--danger:hover {
-  background: rgba(220, 53, 69, 0.3);
-  color: #ff9c92;
+  background: rgba(220, 53, 69, 0.35);
+  color: #ffb3ab;
 }
 
 .irc8a-kra-body {
@@ -382,29 +411,13 @@
   display: block;
 }
 
-.irc8a-objectives-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.irc8a-objectives-label {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #6b7280;
-}
-
 .irc8a-objectives-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* ---------- Objective cards (stay neutral/white — no KRA coloring) ---------- */
+/* ---------- Objective cards ---------- */
 
 .irc8a-objective-card {
   border: 1px solid #e8eaee;
@@ -413,37 +426,67 @@
   overflow: hidden;
 }
 
+/* Second tier: t2 -> t3, one step lighter than the KRA header. Same
+   two-row eyebrow + content stack as the KRA header above. */
 .irc8a-objective-header {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
   padding: 12px 14px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  background: linear-gradient(
+    120deg,
+    var(--kra-t2, #4a6fa5),
+    var(--kra-t3, #5c85c4)
+  );
+  transition: filter 0.15s ease;
 }
 
 .irc8a-objective-header:hover {
-  background: #f2f5f9;
+  filter: brightness(1.12);
 }
 
-.irc8a-objective-label {
+.irc8a-objective-header-top {
+  display: flex;
+  color: var(--gold-light);
+}
+
+.irc8a-objective-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-light-soft);
+}
+
+.irc8a-objective-header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* Styled after .irc8a-kra-index, with a light gold accent so it
+   pops against every KRA palette rather than matching any of them. */
+.irc8a-objective-index {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #4a6fa5;
-  color: white;
-  font-size: 12.5px;
-  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--gold-light);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 0 10px;
+  border-radius: 6px;
 }
 
 .irc8a-objective-text {
   flex: 1;
   font-size: 13.5px;
-  color: #262626;
+  font-weight: 600;
+  color: #fff;
   line-height: 1.4;
   white-space: pre-wrap;
   padding-top: 3px;
@@ -457,11 +500,34 @@
   flex-shrink: 0;
 }
 
+/* Weight badge reads white-on-translucent when it's sitting on the
+   objective header's colored gradient. */
+.irc8a-objective-header .irc8a-weight-badge {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--kra-t2, #1f4f8a);
+  border: none;
+}
+
 .irc8a-objective-actions {
   display: flex;
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
+}
+
+/* Icon buttons in the objective header sit on a colored gradient too */
+.irc8a-objective-header .irc8a-icon-btn {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.irc8a-objective-header .irc8a-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.irc8a-objective-header .irc8a-icon-btn--danger:hover {
+  background: rgba(220, 53, 69, 0.35);
+  color: #ffb3ab;
 }
 
 .irc8a-objective-body {
@@ -476,47 +542,51 @@
 /* ---------- In-page sections (Planning / Evaluation) ---------- */
 
 .irc8a-obj-section {
-  margin: 4px 0 20px;
+  margin: 0 0 20px;
 }
 
 .irc8a-obj-section:last-child {
   margin-bottom: 0;
 }
 
-.irc8a-obj-section-title {
+/* Third tier: t3 -> t4, the lightest step. Planning and Evaluation
+   sit at the same depth, so they share the same two tiers — the
+   gradient direction is reversed between them so they still read
+   as two distinct, related bands rather than identical blocks. Both
+   get a bottom shadow so they lift slightly off the content below. */
+.irc8a-obj-banner {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #4a6fa5;
-  padding-bottom: 8px;
-  margin-bottom: 14px;
-  border-bottom: 2px solid #e2e5ea;
+  padding: 9px 14px;
+  margin: 0 -14px 14px;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
 }
 
-.irc8a-obj-section-title .irc8a-obj-section-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #4a6fa5;
+.irc8a-obj-banner svg {
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 
-.irc8a-obj-section--evaluation .irc8a-obj-section-title {
-  color: #6a3fa0;
+.irc8a-obj-banner--planning {
+  background: linear-gradient(
+    120deg,
+    var(--kra-t3, #4a6fa5),
+    var(--kra-t4, #6a8fc9)
+  );
 }
 
-.irc8a-obj-section--evaluation .irc8a-obj-section-title .irc8a-obj-section-dot {
-  background: #6a3fa0;
-}
-
-.irc8a-obj-section-divider {
-  height: 1px;
-  background: #eef0f3;
-  margin: 4px 0 20px;
+.irc8a-obj-banner--evaluation {
+  background: linear-gradient(
+    120deg,
+    var(--kra-t4, #6a8fc9),
+    var(--kra-t3, #4a6fa5)
+  );
 }
 
 /* ---------- Performance indicator groups (Quality / Efficiency / Timeliness) ---------- */
@@ -525,6 +595,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+  margin-bottom: 16px;
 }
 
 .irc8a-indicator-group {
@@ -554,6 +625,9 @@
   margin-bottom: 8px;
 }
 
+/* Indicator items are clickable — selecting one sets the matching
+   rating dropdown to its rate. Only one item per category can be
+   selected at a time. */
 .irc8a-indicator-item {
   display: flex;
   align-items: flex-start;
@@ -564,6 +638,22 @@
   background: #f7f9fc;
   border-radius: 6px;
   border: 1px solid #eef0f3;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.irc8a-indicator-item:hover {
+  background: #eef2f9;
+  border-color: #d5deea;
+}
+
+.irc8a-indicator-item--selected {
+  background: #eaf1fb;
+  border-color: #4a6fa5;
+  box-shadow: 0 0 0 1px #4a6fa5 inset;
 }
 
 .irc8a-indicator-rate {
@@ -579,6 +669,10 @@
   align-items: center;
   justify-content: center;
   margin-top: 1px;
+}
+
+.irc8a-indicator-item--selected .irc8a-indicator-rate {
+  background: #4a6fa5;
 }
 
 .irc8a-indicator-text {
@@ -608,6 +702,18 @@
   color: #aab1bb;
   font-style: italic;
   padding: 4px 2px 8px;
+}
+
+/* ---------- Field row (MOV + Actual Results side by side) ---------- */
+
+.irc8a-field-row {
+  display: flex;
+  gap: 14px;
+}
+
+.irc8a-field-row .irc8a-field-block {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ---------- MOV ---------- */
@@ -671,7 +777,7 @@
   font-style: italic;
 }
 
-/* ---------- Actual results ---------- */
+/* ---------- Actual results / Timeline ---------- */
 
 .irc8a-actual-box {
   padding: 10px 12px;
@@ -736,15 +842,19 @@
   text-align: center;
 }
 
-/* Score strip now adapts to the ancestor KRA's dark tone via the
-   inherited --kra-dark custom property; falls back to the old
-   navy if it's ever rendered outside a palette context. */
+/* Score strip matches the KRA header — same darkest tier gradient
+   (t1 -> t2) — so the score reads as tied directly back to the KRA
+   it belongs to. */
 .irc8a-score-strip {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: var(--kra-dark, #16202e);
+  background: linear-gradient(
+    135deg,
+    var(--kra-t1, #16202e),
+    var(--kra-t2, #29323f)
+  );
   border-radius: 8px;
   color: #f3f4f6;
 }
@@ -980,6 +1090,11 @@
   .irc8a-ratings-grid {
     grid-template-columns: 1fr 1fr;
   }
+
+  .irc8a-field-row {
+    flex-direction: column;
+    gap: 0;
+  }
 }
 
 @media (max-width: 640px) {
@@ -987,9 +1102,12 @@
     font-size: 21px;
   }
 
-  .irc8a-toolbar {
-    flex-direction: column;
-    align-items: stretch;
+  .irc8a-mfo-banner {
+    flex-wrap: wrap;
+  }
+
+  .irc8a-mfo-banner .irc8a-add-btn--banner {
+    margin-left: 0;
   }
 
   .irc8a-add-btn {
