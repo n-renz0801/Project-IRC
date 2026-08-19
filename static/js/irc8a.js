@@ -41,6 +41,10 @@
   const ICON_TRASH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>`;
   const ICON_PLUS = `<svg class="irc8a-inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>`;
   const ICON_LINK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
+  // Banner icons — used in the solid Planning / Evaluation section headers.
+  const ICON_CLIPBOARD = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M9 12h6M9 16h6"></path></svg>`;
+  const ICON_CHECKLIST = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"></path><path d="M3 6l1 1 2-2M3 12l1 1 2-2M3 18l1 1 2-2"></path></svg>`;
+  const ICON_CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>`;
 
   const INDICATOR_CATEGORIES = [
     { key: "quality", label: "Quality" },
@@ -50,7 +54,8 @@
 
   // Fixed color palette for KRA cards — cycles by list position, not by id,
   // so deleting a KRA re-flows the colors of the ones that remain.
-  const KRA_PALETTE_SIZE = 5;
+  // Coral has been removed; only 4 hues remain (Violet, Teal, Pink, Amber).
+  const KRA_PALETTE_SIZE = 4;
 
   function kraPaletteClass(kraIndex) {
     return "irc8a-kra-palette-" + ((kraIndex % KRA_PALETTE_SIZE) + 1);
@@ -80,6 +85,7 @@
       quality: [],
       efficiency: [],
       timeliness: [],
+      timeline: "",
       mov: null,
       actualResults: "",
       ratings: { quality: "", efficiency: "", timeliness: "" },
@@ -214,19 +220,21 @@
 
     card.innerHTML = `
       <div class="irc8a-kra-header" data-action="toggle-kra" title="Click to ${kra.isOpen ? "collapse" : "expand"}">
-        <span class="irc8a-kra-index">KRA ${kraIndex + 1}</span>
-        <span class="irc8a-kra-text">${kra.text ? escapeHtml(kra.text) : '<em style="color:#aab1bb;">Untitled KRA — click the pencil to describe it</em>'}</span>
-        <span class="irc8a-weight-badge irc8a-weight-badge--kra">${fmtWeight(kra.weight)}</span>
-        <div class="irc8a-kra-actions">
-          <button type="button" class="irc8a-icon-btn" data-action="edit-kra" title="Edit KRA">${ICON_EDIT}</button>
-          <button type="button" class="irc8a-icon-btn irc8a-icon-btn--danger" data-action="delete-kra" title="Delete KRA">${ICON_TRASH}</button>
+        <div class="irc8a-kra-header-top">
+          <span class="irc8a-kra-eyebrow">Key Result Area ${kraIndex + 1}</span>
+        </div>
+        <div class="irc8a-kra-header-main">
+          <span class="irc8a-kra-index">KRA ${kraIndex + 1}</span>
+          <span class="irc8a-kra-text">${kra.text ? escapeHtml(kra.text) : '<em style="color:#e4e7ec;">Untitled KRA — click the pencil to describe it</em>'}</span>
+          <span class="irc8a-weight-badge irc8a-weight-badge--kra">${fmtWeight(kra.weight)}</span>
+          <div class="irc8a-kra-actions">
+            <button type="button" class="irc8a-add-btn irc8a-add-btn--sm" data-action="add-objective">${ICON_PLUS}Add Objective</button>
+            <button type="button" class="irc8a-icon-btn" data-action="edit-kra" title="Edit KRA">${ICON_EDIT}</button>
+            <button type="button" class="irc8a-icon-btn irc8a-icon-btn--danger" data-action="delete-kra" title="Delete KRA">${ICON_TRASH}</button>
+          </div>
         </div>
       </div>
       <div class="irc8a-kra-body">
-        <div class="irc8a-objectives-toolbar">
-          <span class="irc8a-objectives-label">Objectives</span>
-          <button type="button" class="irc8a-add-btn irc8a-add-btn--ghost irc8a-add-btn--sm" data-action="add-objective">${ICON_PLUS}Add Objective</button>
-        </div>
         <div class="irc8a-objectives-list"></div>
         ${
           kra.objectives.length === 0
@@ -256,58 +264,73 @@
     card.dataset.objId = obj.id;
 
     const score = computeScore(obj);
+    const letter = letterLabel(objIndex);
 
     card.innerHTML = `
       <div class="irc8a-objective-header" data-action="toggle-objective" title="Click to ${obj.isOpen ? "collapse" : "expand"}">
-        <span class="irc8a-objective-label">${letterLabel(objIndex)}</span>
-        <span class="irc8a-objective-text">${obj.text ? escapeHtml(obj.text) : '<em style="color:#aab1bb;">Untitled objective — click the pencil to describe it</em>'}</span>
-        <div class="irc8a-objective-meta">
-          <span class="irc8a-weight-badge">${fmtWeight(obj.weight)}</span>
+        <div class="irc8a-objective-header-top">
+          <span class="irc8a-objective-eyebrow">Objective ${letter}</span>
         </div>
-        <div class="irc8a-objective-actions">
-          <button type="button" class="irc8a-icon-btn" data-action="edit-objective" title="Edit objective">${ICON_EDIT}</button>
-          <button type="button" class="irc8a-icon-btn irc8a-icon-btn--danger" data-action="delete-objective" title="Delete objective">${ICON_TRASH}</button>
+        <div class="irc8a-objective-header-main">
+          <span class="irc8a-objective-index">OBJ ${letter}</span>
+          <span class="irc8a-objective-text">${obj.text ? escapeHtml(obj.text) : '<em style="color:#aab1bb;">Untitled objective — click the pencil to describe it</em>'}</span>
+          <div class="irc8a-objective-meta">
+            <span class="irc8a-weight-badge">${fmtWeight(obj.weight)}</span>
+          </div>
+          <div class="irc8a-objective-actions">
+            <button type="button" class="irc8a-icon-btn" data-action="edit-objective" title="Edit objective">${ICON_EDIT}</button>
+            <button type="button" class="irc8a-icon-btn irc8a-icon-btn--danger" data-action="delete-objective" title="Delete objective">${ICON_TRASH}</button>
+          </div>
         </div>
       </div>
       <div class="irc8a-objective-body">
         <div class="irc8a-obj-section irc8a-obj-section--planning">
-          <div class="irc8a-obj-section-title"><span class="irc8a-obj-section-dot"></span>A. To Be Filled During Planning</div>
-          <div class="irc8a-field-block-header">
-            <span class="irc8a-field-block-title">Performance Indicators</span>
-          </div>
+          <div class="irc8a-obj-banner irc8a-obj-banner--planning">${ICON_CLIPBOARD}A. Planning &mdash; Performance Indicators</div>
           <div class="irc8a-indicator-groups"></div>
+          <div class="irc8a-field-block irc8a-field-block--timeline">
+            <div class="irc8a-field-block-header">
+              <span class="irc8a-field-block-title">Timeline</span>
+              <button type="button" class="irc8a-icon-btn" data-action="edit-timeline" title="Edit timeline">${ICON_EDIT}</button>
+            </div>
+            <div class="irc8a-actual-box${obj.timeline ? "" : " is-empty"}">${
+              obj.timeline
+                ? escapeHtml(obj.timeline)
+                : "No timeline specified yet."
+            }</div>
+          </div>
         </div>
 
-        <div class="irc8a-obj-section-divider"></div>
-
         <div class="irc8a-obj-section irc8a-obj-section--evaluation">
-          <div class="irc8a-obj-section-title"><span class="irc8a-obj-section-dot"></span>B. To Be Filled During Evaluation</div>
-          <div class="irc8a-field-block">
-            <div class="irc8a-field-block-header">
-              <span class="irc8a-field-block-title">Means of Verification (MOV)</span>
-              ${
-                obj.mov
-                  ? '<button type="button" class="irc8a-icon-btn" data-action="edit-mov" title="Edit link">' +
-                    ICON_EDIT +
-                    "</button>"
-                  : '<button type="button" class="irc8a-add-btn irc8a-add-btn--ghost irc8a-add-btn--sm" data-action="edit-mov">' +
-                    ICON_PLUS +
-                    "Add Link</button>"
-              }
-            </div>
-            ${renderMovRow(obj)}
-          </div>
+          <div class="irc8a-obj-banner irc8a-obj-banner--evaluation">${ICON_CHECKLIST}B. Evaluation &mdash; Results and Rating</div>
 
-          <div class="irc8a-field-block">
-            <div class="irc8a-field-block-header">
-              <span class="irc8a-field-block-title">Actual Results</span>
-              <button type="button" class="irc8a-icon-btn" data-action="edit-actual" title="Edit actual results">${ICON_EDIT}</button>
+          <div class="irc8a-field-row">
+            <div class="irc8a-field-block">
+              <div class="irc8a-field-block-header">
+                <span class="irc8a-field-block-title">Means of Verification (MOV)</span>
+                ${
+                  obj.mov
+                    ? '<button type="button" class="irc8a-icon-btn" data-action="edit-mov" title="Edit link">' +
+                      ICON_EDIT +
+                      "</button>"
+                    : '<button type="button" class="irc8a-add-btn irc8a-add-btn--ghost irc8a-add-btn--sm" data-action="edit-mov">' +
+                      ICON_PLUS +
+                      "Add Link</button>"
+                }
+              </div>
+              ${renderMovRow(obj)}
             </div>
-            <div class="irc8a-actual-box${obj.actualResults ? "" : " is-empty"}">${
-              obj.actualResults
-                ? escapeHtml(obj.actualResults)
-                : "No actual results recorded yet."
-            }</div>
+
+            <div class="irc8a-field-block">
+              <div class="irc8a-field-block-header">
+                <span class="irc8a-field-block-title">Actual Results</span>
+                <button type="button" class="irc8a-icon-btn" data-action="edit-actual" title="Edit actual results">${ICON_EDIT}</button>
+              </div>
+              <div class="irc8a-actual-box${obj.actualResults ? "" : " is-empty"}">${
+                obj.actualResults
+                  ? escapeHtml(obj.actualResults)
+                  : "No actual results recorded yet."
+              }</div>
+            </div>
           </div>
 
           <div class="irc8a-field-block">
@@ -375,6 +398,10 @@
     `;
   }
 
+  // Indicator items are now clickable: clicking one sets that category's
+  // rating to the item's rate (single-select — setting a new one replaces
+  // the old value). The rating dropdown and the indicator list stay in
+  // sync in both directions, since both read from obj.ratings[category].
   function renderIndicatorGroup(obj, category, label) {
     const wrap = document.createElement("div");
     wrap.className = "irc8a-indicator-group";
@@ -382,6 +409,10 @@
 
     const items = obj[category].slice().sort((a, b) => b.rate - a.rate);
     const canAddMore = obj[category].length < 5;
+    const selectedRate =
+      obj.ratings[category] !== "" && obj.ratings[category] != null
+        ? Number(obj.ratings[category])
+        : null;
 
     wrap.innerHTML = `
       <div class="irc8a-indicator-group-header">
@@ -399,7 +430,7 @@
             : items
                 .map(
                   (item) => `
-              <div class="irc8a-indicator-item" data-item-id="${item.id}">
+              <div class="irc8a-indicator-item${item.rate === selectedRate ? " irc8a-indicator-item--selected" : ""}" data-item-id="${item.id}" data-category="${category}" data-action="select-indicator" title="Click to set ${label} rating to ${item.rate}">
                 <span class="irc8a-indicator-rate">${item.rate}</span>
                 <span class="irc8a-indicator-text">${escapeHtml(item.label)}</span>
                 <div class="irc8a-indicator-item-actions">
@@ -522,6 +553,14 @@
       fieldPrimaryLabel.textContent = "Actual Results";
       primaryInput.placeholder = "Describe what was actually accomplished...";
       primaryInput.value = obj.actualResults || "";
+    } else if (ctx.mode === "edit-timeline") {
+      const obj = findObjective(ctx.kraId, ctx.objId);
+      modalTitle.textContent = "Edit Timeline";
+      fieldPrimaryWrap.style.display = "block";
+      fieldPrimaryLabel.textContent = "Timeline";
+      primaryInput.placeholder =
+        "Describe the timeline for accomplishing this objective...";
+      primaryInput.value = obj.timeline || "";
     }
 
     modal.style.display = "flex";
@@ -608,6 +647,10 @@
       const text = primaryInput.value.trim();
       const obj = findObjective(modalCtx.kraId, modalCtx.objId);
       obj.actualResults = text;
+    } else if (mode === "edit-timeline") {
+      const text = primaryInput.value.trim();
+      const obj = findObjective(modalCtx.kraId, modalCtx.objId);
+      obj.timeline = text;
     }
 
     closeModal();
@@ -633,7 +676,7 @@
         // Avoid toggling when clicking an action button inside the header
         if (
           e.target.closest(
-            '[data-action="edit-kra"], [data-action="delete-kra"]',
+            '[data-action="edit-kra"], [data-action="delete-kra"], [data-action="add-objective"]',
           )
         )
           return;
@@ -711,6 +754,15 @@
         const itemId = actionEl.dataset.itemId;
         if (!confirm("Remove this indicator? This cannot be undone.")) return;
         obj[category] = obj[category].filter((i) => i.id !== itemId);
+        // If the removed indicator was the one driving the rating, clear it.
+        if (
+          obj.ratings[category] !== "" &&
+          !obj[category].some(
+            (i) => String(i.rate) === String(obj.ratings[category]),
+          )
+        ) {
+          // Keep the rating as-is; it may have been set manually too.
+        }
         render();
         break;
       }
@@ -727,10 +779,33 @@
       case "edit-actual":
         openModal({ mode: "edit-actual", kraId, objId });
         break;
+      case "edit-timeline":
+        openModal({ mode: "edit-timeline", kraId, objId });
+        break;
+      case "select-indicator": {
+        // Clicking an indicator sets that category's rating to its rate.
+        // Only one indicator per category can "win" — since each item's
+        // rate is unique within its category, setting obj.ratings[category]
+        // to this item's rate automatically makes this the sole selected
+        // item (any previously-selected item for the same category loses
+        // its highlight on re-render).
+        const obj = findObjective(kraId, objId);
+        const category = actionEl.dataset.category;
+        const itemId = actionEl.dataset.itemId;
+        const item = obj[category].find((i) => i.id === itemId);
+        if (!item) return;
+        obj.ratings[category] = String(item.rate);
+        render();
+        break;
+      }
     }
   });
 
-  // ================= Ratings: live update without full re-render =================
+  // ================= Ratings: dropdown changes stay in sync with indicators =================
+  // A full render() keeps the indicator highlight and the dropdown value
+  // consistent with each other in both directions, without duplicating the
+  // sync logic. State lives in JS objects, so open/closed states are
+  // preserved across the re-render.
   listEl.addEventListener("change", (e) => {
     const select = e.target.closest('[data-role="rating-select"]');
     if (!select) return;
@@ -741,41 +816,7 @@
     const obj = findObjective(kraId, objId);
     obj.ratings[select.dataset.field] = select.value;
 
-    // Update just this card's readouts + badges + summary, cheaper than full render
-    const avg = computeAverage(obj);
-    const score = computeScore(obj);
-
-    const avgReadout = objCard.querySelector('[data-role="avg-readout"]');
-    if (avgReadout) avgReadout.textContent = avg === null ? "—" : fmtNum(avg);
-
-    const scoreReadout = objCard.querySelector('[data-role="score-readout"]');
-    if (scoreReadout)
-      scoreReadout.textContent = score === null ? "—" : fmtNum(score);
-
-    const scoreBadge = objCard.querySelector(".irc8a-score-badge");
-    if (scoreBadge) {
-      scoreBadge.textContent =
-        "Score: " + (score === null ? "—" : fmtNum(score));
-      scoreBadge.classList.toggle("is-empty", score === null);
-    }
-
-    // Overall summary depends on all objectives, so refresh just that block
-    let allObjectives = [];
-    state.kras.forEach(
-      (k) => (allObjectives = allObjectives.concat(k.objectives)),
-    );
-    if (allObjectives.length > 0) {
-      let scoreSum = 0;
-      let hasAnyScore = false;
-      allObjectives.forEach((o) => {
-        const s = computeScore(o);
-        if (s !== null) {
-          scoreSum += s;
-          hasAnyScore = true;
-        }
-      });
-      summaryRatingEl.textContent = hasAnyScore ? fmtNum(scoreSum) : "—";
-    }
+    render();
   });
 
   // ================= Initial render =================
