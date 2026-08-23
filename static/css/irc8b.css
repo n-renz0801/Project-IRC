@@ -1,0 +1,325 @@
+/* IRC8B - Core Behavioral Competencies and Core Skills */
+/* Minimalistic bordered-row style (Option A) — no colored fills;
+   distinction between blocks comes from typography and hairline
+   borders instead of color. */
+
+.irc8b-panel {
+  padding: 24px 0;
+}
+
+.irc8b-header {
+  margin-bottom: 20px;
+}
+
+.irc8b-header h2 {
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #1a1a1a;
+}
+
+/* ---------- Rating scale legend ---------- */
+
+.irc8b-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  background: #f7f8fa;
+  border: 1px solid #e2e5ea;
+  padding: 14px 22px;
+  border-radius: 10px;
+  margin-bottom: 22px;
+}
+
+.irc8b-legend-title {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.irc8b-legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.irc8b-legend-item {
+  font-size: 12.5px;
+  color: #4b5563;
+}
+
+.irc8b-legend-item strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 5px;
+  border-radius: 5px;
+  background: #1f2937;
+  color: #fff;
+  font-size: 10.5px;
+}
+
+/* ---------- Sections ---------- */
+
+.irc8b-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.irc8b-section {
+  background: #fff;
+  border: 1px solid #dde1e7;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Section header: now uses the same dark gradient and font colors as
+   irc8a's MFO banner, so the two IPCRF forms share one consistent
+   "dark header" language across the app. */
+.irc8b-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  background: linear-gradient(135deg, #1f2937, #131c28);
+  border-bottom: none;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.22);
+}
+
+.irc8b-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7fa8e0;
+}
+
+.irc8b-section-avg {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0cf7d;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 5px 14px;
+  border-radius: 6px;
+}
+
+/* Two-column subsection grid */
+.irc8b-subsection-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 18px;
+  align-items: start;
+}
+
+/* ---------- Subsection cards ---------- */
+
+.irc8b-subsection-card {
+  border: 1px solid #d5d9df;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Subsection header: made prominent through typography rather than
+   color — capitalized, bold, wide letter-spacing, on a light gray
+   band with a solid (not hairline) bottom border, so each subsection
+   reads as a clearly separated block from its neighbors and from
+   the criteria list beneath it. */
+.irc8b-subsection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #eef0f3;
+  border-bottom: 2px solid #cfd4db;
+}
+
+.irc8b-subsection-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #1f2937;
+}
+
+.irc8b-subsection-avg {
+  background: #fff;
+  color: #1f2937;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 11px;
+  border-radius: 6px;
+  border: 1px solid #d5d9df;
+  flex-shrink: 0;
+}
+
+.irc8b-criteria-list {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+/* ---------- Criterion row ---------- */
+
+.irc8b-criterion-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid #eef0f3;
+}
+
+.irc8b-criterion-row:first-child {
+  border-top: none;
+}
+
+.irc8b-criterion-num {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: #f1f2f4;
+  color: #6b7280;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.irc8b-criterion-text {
+  flex: 1;
+  font-size: 12.5px;
+  color: #333;
+  line-height: 1.45;
+}
+
+.irc8b-rate-group {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.irc8b-rate-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #d8dde4;
+  background: #fff;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.irc8b-rate-btn:hover {
+  border-color: #9aa3af;
+  background: #f7f9fc;
+}
+
+.irc8b-rate-btn--selected {
+  background: #1f2937;
+  border-color: #1f2937;
+  color: #fff;
+}
+
+/* ---------- Overall summary footer ---------- */
+
+.irc8b-summary {
+  display: flex;
+  gap: 24px;
+  margin-top: 22px;
+  padding: 16px 20px;
+  background: #1f2937;
+  border-radius: 12px;
+}
+
+.irc8b-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.irc8b-summary-item--overall {
+  margin-left: auto;
+  align-items: flex-end;
+}
+
+.irc8b-summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #9fb3d1;
+}
+
+.irc8b-summary-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.irc8b-summary-item--overall .irc8b-summary-value {
+  color: #f0cf7d;
+}
+
+.irc8b-summary-desc {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #b7c3d4;
+}
+
+.irc8b-summary-desc:empty {
+  display: none;
+}
+
+.irc8b-summary-item--overall .irc8b-summary-desc {
+  color: #e3cd93;
+  text-align: right;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+  .irc8b-subsection-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .irc8b-header h2 {
+    font-size: 21px;
+  }
+
+  .irc8b-criterion-row {
+    flex-wrap: wrap;
+  }
+
+  .irc8b-rate-group {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .irc8b-summary {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .irc8b-summary-item--overall {
+    margin-left: 0;
+    align-items: flex-start;
+  }
+
+  .irc8b-summary-item--overall .irc8b-summary-desc {
+    text-align: left;
+  }
+}
