@@ -1,9 +1,59 @@
+import os
 from datetime import datetime
 from flask import Flask, render_template, abort, request, jsonify
 import pdfplumber
 import re
 
+from models import (
+    db,
+    School,
+    UploadedFile,
+    IRC1ARating,
+    IRC1BCustomerCount,
+    IRC2ASchoolStatus,
+    IRC2BTAFrequency,
+    IRC3Status,
+    IRC4Entry,
+    MONTH_KEYS,
+    TA_STATUS_PROVIDED,
+    TA_STATUS_UNPROVIDED,
+)
+import storage
+
 app = Flask(__name__)
+
+# ---------------------------------------------------------------------------
+# Database + upload-storage configuration
+#
+# BASE_DIR anchors both the SQLite file and the uploads tree to the app's
+# own folder rather than the current working directory, since the future
+# pywebview .exe build won't reliably be launched from a fixed cwd.
+# ---------------------------------------------------------------------------
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
+os.makedirs(INSTANCE_DIR, exist_ok=True)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(INSTANCE_DIR, "sgod_pmes.db")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["UPLOAD_ROOT"] = os.path.join(BASE_DIR, "uploads")
+os.makedirs(app.config["UPLOAD_ROOT"], exist_ok=True)
+
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20 MB per upload, generous for these PDFs
+
+db.init_app(app)
+storage.enable_sqlite_foreign_keys(app)
+
+
+@app.cli.command("init-db")
+def init_db_command():
+    """Usage: flask --app app init-db
+    Creates all tables (if missing) and seeds the School master list.
+    Safe to run more than once."""
+    with app.app_context():
+        db.create_all()
+        added = storage.seed_schools()
+        print(f"Database ready at {app.config['SQLALCHEMY_DATABASE_URI']}")
+        print(f"Seeded {added} new school(s) (existing schools were left untouched).")
 
 # ---------------------------------------------------------------------------
 # Fixed list of tabs. This system has exactly 13 Individual Report Cards
@@ -430,10 +480,104 @@ def _extract_irc9_entries(pdf):
     return cleaned_entries
 
 
+# ---------------------------------------------------------------------------
+# DB persistence helpers
+#
+# Each of these does an "upsert" keyed on the table's unique constraint
+# (see models.py), so re-importing the same month twice updates the
+# existing row instead of creating a duplicate. Every one accepts an
+# optional `uploaded_file` so manual edits (no PDF) can call them too,
+# just passing uploaded_file=None.
+# ---------------------------------------------------------------------------
+def _current_year():
+    return datetime.now().year
+
+
+def _upsert_irc1a_ratings(year, month_key, ratings_by_indicator, uploaded_file):
+    """ratings_by_indicator: { indicator_id (int): rating (float) }"""
+    for indicator_id, rating in ratings_by_indicator.items():
+        row = IRC1ARating.query.filter_by(
+            year=year, month_key=month_key, indicator_id=indicator_id
+        ).first()
+        if row is None:
+            row = IRC1ARating(year=year, month_key=month_key, indicator_id=indicator_id)
+            db.session.add(row)
+        row.rating = rating
+        row.uploaded_file_id = uploaded_file.id if uploaded_file else row.uploaded_file_id
+    db.session.commit()
+
+
+def _upsert_irc1b_customer_count(year, month_key, customer_count, uploaded_file):
+    row = IRC1BCustomerCount.query.filter_by(year=year, month_key=month_key).first()
+    if row is None:
+        row = IRC1BCustomerCount(year=year, month_key=month_key)
+        db.session.add(row)
+    row.customer_count = customer_count
+    row.uploaded_file_id = uploaded_file.id if uploaded_file else row.uploaded_file_id
+    db.session.commit()
+
+
+def _upsert_irc2a_status(year, school_name, status, month_key, uploaded_file):
+    """Marks a school (matched by exact name) as provided/unprovided for
+    `year`. Returns 'ok', 'not-found', or 'ambiguous' so the caller can
+    report per-school import results, mirroring the frontend's existing
+    not-found / already-provided / will-mark preview states."""
+    school = School.query.filter_by(name=school_name).first()
+    if school is None:
+        return "not-found"
+
+    row = IRC2ASchoolStatus.query.filter_by(school_id=school.id, year=year).first()
+    if row is None:
+        row = IRC2ASchoolStatus(school_id=school.id, year=year)
+        db.session.add(row)
+    row.status = status
+    if status == TA_STATUS_PROVIDED:
+        row.provided_month_key = month_key
+    row.uploaded_file_id = uploaded_file.id if uploaded_file else row.uploaded_file_id
+    db.session.commit()
+    return "ok"
+
+
+def _upsert_irc2b_frequency(year, school_id, month_key, provided, uploaded_file=None):
+    row = IRC2BTAFrequency.query.filter_by(
+        school_id=school_id, year=year, month_key=month_key
+    ).first()
+    if row is None:
+        row = IRC2BTAFrequency(school_id=school_id, year=year, month_key=month_key)
+        db.session.add(row)
+    row.provided = provided
+    row.uploaded_file_id = uploaded_file.id if uploaded_file else row.uploaded_file_id
+    db.session.commit()
+
+
+def _upsert_irc3_status(year, dedp_ta_count, dedp_target, nondedp_ta_count, nondedp_target):
+    row = IRC3Status.query.filter_by(year=year).first()
+    if row is None:
+        row = IRC3Status(year=year)
+        db.session.add(row)
+    row.dedp_ta_count = dedp_ta_count
+    row.dedp_target = dedp_target
+    row.nondedp_ta_count = nondedp_ta_count
+    row.nondedp_target = nondedp_target
+    db.session.commit()
+    return row
+
+
 @app.route("/")
 def home():
-    """Landing page shown when the app first opens."""
-    return render_template("home.html", tabs=TABS, groups=GROUPS, active_tab=None)
+    """Landing page shown when the app first opens. Also surfaces the
+    most recently uploaded PDFs, grouped by year/month, for the
+    centralized upload section on the home page."""
+    recent_uploads = (
+        UploadedFile.query.order_by(UploadedFile.uploaded_at.desc()).limit(10).all()
+    )
+    return render_template(
+        "home.html",
+        tabs=TABS,
+        groups=GROUPS,
+        active_tab=None,
+        recent_uploads=recent_uploads,
+    )
 
 
 @app.route("/irc/<tab_id>")
@@ -443,6 +587,44 @@ def view_tab(tab_id):
     if active_tab is None:
         abort(404)
     return render_template(TEMPLATE_MAP[tab_id], tabs=TABS, active_tab=active_tab)
+
+
+# ---------------------------------------------------------------------------
+# Centralized file manager: list every uploaded PDF (optionally filtered
+# by IRC/year/month) and delete one (cascading to its extracted DB rows).
+# ---------------------------------------------------------------------------
+@app.route("/files", methods=["GET"])
+def list_files():
+    """Returns every uploaded file, most recent first. Supports optional
+    ?irc_type=irc1a&year=2026&month=jan filters for a file-manager UI."""
+    query = UploadedFile.query
+
+    irc_type = request.args.get("irc_type")
+    year = request.args.get("year", type=int)
+    month_key = request.args.get("month")
+
+    if irc_type:
+        query = query.filter_by(irc_type=irc_type)
+    if year:
+        query = query.filter_by(year=year)
+    if month_key:
+        query = query.filter_by(month_key=month_key)
+
+    files = query.order_by(UploadedFile.year.desc(), UploadedFile.uploaded_at.desc()).all()
+    return jsonify({"files": [f.to_dict() for f in files]}), 200
+
+
+@app.route("/files/<int:file_id>", methods=["DELETE"])
+def delete_file(file_id):
+    """Deletes an uploaded PDF from disk AND every DB record extracted
+    from it (ratings, customer counts, school statuses, ...), via
+    storage.delete_uploaded_file's cascade."""
+    uploaded_file = UploadedFile.query.get(file_id)
+    if uploaded_file is None:
+        return jsonify({"error": "File not found"}), 404
+
+    storage.delete_uploaded_file(uploaded_file, app.config["UPLOAD_ROOT"])
+    return jsonify({"deleted": True, "id": file_id}), 200
 
 
 @app.route("/irc/irc1a/extract", methods=["POST"])
@@ -506,11 +688,25 @@ def extract_irc1a_pdf():
         for indicator_id in range(1, 11):
             if indicator_id in indicators_data:
                 extracted_ratings[str(indicator_id)] = {month_key: indicators_data[indicator_id]}
-        
+
+        # --- Persist: save the PDF to the month-based folder, then upsert
+        # each indicator's rating for this year/month, both linked to the
+        # new UploadedFile row so a later delete cascades correctly. ---
+        year = _current_year()
+        file_fields = storage.save_uploaded_pdf(
+            file, app.config["UPLOAD_ROOT"], irc_type="irc1a", year=year, month_key=month_key
+        )
+        uploaded_file = UploadedFile(**file_fields)
+        db.session.add(uploaded_file)
+        db.session.commit()
+
+        _upsert_irc1a_ratings(year, month_key, indicators_data, uploaded_file)
+
         return jsonify({
             "month": month_name,
             "month_key": month_key,
-            "extracted_ratings": extracted_ratings
+            "extracted_ratings": extracted_ratings,
+            "file_id": uploaded_file.id,
         }), 200
     
     except Exception as e:
@@ -563,10 +759,22 @@ def extract_irc1b_pdf():
         except ValueError:
             return jsonify({"error": "Could not parse the number of customers"}), 400
 
+        # --- Persist: save the PDF, then upsert this year/month's count ---
+        year = _current_year()
+        file_fields = storage.save_uploaded_pdf(
+            file, app.config["UPLOAD_ROOT"], irc_type="irc1b", year=year, month_key=month_key
+        )
+        uploaded_file = UploadedFile(**file_fields)
+        db.session.add(uploaded_file)
+        db.session.commit()
+
+        _upsert_irc1b_customer_count(year, month_key, customers, uploaded_file)
+
         return jsonify({
             "month": month_name,
             "month_key": month_key,
-            "customers": customers
+            "customers": customers,
+            "file_id": uploaded_file.id,
         }), 200
 
     except Exception as e:
@@ -633,14 +841,137 @@ def extract_irc2a_pdf():
                 "error": "Found the 'Schools Provided with TA' section but could not extract any school names from it."
             }), 400
 
+        # --- Persist: save the PDF now so it's registered and file_id is
+        # available for the preview modal. NOTE: we deliberately do NOT
+        # write IRC2ASchoolStatus rows here -- the frontend shows a
+        # preview modal first and lets the user uncheck schools before
+        # committing, so the actual status writes happen in
+        # /irc/irc2a/import once the user confirms. This mirrors the
+        # existing not-found/already-provided/will-mark preview flow. ---
+        year = _current_year()
+        file_fields = storage.save_uploaded_pdf(
+            file, app.config["UPLOAD_ROOT"], irc_type="irc2a", year=year, month_key=month_key
+        )
+        uploaded_file = UploadedFile(**file_fields)
+        db.session.add(uploaded_file)
+        db.session.commit()
+
         return jsonify({
             "month": month_name,
             "month_key": month_key,
             "schools": schools,
+            "file_id": uploaded_file.id,
         }), 200
 
     except Exception as e:
         return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
+
+
+@app.route("/irc/irc2a/import", methods=["POST"])
+def import_irc2a_schools():
+    """Commits the user-confirmed subset of an IRC2a preview import.
+
+    Expected JSON body:
+        {
+          "file_id": 42,             // from /irc/irc2a/extract's response
+          "year": 2026,              // optional, defaults to current year
+          "schools": ["School A", "School B", ...]   // names to mark 'provided'
+        }
+
+    Only schools the user left checked in the preview modal should be
+    included here -- this endpoint marks every listed school 'provided'
+    for the given year and leaves everyone else's status untouched.
+    """
+    data = request.get_json(silent=True) or {}
+    file_id = data.get("file_id")
+    school_names = data.get("schools")
+    year = data.get("year") or _current_year()
+
+    if not isinstance(school_names, list) or not school_names:
+        return jsonify({"error": "'schools' must be a non-empty list of school names"}), 400
+
+    uploaded_file = UploadedFile.query.get(file_id) if file_id else None
+    month_key = uploaded_file.month_key if uploaded_file else None
+
+    results = {"updated": [], "not_found": []}
+    for name in school_names:
+        outcome = _upsert_irc2a_status(year, name, TA_STATUS_PROVIDED, month_key, uploaded_file)
+        (results["updated"] if outcome == "ok" else results["not_found"]).append(name)
+
+    return jsonify(results), 200
+
+
+@app.route("/irc/irc2b/save", methods=["POST"])
+def save_irc2b_frequency():
+    """Persists manual checkbox edits from the IRC2b monthly grid (no
+    PDF involved, so these rows keep uploaded_file_id = NULL).
+
+    Expected JSON body:
+        {
+          "year": 2026,
+          "updates": [
+            {"school_name": "Antipolo NHS", "month_key": "jul", "provided": true},
+            ...
+          ]
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    year = data.get("year") or _current_year()
+    updates = data.get("updates")
+
+    if not isinstance(updates, list) or not updates:
+        return jsonify({"error": "'updates' must be a non-empty list"}), 400
+
+    results = {"updated": [], "not_found": []}
+    for entry in updates:
+        name = entry.get("school_name")
+        month_key = entry.get("month_key")
+        provided = bool(entry.get("provided"))
+
+        if month_key not in MONTH_KEYS:
+            return jsonify({"error": f"Invalid month_key: {month_key!r}"}), 400
+
+        school = School.query.filter_by(name=name).first()
+        if school is None:
+            results["not_found"].append(name)
+            continue
+
+        _upsert_irc2b_frequency(year, school.id, month_key, provided)
+        results["updated"].append(name)
+
+    return jsonify(results), 200
+
+
+@app.route("/irc/irc3/save", methods=["POST"])
+def save_irc3_status():
+    """Persists the manually-entered IRC3 counts/targets for a year.
+
+    Expected JSON body:
+        {
+          "year": 2026,
+          "dedp_ta_count": 20, "dedp_target": 26,
+          "nondedp_ta_count": 30, "nondedp_target": 41
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    year = data.get("year") or _current_year()
+
+    try:
+        dedp_ta_count = int(data.get("dedp_ta_count", 0))
+        dedp_target = int(data.get("dedp_target", 0))
+        nondedp_ta_count = int(data.get("nondedp_ta_count", 0))
+        nondedp_target = int(data.get("nondedp_target", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "All count/target fields must be integers"}), 400
+
+    row = _upsert_irc3_status(year, dedp_ta_count, dedp_target, nondedp_ta_count, nondedp_target)
+    return jsonify({
+        "year": row.year,
+        "dedp_ta_count": row.dedp_ta_count,
+        "dedp_target": row.dedp_target,
+        "nondedp_ta_count": row.nondedp_ta_count,
+        "nondedp_target": row.nondedp_target,
+    }), 200
 
 
 @app.route("/irc/irc9/extract", methods=["POST"])
@@ -681,4 +1012,11 @@ def not_found(e):
 
 
 if __name__ == "__main__":
+    # Convenience for local dev: make sure the schema exists and the
+    # school master list is seeded even if `flask init-db` was never run.
+    # In production/packaged builds, prefer running the CLI command
+    # explicitly once during setup instead of relying on this.
+    with app.app_context():
+        db.create_all()
+        storage.seed_schools()
     app.run(debug=True)

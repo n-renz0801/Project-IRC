@@ -256,6 +256,8 @@ label[for],
 .irc1b-modal-btn,
 .irc1b-modal-close,
 .irc1b-upload-area,
+.home-upload-dropzone,
+.home-upload-irc2a-item label,
 .tab-link,
 .content__badge,
 select {
@@ -279,4 +281,13 @@ textarea:disabled,
 input[readonly],
 textarea[readonly] {
   cursor: default;
+}
+
+/* Checkboxes/radios aren't text fields — override the block above so
+   they get a pointer cursor instead of a text caret (this also fixes
+   IRC2b's existing TA-provided checkboxes, which inherited the same
+   text-caret cursor from the blanket input rule). */
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
 }
