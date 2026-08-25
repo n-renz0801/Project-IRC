@@ -7,9 +7,18 @@
   const uploadBtn = document.getElementById("homeUploadBtn");
   const statusEl = document.getElementById("homeUploadStatus");
 
-  const irc2aReview = document.getElementById("homeUploadIrc2aReview");
-  const irc2aList = document.getElementById("homeUploadIrc2aList");
-  const irc2aConfirmBtn = document.getElementById("homeUploadIrc2aConfirm");
+  // Generic "review before import" panel. Originally built for IRC2a only;
+  // now reused for every extract type (IRC1a ratings, IRC1b customer count,
+  // IRC2a schools) since they all need the same shape of flow: show what
+  // was found, sectioned by report, let the user edit/uncheck it, then
+  // confirm. IDs are kept exactly as before so no HTML template changes
+  // are required -- only what gets rendered inside them changes per type.
+  const reviewPanel = document.getElementById("homeUploadIrc2aReview");
+  const reviewHint = reviewPanel
+    ? reviewPanel.querySelector(".home-upload-irc2a-hint")
+    : null;
+  const reviewList = document.getElementById("homeUploadIrc2aList");
+  const confirmBtn = document.getElementById("homeUploadIrc2aConfirm");
 
   const recentList = document.getElementById("homeRecentUploads");
 
@@ -22,7 +31,25 @@
     return `/irc/${ircType}/extract`;
   }
 
-  let pendingIrc2a = null; // { fileId, monthKey, schools: [names] }
+  const IRC1A_INDICATOR_LABELS = {
+    1: "Observes the schedule.",
+    2: "Establishes the objectives of the Technical Assistance.",
+    3: "Uses necessary tools/process/procedure for the conduct of TA.",
+    4: "Provide relevant, timely and appropriate Technical Assistance.",
+    5: "Understand the situation of schools in case may be, their needs, aspirations, plans, strength and weaknesses.",
+    6: "Recommends/suggests points for improvement.",
+    7: "Provides constructive feedback and establishes a cordial atmosphere in giving of feedback.",
+    8: "Skills and competencies of the TA provider.",
+    9: "Processes the results of the Technical Assistance.",
+    10: "General view of the provision of the Technical Assistance.",
+  };
+
+  // Nothing extracted from a PDF is written to the database until the user
+  // confirms it here — every /extract route only registers the UploadedFile
+  // row and hands back a preview. `pending` tracks what's awaiting
+  // confirmation so the Confirm button knows which /import route to call
+  // and how to build its payload from whatever the user edited.
+  let pending = null; // { type, fileId, year, monthKey, month }
 
   function showStatus(message, kind) {
     statusEl.textContent = message;
@@ -39,6 +66,11 @@
     uploadBtn.innerHTML = isUploading
       ? "Uploading..."
       : '<i class="ti ti-upload" style="margin-right: 6px"></i> Choose PDF';
+  }
+
+  function hideReview() {
+    if (reviewPanel) reviewPanel.hidden = true;
+    pending = null;
   }
 
   // --- Drag & drop / choose file wiring (same pattern as the per-tab uploaders) ---
@@ -71,8 +103,7 @@
       return;
     }
 
-    irc2aReview.hidden = true;
-    pendingIrc2a = null;
+    hideReview();
     hideStatus();
     setUploading(true);
 
@@ -90,13 +121,19 @@
           return;
         }
 
-        if (ircType === "irc2a") {
+        if (ircType === "irc1a") {
+          showIrc1aReview(data);
+        } else if (ircType === "irc1b") {
+          showIrc1bReview(data);
+        } else if (ircType === "irc2a") {
           showIrc2aReview(data);
         } else {
-          const label = ircType === "irc1a" ? "TA ratings" : "customer count";
+          // No review flow defined yet for this type — nothing was
+          // written to the DB (extract routes for reviewed types never
+          // do), so at minimum say so plainly instead of implying success.
           showStatus(
-            `Saved ${label} for ${data.month.toUpperCase()}.`,
-            "success",
+            "File uploaded, but this report type has no review/import step configured yet.",
+            "info",
           );
           refreshRecentUploads();
         }
@@ -107,15 +144,116 @@
       });
   }
 
-  // --- IRC2a: review-then-confirm, mirrors the IRC2a tab's own preview modal ---
-  function showIrc2aReview(data) {
-    pendingIrc2a = {
+  // --- IRC1a: 10 TA indicator ratings, editable before import ---
+  function showIrc1aReview(data) {
+    pending = {
+      type: "irc1a",
       fileId: data.file_id,
+      year: data.year,
       monthKey: data.month_key,
-      schools: data.schools,
+      month: data.month,
     };
 
-    irc2aList.innerHTML = "";
+    const ratings = data.extracted_ratings || {};
+
+    reviewList.className = "home-upload-irc2a-list home-upload-irc1a-list";
+    reviewList.innerHTML = "";
+
+    for (let i = 1; i <= 10; i++) {
+      const raw = ratings[i] && ratings[i][data.month_key];
+      const val =
+        raw !== undefined &&
+        raw !== null &&
+        raw !== "" &&
+        !Number.isNaN(parseFloat(raw))
+          ? parseFloat(raw).toFixed(3)
+          : "";
+
+      const li = document.createElement("li");
+      li.className = "home-upload-irc2a-item";
+      li.innerHTML = `
+        <div class="home-upload-irc1a-row">
+          <span class="home-upload-irc1a-row-label">${i}. ${IRC1A_INDICATOR_LABELS[i]}</span>
+          <input
+            type="number"
+            class="home-upload-irc1a-input"
+            data-indicator="${i}"
+            value="${val}"
+            min="1"
+            max="5"
+            step="0.001"
+          />
+        </div>
+      `;
+      reviewList.appendChild(li);
+    }
+
+    if (reviewHint) {
+      reviewHint.textContent = `Extracted TA indicator ratings for ${data.month.toUpperCase()}. Review/edit below, then confirm.`;
+    }
+    showStatus(
+      `Found 10 TA indicator ratings for ${data.month.toUpperCase()}. Review below, then confirm.`,
+      "info",
+    );
+    reviewPanel.hidden = false;
+  }
+
+  // --- IRC1b: single customer-count field, editable before import ---
+  function showIrc1bReview(data) {
+    pending = {
+      type: "irc1b",
+      fileId: data.file_id,
+      year: data.year,
+      monthKey: data.month_key,
+      month: data.month,
+    };
+
+    reviewList.className = "home-upload-irc2a-list home-upload-irc1b-list";
+    reviewList.innerHTML = "";
+
+    const val =
+      data.customers !== undefined && data.customers !== null
+        ? data.customers
+        : "";
+
+    const li = document.createElement("li");
+    li.className = "home-upload-irc2a-item";
+    li.innerHTML = `
+      <div class="home-upload-irc1a-row">
+        <span class="home-upload-irc1a-row-label">No. of Customers Served</span>
+        <input
+          type="number"
+          id="homeUploadIrc1bInput"
+          value="${val}"
+          min="0"
+          step="1"
+        />
+      </div>
+    `;
+    reviewList.appendChild(li);
+
+    if (reviewHint) {
+      reviewHint.textContent = `Extracted the customer count for ${data.month.toUpperCase()}. Review/edit below, then confirm.`;
+    }
+    showStatus(
+      `Found the customer count for ${data.month.toUpperCase()}. Review below, then confirm.`,
+      "info",
+    );
+    reviewPanel.hidden = false;
+  }
+
+  // --- IRC2a: review-before-import checklist of schools ---
+  function showIrc2aReview(data) {
+    pending = {
+      type: "irc2a",
+      fileId: data.file_id,
+      year: data.year,
+      monthKey: data.month_key,
+      month: data.month,
+    };
+
+    reviewList.className = "home-upload-irc2a-list";
+    reviewList.innerHTML = "";
     data.schools.forEach((name) => {
       const li = document.createElement("li");
       li.className = "home-upload-irc2a-item";
@@ -125,60 +263,161 @@
           <span>${name}</span>
         </label>
       `;
-      irc2aList.appendChild(li);
+      reviewList.appendChild(li);
     });
 
+    if (reviewHint) {
+      reviewHint.textContent = `Found ${data.schools.length} school(s) for ${data.month.toUpperCase()}. Uncheck any that shouldn't be marked provided, then confirm.`;
+    }
     showStatus(
       `Found ${data.schools.length} school(s) for ${data.month.toUpperCase()}. Review below, then confirm.`,
       "info",
     );
-    irc2aReview.hidden = false;
+    reviewPanel.hidden = false;
   }
 
-  if (irc2aConfirmBtn) {
-    irc2aConfirmBtn.addEventListener("click", () => {
-      if (!pendingIrc2a) return;
+  // --- Confirm button: dispatches to the right /import route for whatever is pending ---
+  if (confirmBtn) {
+    confirmBtn.addEventListener("click", () => {
+      if (!pending) return;
 
-      const checked = Array.from(
-        irc2aList.querySelectorAll(".home-upload-irc2a-check:checked"),
-      ).map((cb) => cb.value);
-
-      if (checked.length === 0) {
-        showStatus("Select at least one school to import.", "error");
-        return;
+      if (pending.type === "irc1a") {
+        confirmIrc1a();
+      } else if (pending.type === "irc1b") {
+        confirmIrc1b();
+      } else if (pending.type === "irc2a") {
+        confirmIrc2a();
       }
-
-      irc2aConfirmBtn.disabled = true;
-
-      fetch("/irc/irc2a/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          file_id: pendingIrc2a.fileId,
-          schools: checked,
-        }),
-      })
-        .then((res) => res.json())
-        .then((result) => {
-          irc2aConfirmBtn.disabled = false;
-          irc2aReview.hidden = true;
-          pendingIrc2a = null;
-
-          const notFoundNote =
-            result.not_found && result.not_found.length
-              ? ` (${result.not_found.length} name(s) didn't match any known school)`
-              : "";
-          showStatus(
-            `Marked ${result.updated.length} school(s) as provided.${notFoundNote}`,
-            "success",
-          );
-          refreshRecentUploads();
-        })
-        .catch((err) => {
-          irc2aConfirmBtn.disabled = false;
-          showStatus("Import failed: " + err.message, "error");
-        });
     });
+  }
+
+  function confirmIrc1a() {
+    const ratings = {};
+    reviewList.querySelectorAll(".home-upload-irc1a-input").forEach((input) => {
+      if (input.value !== "")
+        ratings[input.dataset.indicator] = parseFloat(input.value);
+    });
+
+    if (Object.keys(ratings).length === 0) {
+      showStatus("Enter at least one rating to import.", "error");
+      return;
+    }
+
+    confirmBtn.disabled = true;
+    const monthLabel = pending.month;
+
+    fetch("/irc/irc1a/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        file_id: pending.fileId,
+        year: pending.year,
+        month_key: pending.monthKey,
+        ratings: ratings,
+      }),
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        confirmBtn.disabled = false;
+        if (result.error) {
+          showStatus(result.error, "error");
+          return;
+        }
+        hideReview();
+        showStatus(
+          `Saved ${result.updated.length} TA rating(s) for ${monthLabel.toUpperCase()}.`,
+          "success",
+        );
+        refreshRecentUploads();
+      })
+      .catch((err) => {
+        confirmBtn.disabled = false;
+        showStatus("Import failed: " + err.message, "error");
+      });
+  }
+
+  function confirmIrc1b() {
+    const input = document.getElementById("homeUploadIrc1bInput");
+    const customers = input ? parseInt(input.value, 10) : NaN;
+
+    if (Number.isNaN(customers) || customers < 0) {
+      showStatus("Enter a valid (non-negative) customer count.", "error");
+      return;
+    }
+
+    confirmBtn.disabled = true;
+    const monthLabel = pending.month;
+
+    fetch("/irc/irc1b/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        file_id: pending.fileId,
+        year: pending.year,
+        month_key: pending.monthKey,
+        customers: customers,
+      }),
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        confirmBtn.disabled = false;
+        if (result.error) {
+          showStatus(result.error, "error");
+          return;
+        }
+        hideReview();
+        showStatus(
+          `Saved customer count for ${monthLabel.toUpperCase()}.`,
+          "success",
+        );
+        refreshRecentUploads();
+      })
+      .catch((err) => {
+        confirmBtn.disabled = false;
+        showStatus("Import failed: " + err.message, "error");
+      });
+  }
+
+  function confirmIrc2a() {
+    const checked = Array.from(
+      reviewList.querySelectorAll(".home-upload-irc2a-check:checked"),
+    ).map((cb) => cb.value);
+
+    if (checked.length === 0) {
+      showStatus("Select at least one school to import.", "error");
+      return;
+    }
+
+    confirmBtn.disabled = true;
+
+    fetch("/irc/irc2a/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        file_id: pending.fileId,
+        year: pending.year,
+        schools: checked,
+      }),
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        confirmBtn.disabled = false;
+        hideReview();
+
+        const notFoundNote =
+          result.not_found && result.not_found.length
+            ? ` (${result.not_found.length} name(s) didn't match any known school)`
+            : "";
+        showStatus(
+          `Marked ${result.updated.length} school(s) as provided.${notFoundNote}`,
+          "success",
+        );
+        refreshRecentUploads();
+      })
+      .catch((err) => {
+        confirmBtn.disabled = false;
+        showStatus("Import failed: " + err.message, "error");
+      });
   }
 
   // --- Recent uploads: refresh from the server after any successful action,

@@ -377,6 +377,43 @@
   height: 15px;
 }
 
+/* IRC1a / IRC1b review rows — same list/item shell as IRC2a's checklist,
+   but each row is a label + an editable number input instead of a
+   checkbox, since these reports import an edited value, not a selection. */
+.home-upload-irc1a-list,
+.home-upload-irc1b-list {
+  max-height: 260px;
+}
+
+.home-upload-irc1a-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-upload-irc1a-row-label {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.home-upload-irc1a-row input[type="number"] {
+  width: 78px;
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.home-upload-irc1a-row input[type="number"]:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px var(--shadow);
+}
+
 /* ---------- Recent uploads card ---------- */
 .home-uploads-card h3 {
   margin: 0 0 14px;

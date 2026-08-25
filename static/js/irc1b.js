@@ -210,8 +210,13 @@
           return;
         }
 
-        // Expected shape: { month: "July", month_key: "jul", customers: 123 }
+        // Expected shape: { month: "July", month_key: "jul", customers: 123,
+        // file_id, year }. Nothing is written to the database yet at this
+        // point -- the server only registered the uploaded file. The count
+        // is persisted once the user reviews/edits it here and clicks Import.
         extractedData = {
+          fileId: data.file_id,
+          year: data.year,
           month: data.month,
           month_key: data.month_key,
           customers: data.customers,
@@ -268,7 +273,10 @@
   modalImport.addEventListener("click", function (e) {
     e.stopPropagation();
     const input = previewTableContainer.querySelector(".preview-customers");
+    let customersValue = null;
+
     if (input && input.value !== "") {
+      customersValue = parseInt(input.value, 10);
       const month = input.dataset.month;
       const tableInput = table.querySelector(
         `input.irc1b-customers[data-month="${month}"]`,
@@ -279,6 +287,37 @@
     }
 
     recalcAll();
+
+    // Persist the (possibly edited) count. Extraction only registered the
+    // uploaded file -- this is the step that actually writes the DB.
+    if (
+      extractedData &&
+      extractedData.fileId &&
+      customersValue !== null &&
+      !Number.isNaN(customersValue)
+    ) {
+      modalImport.disabled = true;
+      fetch("/irc/irc1b/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file_id: extractedData.fileId,
+          year: extractedData.year,
+          month_key: extractedData.month_key,
+          customers: customersValue,
+        }),
+      })
+        .then((res) => res.json())
+        .then((result) => {
+          modalImport.disabled = false;
+          if (result.error) alert("Save failed: " + result.error);
+        })
+        .catch((err) => {
+          modalImport.disabled = false;
+          alert("Save failed: " + err.message);
+        });
+    }
+
     hidePreviewModal();
   });
 })();
