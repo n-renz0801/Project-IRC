@@ -10,6 +10,26 @@
   --irc8c-dedp: rgb(29, 78, 216);
   --irc8c-dedp-light: rgb(59, 130, 246);
   --irc8c-dedp-dark: #0b3a75;
+
+  --irc8c-success-bg: #dcfce7;
+  --irc8c-success-text: #15803d;
+  --irc8c-success-border: #86efac;
+
+  --irc8c-blue-bg: #dbeafe;
+  --irc8c-blue-text: #1d4ed8;
+  --irc8c-blue-border: #93c5fd;
+
+  --irc8c-amber-bg: #fef9c3;
+  --irc8c-amber-text: #a16207;
+  --irc8c-amber-border: #fde047;
+
+  --irc8c-orange-bg: #ffedd5;
+  --irc8c-orange-text: #c2410c;
+  --irc8c-orange-border: #fdba74;
+
+  --irc8c-red-bg: #fee2e2;
+  --irc8c-red-text: #b91c1c;
+  --irc8c-red-border: #fca5a5;
 }
 
 .irc8c-panel {
@@ -37,6 +57,114 @@
 
 .irc8c-subtitle strong {
   color: #1f2937;
+}
+
+/* ------------------------------------------------------------------
+   Metric cards (Final Rating + Adjectival Rating)
+------------------------------------------------------------------ */
+
+.irc8c-metric-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.irc8c-metric-card {
+  flex: 1;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.irc8c-metric-label {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: 0.01em;
+}
+
+.irc8c-metric-input {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 30px;
+  font-weight: 700;
+  color: #1a1a1a;
+  font-family: inherit;
+  width: 100%;
+  outline: none;
+}
+
+.irc8c-metric-input::placeholder {
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+/* Text input used instead of type="number" specifically so no
+   increment/decrement spinner ever appears - pure typing only. */
+
+.irc8c-metric-card-badge {
+  background: #f3f4f6;
+  transition: background-color 0.15s ease;
+}
+
+.irc8c-metric-value {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #9ca3af;
+}
+
+.irc8c-metric-card-badge.irc8c-badge-1 {
+  background: var(--irc8c-red-bg);
+}
+.irc8c-metric-card-badge.irc8c-badge-1 .irc8c-metric-label,
+.irc8c-metric-card-badge.irc8c-badge-1 .irc8c-metric-value {
+  color: var(--irc8c-red-text);
+}
+
+.irc8c-metric-card-badge.irc8c-badge-2 {
+  background: var(--irc8c-orange-bg);
+}
+.irc8c-metric-card-badge.irc8c-badge-2 .irc8c-metric-label,
+.irc8c-metric-card-badge.irc8c-badge-2 .irc8c-metric-value {
+  color: var(--irc8c-orange-text);
+}
+
+.irc8c-metric-card-badge.irc8c-badge-3 {
+  background: var(--irc8c-amber-bg);
+}
+.irc8c-metric-card-badge.irc8c-badge-3 .irc8c-metric-label,
+.irc8c-metric-card-badge.irc8c-badge-3 .irc8c-metric-value {
+  color: var(--irc8c-amber-text);
+}
+
+.irc8c-metric-card-badge.irc8c-badge-4 {
+  background: var(--irc8c-blue-bg);
+}
+.irc8c-metric-card-badge.irc8c-badge-4 .irc8c-metric-label,
+.irc8c-metric-card-badge.irc8c-badge-4 .irc8c-metric-value {
+  color: var(--irc8c-blue-text);
+}
+
+.irc8c-metric-card-badge.irc8c-badge-5 {
+  background: var(--irc8c-success-bg);
+}
+.irc8c-metric-card-badge.irc8c-badge-5 .irc8c-metric-label,
+.irc8c-metric-card-badge.irc8c-badge-5 .irc8c-metric-value {
+  color: var(--irc8c-success-text);
+}
+
+.irc8c-metric-card-badge.irc8c-badge-invalid {
+  background: var(--irc8c-red-bg);
+}
+.irc8c-metric-card-badge.irc8c-badge-invalid .irc8c-metric-label,
+.irc8c-metric-card-badge.irc8c-badge-invalid .irc8c-metric-value {
+  color: var(--irc8c-red-text);
 }
 
 /* ------------------------------------------------------------------
@@ -74,176 +202,111 @@
 }
 
 /* ------------------------------------------------------------------
-   Final Rating section
+   Criteria strip (Accomplishments of KRAs and Objectives)
 ------------------------------------------------------------------ */
 
-.irc8c-rating-input-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 24px;
-  flex-wrap: wrap;
+.irc8c-criteria-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
 }
 
-.irc8c-rating-field {
-  max-width: 220px;
-}
-
-.irc8c-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.irc8c-field label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.irc8c-field-sub {
-  font-weight: 400;
-  color: #6b7280;
-  font-size: 11.5px;
-}
-
-.irc8c-field input[type="number"],
-.irc8c-field textarea {
-  border: 1.5px solid #d1d5db;
-  border-radius: 8px;
-  padding: 9px 10px;
-  font-size: 13.5px;
-  color: #1f2937;
-  font-family: inherit;
+.irc8c-criteria-chip {
+  text-align: center;
+  padding: 12px 8px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1.5px solid transparent;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
-.irc8c-field input:focus,
-.irc8c-field textarea:focus {
-  outline: none;
-  border-color: var(--irc8c-dedp-light);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-
-.irc8c-rating-result {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.irc8c-rating-result-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.irc8c-rating-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 9px 18px;
-  border-radius: 8px;
-  font-size: 14px;
+.irc8c-criteria-num {
+  display: block;
+  font-size: 17px;
   font-weight: 700;
-  min-width: 160px;
-  text-align: center;
-  background: #f3f4f6;
   color: #9ca3af;
-  border: 1.5px solid #e5e7eb;
+  margin-bottom: 2px;
 }
 
-.irc8c-rating-badge.irc8c-rating-empty {
-  color: #9ca3af;
-}
-
-.irc8c-rating-badge.irc8c-rating-5 {
-  background: #dcfce7;
-  color: #15803d;
-  border-color: #86efac;
-}
-.irc8c-rating-badge.irc8c-rating-4 {
-  background: #dbeafe;
-  color: #1d4ed8;
-  border-color: #93c5fd;
-}
-.irc8c-rating-badge.irc8c-rating-3 {
-  background: #fef9c3;
-  color: #a16207;
-  border-color: #fde047;
-}
-.irc8c-rating-badge.irc8c-rating-2 {
-  background: #ffedd5;
-  color: #c2410c;
-  border-color: #fdba74;
-}
-.irc8c-rating-badge.irc8c-rating-1 {
-  background: #fee2e2;
-  color: #b91c1c;
-  border-color: #fca5a5;
-}
-.irc8c-rating-badge.irc8c-rating-invalid {
-  background: #f3f4f6;
-  color: #9ca3af;
-  border-color: #e5e7eb;
-}
-
-/* ------------------------------------------------------------------
-   Criteria table (Accomplishments of KRAs and Objectives)
------------------------------------------------------------------- */
-
-.irc8c-table-wrapper {
-  overflow-x: auto;
-}
-
-.irc8c-criteria-table {
-  width: 100%;
-  max-width: 560px;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.irc8c-criteria-table thead th {
-  padding: 10px 12px;
-  text-align: center;
+.irc8c-criteria-label {
+  display: block;
+  font-size: 11.5px;
   font-weight: 600;
-  color: #f3f4f6;
-  background: #1f2937;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: #9ca3af;
 }
 
-.irc8c-criteria-table thead th:last-child {
-  border-right: none;
+.irc8c-criteria-range {
+  display: block;
+  font-size: 10.5px;
+  color: #b0b7c3;
+  margin-top: 3px;
 }
 
-.irc8c-criteria-table tbody td {
-  padding: 9px 12px;
-  text-align: center;
-  border-bottom: 1px solid #f0f0f0;
-  border-right: 1px solid #e8e8e8;
-  color: #374151;
-  font-weight: 600;
-  transition: background-color 0.15s ease;
+.irc8c-criteria-chip.irc8c-chip-1 {
+  background: var(--irc8c-red-bg);
+  border-color: var(--irc8c-red-border);
+}
+.irc8c-criteria-chip.irc8c-chip-1 .irc8c-criteria-num,
+.irc8c-criteria-chip.irc8c-chip-1 .irc8c-criteria-label {
+  color: var(--irc8c-red-text);
+}
+.irc8c-criteria-chip.irc8c-chip-1 .irc8c-criteria-range {
+  color: var(--irc8c-red-text);
+  opacity: 0.75;
 }
 
-.irc8c-criteria-table tbody td:last-child {
-  border-right: none;
+.irc8c-criteria-chip.irc8c-chip-2 {
+  background: var(--irc8c-orange-bg);
+  border-color: var(--irc8c-orange-border);
+}
+.irc8c-criteria-chip.irc8c-chip-2 .irc8c-criteria-num,
+.irc8c-criteria-chip.irc8c-chip-2 .irc8c-criteria-label {
+  color: var(--irc8c-orange-text);
+}
+.irc8c-criteria-chip.irc8c-chip-2 .irc8c-criteria-range {
+  color: var(--irc8c-orange-text);
+  opacity: 0.75;
 }
 
-.irc8c-criteria-table tbody tr:last-child td {
-  border-bottom: none;
+.irc8c-criteria-chip.irc8c-chip-3 {
+  background: var(--irc8c-amber-bg);
+  border-color: var(--irc8c-amber-border);
+}
+.irc8c-criteria-chip.irc8c-chip-3 .irc8c-criteria-num,
+.irc8c-criteria-chip.irc8c-chip-3 .irc8c-criteria-label {
+  color: var(--irc8c-amber-text);
+}
+.irc8c-criteria-chip.irc8c-chip-3 .irc8c-criteria-range {
+  color: var(--irc8c-amber-text);
+  opacity: 0.75;
 }
 
-.irc8c-criteria-table tbody tr:nth-child(odd) {
-  background: #fafbfc;
+.irc8c-criteria-chip.irc8c-chip-4 {
+  background: var(--irc8c-blue-bg);
+  border-color: var(--irc8c-blue-border);
+}
+.irc8c-criteria-chip.irc8c-chip-4 .irc8c-criteria-num,
+.irc8c-criteria-chip.irc8c-chip-4 .irc8c-criteria-label {
+  color: var(--irc8c-blue-text);
+}
+.irc8c-criteria-chip.irc8c-chip-4 .irc8c-criteria-range {
+  color: var(--irc8c-blue-text);
+  opacity: 0.75;
 }
 
-.irc8c-criteria-table tbody tr.irc8c-criteria-active {
-  background: var(--irc8c-dedp) !important;
+.irc8c-criteria-chip.irc8c-chip-5 {
+  background: var(--irc8c-success-bg);
+  border-color: var(--irc8c-success-border);
 }
-
-.irc8c-criteria-table tbody tr.irc8c-criteria-active td {
-  color: #fff;
+.irc8c-criteria-chip.irc8c-chip-5 .irc8c-criteria-num,
+.irc8c-criteria-chip.irc8c-chip-5 .irc8c-criteria-label {
+  color: var(--irc8c-success-text);
+}
+.irc8c-criteria-chip.irc8c-chip-5 .irc8c-criteria-range {
+  color: var(--irc8c-success-text);
+  opacity: 0.75;
 }
 
 /* ------------------------------------------------------------------
@@ -282,9 +345,13 @@
   line-height: 1;
 }
 
+.irc8c-table-wrapper {
+  overflow-x: auto;
+}
+
 .irc8c-dev-table {
   width: 100%;
-  min-width: 1100px;
+  min-width: 1000px;
   table-layout: fixed;
   border-collapse: collapse;
   font-size: 13px;
@@ -313,14 +380,11 @@
   margin-top: 2px;
 }
 
-.irc8c-col-no {
-  width: 44px;
-}
 .irc8c-col-timeline {
-  width: 12%;
+  width: 13%;
 }
 .irc8c-col-resources {
-  width: 15%;
+  width: 16%;
 }
 .irc8c-col-actions {
   width: 80px;
@@ -349,10 +413,6 @@
   text-align: left;
   vertical-align: middle;
   word-wrap: break-word;
-}
-
-.irc8c-dev-table tbody td:first-child {
-  text-align: center;
 }
 
 .irc8c-dev-table tbody td:last-child {
@@ -486,6 +546,42 @@
   gap: 16px;
 }
 
+.irc8c-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.irc8c-field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.irc8c-field-sub {
+  font-weight: 400;
+  color: #6b7280;
+  font-size: 11.5px;
+}
+
+.irc8c-field textarea {
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 13.5px;
+  color: #1f2937;
+  font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.irc8c-field textarea:focus {
+  outline: none;
+  border-color: var(--irc8c-dedp-light);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
 /* Fixed-height, non-resizable textareas by design: development-plan
    entries are meant to stay concise, so unlike IRC6 these do NOT
    autosize or allow manual drag-resize. */
@@ -604,9 +700,11 @@
     flex-direction: column;
   }
 
-  .irc8c-rating-input-row {
+  .irc8c-metric-row {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  }
+
+  .irc8c-criteria-strip {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
