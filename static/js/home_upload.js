@@ -295,7 +295,9 @@
 
     const hint = document.createElement("p");
     hint.className = "home-upload-irc2a-hint";
-    hint.textContent = "Uncheck any school you don't want to mark as provided.";
+    hint.textContent =
+      "Uncheck any school you don't want to mark as provided. Confirming " +
+      "also checks this month's box for each school in IRC2b's monthly grid.";
 
     const list = document.createElement("ul");
     list.className = "home-upload-irc2a-list";

@@ -15,6 +15,12 @@
     1: "Poor",
   };
 
+  // "Provided with TA" is no longer typed in here -- it's computed
+  // server-side from IRC2a's school status (see /irc/irc3/data) and
+  // simply displayed. Only the two Target fields are still editable.
+  let dedpTA = 0;
+  let nondedpTA = 0;
+
   function clamp(value, min, max) {
     if (Number.isNaN(value)) return min;
     return Math.min(Math.max(value, min), max);
@@ -59,11 +65,15 @@
   }
 
   function recalcAll() {
-    const dedpTA = readClampedInt("irc3-dedp-ta", 0, DEDP_TOTAL);
-    const nondedpTA = readClampedInt("irc3-nondedp-ta", 0, NONDEDP_TOTAL);
     const totalTA = dedpTA + nondedpTA;
 
-    // Provided with TA + percentage + score
+    // Provided with TA (now a read-only display, driven by IRC2a)
+    const dedpTaEl = document.getElementById("irc3-dedp-ta");
+    const nondedpTaEl = document.getElementById("irc3-nondedp-ta");
+    if (dedpTaEl) dedpTaEl.textContent = dedpTA.toLocaleString();
+    if (nondedpTaEl) nondedpTaEl.textContent = nondedpTA.toLocaleString();
+
+    // Percentage + score
     updateRow("irc3-dedp-ta", dedpTA, DEDP_TOTAL);
     updateRow("irc3-nondedp-ta", nondedpTA, NONDEDP_TOTAL);
     document.getElementById("irc3-total-ta").textContent =
@@ -143,18 +153,67 @@
     });
   }
 
-  // --- Wire up events ---
-  ["irc3-dedp-ta", "irc3-nondedp-ta"].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener("input", recalcAll);
-  });
+  // --- Persistence: only the two Target fields are saved from here.
+  // "Provided with TA" comes from IRC2a and is never written by this page.
+  let saveTimer = null;
+  function scheduleSaveTargets() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveTargets, 400);
+  }
 
+  function saveTargets() {
+    const dedpTarget = readClampedInt("irc3-dedp-target", 0, DEDP_TOTAL);
+    const nondedpTarget = readClampedInt(
+      "irc3-nondedp-target",
+      0,
+      NONDEDP_TOTAL,
+    );
+
+    fetch("/irc/irc3/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dedp_target: dedpTarget,
+        nondedp_target: nondedpTarget,
+      }),
+    }).catch(() => {
+      /* Best-effort: the inputs already reflect the change locally; a
+         failed save here just means a reload would show stale targets. */
+    });
+  }
+
+  // Loads the computed TA counts + previously-saved targets, so a page
+  // reload shows the table as it actually stands instead of resetting
+  // to zero (see /irc/irc3/data in app.py).
+  function loadPersisted() {
+    fetch("/irc/irc3/data")
+      .then((res) => res.json())
+      .then((data) => {
+        dedpTA = data.dedp_ta_count || 0;
+        nondedpTA = data.nondedp_ta_count || 0;
+
+        const dedpTargetEl = document.getElementById("irc3-dedp-target");
+        const nondedpTargetEl = document.getElementById("irc3-nondedp-target");
+        if (dedpTargetEl) dedpTargetEl.value = data.dedp_target || 0;
+        if (nondedpTargetEl) nondedpTargetEl.value = data.nondedp_target || 0;
+
+        recalcAll();
+      })
+      .catch(() => {
+        /* Table just stays at its blank baseline. */
+        recalcAll();
+      });
+  }
+
+  // --- Wire up events (targets only -- TA counts are read-only now) ---
   ["irc3-dedp-target", "irc3-nondedp-target"].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener("input", recalcTarget);
+    if (!el) return;
+    el.addEventListener("input", recalcTarget);
+    el.addEventListener("input", scheduleSaveTargets);
   });
 
   // --- Initial render ---
   renderBasisCards();
-  recalcAll();
+  loadPersisted();
 })();
