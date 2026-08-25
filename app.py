@@ -582,11 +582,79 @@ def home():
 
 @app.route("/irc/<tab_id>")
 def view_tab(tab_id):
-    """Renders the dedicated template for whichever tab was requested."""
+    """Renders the dedicated template for whichever tab was requested,
+    loading any previously-saved data for it back out of the database so
+    a page reload doesn't appear to "lose" data that was already imported.
+
+    NOTE: the context variable names below (irc1a_ratings, irc1b_counts,
+    etc.) are a best guess -- I don't have tabs/irc1a.html etc. to confirm
+    what variable names those templates actually read. If a template
+    expects different names/shapes, tell me and I'll line these up exactly.
+    """
     active_tab = TAB_LOOKUP.get(tab_id)
     if active_tab is None:
         abort(404)
-    return render_template(TEMPLATE_MAP[tab_id], tabs=TABS, active_tab=active_tab)
+
+    year = _current_year()
+    context = {"tabs": TABS, "active_tab": active_tab, "year": year}
+
+    if tab_id == "irc1a":
+        rows = IRC1ARating.query.filter_by(year=year).all()
+        # { indicator_id (int): { month_key: rating (float) } }
+        ratings = {i: {} for i in range(1, 11)}
+        for row in rows:
+            ratings.setdefault(row.indicator_id, {})[row.month_key] = row.rating
+        context["irc1a_ratings"] = ratings
+
+    elif tab_id == "irc1b":
+        rows = IRC1BCustomerCount.query.filter_by(year=year).all()
+        # { month_key: customer_count (int) }
+        context["irc1b_counts"] = {row.month_key: row.customer_count for row in rows}
+
+    elif tab_id == "irc2a":
+        rows = (
+            db.session.query(IRC2ASchoolStatus, School)
+            .join(School, IRC2ASchoolStatus.school_id == School.id)
+            .filter(IRC2ASchoolStatus.year == year)
+            .all()
+        )
+        # { school_name: {"status": "provided"|"unprovided", "provided_month_key": "jul"|None} }
+        context["irc2a_statuses"] = {
+            school.name: {
+                "status": status.status,
+                "provided_month_key": status.provided_month_key,
+            }
+            for status, school in rows
+        }
+
+    elif tab_id == "irc2b":
+        rows = (
+            db.session.query(IRC2BTAFrequency, School)
+            .join(School, IRC2BTAFrequency.school_id == School.id)
+            .filter(IRC2BTAFrequency.year == year)
+            .all()
+        )
+        # { school_name: { month_key: provided (bool) } }
+        frequencies = {}
+        for freq, school in rows:
+            frequencies.setdefault(school.name, {})[freq.month_key] = freq.provided
+        context["irc2b_frequencies"] = frequencies
+        context["schools"] = [s.to_dict() for s in School.query.order_by(School.name).all()]
+
+    elif tab_id == "irc3":
+        row = IRC3Status.query.filter_by(year=year).first()
+        context["irc3_status"] = (
+            {
+                "dedp_ta_count": row.dedp_ta_count,
+                "dedp_target": row.dedp_target,
+                "nondedp_ta_count": row.nondedp_ta_count,
+                "nondedp_target": row.nondedp_target,
+            }
+            if row
+            else None
+        )
+
+    return render_template(TEMPLATE_MAP[tab_id], **context)
 
 
 # ---------------------------------------------------------------------------
@@ -689,9 +757,13 @@ def extract_irc1a_pdf():
             if indicator_id in indicators_data:
                 extracted_ratings[str(indicator_id)] = {month_key: indicators_data[indicator_id]}
 
-        # --- Persist: save the PDF to the month-based folder, then upsert
-        # each indicator's rating for this year/month, both linked to the
-        # new UploadedFile row so a later delete cascades correctly. ---
+        # --- Persist: save the PDF to the month-based folder and register
+        # its UploadedFile row now (so file_id is available for the preview
+        # modal and a later delete still cleans up the file). We deliberately
+        # do NOT write IRC1ARating rows here -- the frontend shows a preview
+        # modal first and lets the user edit any rating before committing,
+        # so the actual writes happen in /irc/irc1a/import once confirmed.
+        # This mirrors IRC2a's extract/import split. ---
         year = _current_year()
         file_fields = storage.save_uploaded_pdf(
             file, app.config["UPLOAD_ROOT"], irc_type="irc1a", year=year, month_key=month_key
@@ -700,17 +772,70 @@ def extract_irc1a_pdf():
         db.session.add(uploaded_file)
         db.session.commit()
 
-        _upsert_irc1a_ratings(year, month_key, indicators_data, uploaded_file)
-
         return jsonify({
             "month": month_name,
             "month_key": month_key,
             "extracted_ratings": extracted_ratings,
             "file_id": uploaded_file.id,
+            "year": year,
         }), 200
     
     except Exception as e:
         return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
+
+
+@app.route("/irc/irc1a/import", methods=["POST"])
+def import_irc1a_ratings():
+    """Commits the user-confirmed (and possibly edited) IRC1a ratings
+    from the preview modal.
+
+    Expected JSON body:
+        {
+          "file_id": 42,          // from /irc/irc1a/extract's response
+          "year": 2026,           // optional, defaults to current year
+          "month_key": "jul",
+          "ratings": {"1": 4.0, "2": 3.5, ..., "10": 5.0}
+        }
+
+    Only indicators present in `ratings` are written -- if the user
+    cleared a field in the preview modal before confirming, that
+    indicator is simply left untouched rather than zeroed out.
+    """
+    data = request.get_json(silent=True) or {}
+    file_id = data.get("file_id")
+    month_key = data.get("month_key")
+    ratings = data.get("ratings")
+    year = data.get("year") or _current_year()
+
+    if month_key not in MONTH_KEYS:
+        return jsonify({"error": f"Invalid month_key: {month_key!r}"}), 400
+    if not isinstance(ratings, dict) or not ratings:
+        return jsonify({"error": "'ratings' must be a non-empty object of indicator_id -> rating"}), 400
+
+    ratings_by_indicator = {}
+    for key, value in ratings.items():
+        try:
+            indicator_id = int(key)
+            rating = float(value)
+        except (TypeError, ValueError):
+            return jsonify({"error": f"Invalid rating for indicator {key!r}"}), 400
+        if not (1 <= indicator_id <= 10):
+            continue
+        if not (1 <= rating <= 5):
+            return jsonify({"error": f"Rating for indicator {indicator_id} must be between 1 and 5"}), 400
+        ratings_by_indicator[indicator_id] = rating
+
+    if not ratings_by_indicator:
+        return jsonify({"error": "No valid ratings to import"}), 400
+
+    uploaded_file = UploadedFile.query.get(file_id) if file_id else None
+    _upsert_irc1a_ratings(year, month_key, ratings_by_indicator, uploaded_file)
+
+    return jsonify({
+        "updated": sorted(ratings_by_indicator.keys()),
+        "year": year,
+        "month_key": month_key,
+    }), 200
 
 
 @app.route("/irc/irc1b/extract", methods=["POST"])
@@ -759,7 +884,9 @@ def extract_irc1b_pdf():
         except ValueError:
             return jsonify({"error": "Could not parse the number of customers"}), 400
 
-        # --- Persist: save the PDF, then upsert this year/month's count ---
+        # --- Persist: save the PDF and register its UploadedFile row now.
+        # As with IRC1a, the actual IRC1BCustomerCount write is deferred to
+        # /irc/irc1b/import so the user can review/edit the count first. ---
         year = _current_year()
         file_fields = storage.save_uploaded_pdf(
             file, app.config["UPLOAD_ROOT"], irc_type="irc1b", year=year, month_key=month_key
@@ -768,17 +895,55 @@ def extract_irc1b_pdf():
         db.session.add(uploaded_file)
         db.session.commit()
 
-        _upsert_irc1b_customer_count(year, month_key, customers, uploaded_file)
-
         return jsonify({
             "month": month_name,
             "month_key": month_key,
             "customers": customers,
             "file_id": uploaded_file.id,
+            "year": year,
         }), 200
 
     except Exception as e:
         return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
+
+
+@app.route("/irc/irc1b/import", methods=["POST"])
+def import_irc1b_customer_count():
+    """Commits the user-confirmed (and possibly edited) IRC1b customer
+    count from the preview modal.
+
+    Expected JSON body:
+        {
+          "file_id": 42,        // from /irc/irc1b/extract's response
+          "year": 2026,         // optional, defaults to current year
+          "month_key": "jul",
+          "customers": 1234
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    file_id = data.get("file_id")
+    month_key = data.get("month_key")
+    year = data.get("year") or _current_year()
+
+    if month_key not in MONTH_KEYS:
+        return jsonify({"error": f"Invalid month_key: {month_key!r}"}), 400
+
+    try:
+        customers = int(data.get("customers"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "'customers' must be an integer"}), 400
+    if customers < 0:
+        return jsonify({"error": "'customers' cannot be negative"}), 400
+
+    uploaded_file = UploadedFile.query.get(file_id) if file_id else None
+    _upsert_irc1b_customer_count(year, month_key, customers, uploaded_file)
+
+    return jsonify({
+        "updated": True,
+        "year": year,
+        "month_key": month_key,
+        "customers": customers,
+    }), 200
 
 
 @app.route("/irc/irc2a/extract", methods=["POST"])

@@ -70,8 +70,13 @@
           return;
         }
 
-        // Store the extracted data including month info
+        // Store the extracted data including month info. Note: the PDF's
+        // ratings are NOT saved to the database yet at this point -- the
+        // server only registered the uploaded file. Nothing is persisted
+        // until the user reviews/edits the preview modal and clicks Import.
         extractedData = {
+          fileId: data.file_id,
+          year: data.year,
           month: data.month,
           month_key: data.month_key,
           extracted_ratings: data.extracted_ratings,
@@ -162,11 +167,14 @@
   modalImport.addEventListener("click", function (e) {
     e.stopPropagation();
     const inputs = previewTableContainer.querySelectorAll(".preview-rating");
+    const ratings = {};
+
     inputs.forEach((input) => {
       const indicator = input.dataset.indicator;
       const month = input.dataset.month; // This is the month_key from extraction
       const value = input.value;
       if (value) {
+        ratings[indicator] = parseFloat(value);
         const tableInput = document.querySelector(
           `#irc1a-table tbody tr[data-indicator="${indicator}"] input[data-month="${month}"]`,
         );
@@ -182,6 +190,31 @@
     document
       .querySelectorAll("#irc1a-table input.irc1a-rating")
       .forEach((inp) => inp.dispatchEvent(event));
+
+    // Persist the (possibly edited) ratings. Extraction only registered
+    // the uploaded file -- this is the step that actually writes the DB.
+    if (extractedData && extractedData.fileId && Object.keys(ratings).length) {
+      modalImport.disabled = true;
+      fetch("/irc/irc1a/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file_id: extractedData.fileId,
+          year: extractedData.year,
+          month_key: extractedData.month_key,
+          ratings: ratings,
+        }),
+      })
+        .then((res) => res.json())
+        .then((result) => {
+          modalImport.disabled = false;
+          if (result.error) alert("Save failed: " + result.error);
+        })
+        .catch((err) => {
+          modalImport.disabled = false;
+          alert("Save failed: " + err.message);
+        });
+    }
 
     hidePreviewModal();
   });
