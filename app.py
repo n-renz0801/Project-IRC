@@ -607,6 +607,40 @@ def _upsert_irc2b_frequency(year, school_id, month_key, provided, uploaded_file=
     db.session.commit()
 
 
+def _upsert_irc2b_from_names(year, month_key, school_names, uploaded_file=None):
+    """Marks each named school as TA-provided for this year/month in the
+    IRC2b monthly grid. Meant to be called with the same list of names a
+    PDF upload already wrote into IRC2a (see import_home_sections /
+    import_irc2a_schools) -- so one upload feeds both report cards
+    instead of just IRC2a. Names that don't match a School row are
+    skipped silently; the caller has already reported those as
+    'not_found' against IRC2a itself.
+    """
+    if month_key not in MONTH_KEYS:
+        return
+    for name in school_names:
+        school = School.query.filter_by(name=name).first()
+        if school is None:
+            continue
+        _upsert_irc2b_frequency(year, school.id, month_key, True, uploaded_file)
+
+
+def _compute_irc3_ta_counts(year):
+    """Counts, for a given year, how many DEDP-priority and how many
+    Non-DEDP schools currently have status 'provided' in IRC2a. This is
+    IRC3's live source of truth for the 'Provided with TA' column --
+    it's no longer typed in manually (see get_irc3_data / save_irc3_status)."""
+    rows = (
+        db.session.query(IRC2ASchoolStatus, School)
+        .join(School, IRC2ASchoolStatus.school_id == School.id)
+        .filter(IRC2ASchoolStatus.year == year, IRC2ASchoolStatus.status == TA_STATUS_PROVIDED)
+        .all()
+    )
+    dedp_count = sum(1 for _, school in rows if school.is_dedp_priority)
+    nondedp_count = sum(1 for _, school in rows if not school.is_dedp_priority)
+    return dedp_count, nondedp_count
+
+
 def _upsert_irc3_status(year, dedp_ta_count, dedp_target, nondedp_ta_count, nondedp_target):
     row = IRC3Status.query.filter_by(year=year).first()
     if row is None:
@@ -752,17 +786,21 @@ def get_irc2b_data():
 
 @app.route("/irc/irc3/data", methods=["GET"])
 def get_irc3_data():
+    """'Provided with TA' counts are computed live from IRC2a's school
+    status (see _compute_irc3_ta_counts) -- they're no longer stored
+    directly. Targets still come from IRC3Status, since those are the
+    one thing on this page that's still genuinely manual entry."""
     year = request.args.get("year", type=int) or _current_year()
     row = IRC3Status.query.filter_by(year=year).first()
-    status = None
-    if row:
-        status = {
-            "dedp_ta_count": row.dedp_ta_count,
-            "dedp_target": row.dedp_target,
-            "nondedp_ta_count": row.nondedp_ta_count,
-            "nondedp_target": row.nondedp_target,
-        }
-    return jsonify({"year": year, "status": status}), 200
+    dedp_ta_count, nondedp_ta_count = _compute_irc3_ta_counts(year)
+
+    return jsonify({
+        "year": year,
+        "dedp_ta_count": dedp_ta_count,
+        "nondedp_ta_count": nondedp_ta_count,
+        "dedp_target": row.dedp_target if row else 0,
+        "nondedp_target": row.nondedp_target if row else 0,
+    }), 200
 
 
 # ---------------------------------------------------------------------------
@@ -979,6 +1017,13 @@ def import_home_sections():
                 outcome = _upsert_irc2a_status(year, name, TA_STATUS_PROVIDED, month_key, uploaded_file)
                 (updated if outcome == "ok" else not_found).append(name)
             results["irc2a"] = {"updated": updated, "not_found": not_found}
+
+            # Same school list also checks the corresponding month's box
+            # in IRC2b's monthly TA-frequency grid, not just IRC2a's
+            # current status -- one upload now feeds both report cards.
+            if updated:
+                _upsert_irc2b_from_names(year, month_key, updated, uploaded_file)
+                results["irc2b"] = {"updated": updated}
 
     if not results:
         return jsonify({"error": "No valid section data to import"}), 400
@@ -1346,6 +1391,11 @@ def import_irc2a_schools():
         outcome = _upsert_irc2a_status(year, name, TA_STATUS_PROVIDED, month_key, uploaded_file)
         (results["updated"] if outcome == "ok" else results["not_found"]).append(name)
 
+    # Same list also feeds IRC2b's monthly grid for this month, mirroring
+    # the home-page combined upload's behavior (see import_home_sections).
+    if results["updated"] and month_key:
+        _upsert_irc2b_from_names(year, month_key, results["updated"], uploaded_file)
+
     return jsonify(results), 200
 
 
@@ -1392,26 +1442,28 @@ def save_irc2b_frequency():
 
 @app.route("/irc/irc3/save", methods=["POST"])
 def save_irc3_status():
-    """Persists the manually-entered IRC3 counts/targets for a year.
+    """Persists the manually-entered IRC3 *targets* for a year. The
+    'Provided with TA' counts are no longer entered here -- they're
+    computed live from IRC2a's school status (see get_irc3_data /
+    _compute_irc3_ta_counts), since IRC2a already tracks that. This
+    endpoint still snapshots the computed counts into IRC3Status
+    alongside the targets, purely so a DB browse of that table shows a
+    consistent picture -- the counts themselves are never read from
+    there for display.
 
     Expected JSON body:
-        {
-          "year": 2026,
-          "dedp_ta_count": 20, "dedp_target": 26,
-          "nondedp_ta_count": 30, "nondedp_target": 41
-        }
+        { "year": 2026, "dedp_target": 26, "nondedp_target": 41 }
     """
     data = request.get_json(silent=True) or {}
     year = data.get("year") or _current_year()
 
     try:
-        dedp_ta_count = int(data.get("dedp_ta_count", 0))
         dedp_target = int(data.get("dedp_target", 0))
-        nondedp_ta_count = int(data.get("nondedp_ta_count", 0))
         nondedp_target = int(data.get("nondedp_target", 0))
     except (TypeError, ValueError):
-        return jsonify({"error": "All count/target fields must be integers"}), 400
+        return jsonify({"error": "Target fields must be integers"}), 400
 
+    dedp_ta_count, nondedp_ta_count = _compute_irc3_ta_counts(year)
     row = _upsert_irc3_status(year, dedp_ta_count, dedp_target, nondedp_ta_count, nondedp_target)
     return jsonify({
         "year": row.year,

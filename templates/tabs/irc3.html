@@ -14,11 +14,11 @@ block content %}
     <div class="irc3-header-text">
       <h2>IRC3 &mdash; Status of TA Provision to Schools</h2>
       <p class="irc3-subtitle">
-        For each category, enter the
-        <strong>Number of Schools Provided with TA</strong> (based on your IRC2
-        results) and the <strong>Target Number of Schools</strong> that will be
-        provided with TA. The Percentage, OPCR/IPCR Score, Not Provided with TA,
-        and Total row are computed automatically.
+        The <strong>Number of Schools Provided with TA</strong> is now pulled
+        automatically from IRC2a's school status &mdash; enter only the
+        <strong>Target Number of Schools</strong> that will be provided with TA
+        for each category. The Percentage, OPCR/IPCR Score, Not Provided with
+        TA, and Total row are computed automatically.
       </p>
     </div>
   </div>
@@ -146,16 +146,13 @@ block content %}
             DEDP Priority Schools (Elem &amp; Sec)
             <span class="irc3-row-base">/ {{ DEDP_TOTAL }} schools</span>
           </td>
-          <td class="irc3-input-cell">
-            <input
-              type="number"
+          <td class="irc3-static-cell">
+            <span
+              class="irc3-auto-value"
               id="irc3-dedp-ta"
-              class="irc3-input"
-              min="0"
-              max="{{ DEDP_TOTAL }}"
-              step="1"
-              value="0"
-            />
+              title="Computed from IRC2a — schools currently marked Provided with TA"
+              >0</span
+            >
           </td>
           <td class="irc3-static-cell">
             <span class="irc3-percent-badge" id="irc3-dedp-ta-percent">0%</span>
@@ -189,16 +186,13 @@ block content %}
             Non-DEDP Priority Schools (Elem &amp; Sec)
             <span class="irc3-row-base">/ {{ NONDEDP_TOTAL }} schools</span>
           </td>
-          <td class="irc3-input-cell">
-            <input
-              type="number"
+          <td class="irc3-static-cell">
+            <span
+              class="irc3-auto-value"
               id="irc3-nondedp-ta"
-              class="irc3-input"
-              min="0"
-              max="{{ NONDEDP_TOTAL }}"
-              step="1"
-              value="0"
-            />
+              title="Computed from IRC2a — schools currently marked Provided with TA"
+              >0</span
+            >
           </td>
           <td class="irc3-static-cell">
             <span class="irc3-percent-badge" id="irc3-nondedp-ta-percent"
