@@ -582,79 +582,108 @@ def home():
 
 @app.route("/irc/<tab_id>")
 def view_tab(tab_id):
-    """Renders the dedicated template for whichever tab was requested,
-    loading any previously-saved data for it back out of the database so
-    a page reload doesn't appear to "lose" data that was already imported.
-
-    NOTE: the context variable names below (irc1a_ratings, irc1b_counts,
-    etc.) are a best guess -- I don't have tabs/irc1a.html etc. to confirm
-    what variable names those templates actually read. If a template
-    expects different names/shapes, tell me and I'll line these up exactly.
-    """
+    """Renders the dedicated template for whichever tab was requested.
+    Templates are static markup with no server-side value binding -- each
+    tab's own JS is responsible for fetching /irc/<tab_id>/data on load and
+    populating the page client-side (see irc1a.js, irc1b.js, irc2a.js,
+    irc2b.js)."""
     active_tab = TAB_LOOKUP.get(tab_id)
     if active_tab is None:
         abort(404)
+    return render_template(TEMPLATE_MAP[tab_id], tabs=TABS, active_tab=active_tab)
 
-    year = _current_year()
-    context = {"tabs": TABS, "active_tab": active_tab, "year": year}
 
-    if tab_id == "irc1a":
-        rows = IRC1ARating.query.filter_by(year=year).all()
-        # { indicator_id (int): { month_key: rating (float) } }
-        ratings = {i: {} for i in range(1, 11)}
-        for row in rows:
-            ratings.setdefault(row.indicator_id, {})[row.month_key] = row.rating
-        context["irc1a_ratings"] = ratings
+# ---------------------------------------------------------------------------
+# Per-tab "give me what's already saved" endpoints. Every tab's JS calls its
+# matching one of these on page load so a reload shows previously-saved data
+# instead of a blank page (the templates themselves have no server-side
+# value binding -- see view_tab above).
+# ---------------------------------------------------------------------------
+@app.route("/irc/irc1a/data", methods=["GET"])
+def get_irc1a_data():
+    year = request.args.get("year", type=int) or _current_year()
+    rows = IRC1ARating.query.filter_by(year=year).all()
+    ratings = {}
+    for row in rows:
+        ratings.setdefault(str(row.indicator_id), {})[row.month_key] = row.rating
+    return jsonify({"year": year, "ratings": ratings}), 200
 
-    elif tab_id == "irc1b":
-        rows = IRC1BCustomerCount.query.filter_by(year=year).all()
-        # { month_key: customer_count (int) }
-        context["irc1b_counts"] = {row.month_key: row.customer_count for row in rows}
 
-    elif tab_id == "irc2a":
-        rows = (
-            db.session.query(IRC2ASchoolStatus, School)
-            .join(School, IRC2ASchoolStatus.school_id == School.id)
-            .filter(IRC2ASchoolStatus.year == year)
-            .all()
-        )
-        # { school_name: {"status": "provided"|"unprovided", "provided_month_key": "jul"|None} }
-        context["irc2a_statuses"] = {
-            school.name: {
-                "status": status.status,
-                "provided_month_key": status.provided_month_key,
-            }
-            for status, school in rows
+@app.route("/irc/irc1b/data", methods=["GET"])
+def get_irc1b_data():
+    year = request.args.get("year", type=int) or _current_year()
+    rows = IRC1BCustomerCount.query.filter_by(year=year).all()
+    counts = {row.month_key: row.customer_count for row in rows}
+    return jsonify({"year": year, "counts": counts}), 200
+
+
+@app.route("/irc/irc2a/data", methods=["GET"])
+def get_irc2a_data():
+    year = request.args.get("year", type=int) or _current_year()
+    rows = (
+        db.session.query(IRC2ASchoolStatus, School)
+        .join(School, IRC2ASchoolStatus.school_id == School.id)
+        .filter(IRC2ASchoolStatus.year == year)
+        .all()
+    )
+    statuses = {school.name: status.status for status, school in rows}
+    return jsonify({"year": year, "statuses": statuses}), 200
+
+
+@app.route("/irc/irc2a/status", methods=["POST"])
+def set_irc2a_status():
+    """Persists a single manual status toggle (dragging/clicking a school
+    between the Provided / Not Yet Provided columns) -- as opposed to
+    /irc/irc2a/import, which is for the PDF-review-then-confirm flow and
+    only ever marks schools 'provided'. No PDF is involved here, so the
+    resulting row keeps uploaded_file_id = NULL.
+
+    Expected JSON body:
+        { "school_name": "Antipolo NHS", "status": "provided", "year": 2026 }
+    """
+    data = request.get_json(silent=True) or {}
+    name = data.get("school_name")
+    status = data.get("status")
+    year = data.get("year") or _current_year()
+
+    if status not in (TA_STATUS_PROVIDED, TA_STATUS_UNPROVIDED):
+        return jsonify({"error": f"Invalid status: {status!r}"}), 400
+
+    outcome = _upsert_irc2a_status(year, name, status, None, None)
+    if outcome == "not-found":
+        return jsonify({"error": f"Unknown school: {name!r}"}), 404
+
+    return jsonify({"school_name": name, "status": status, "year": year}), 200
+
+
+@app.route("/irc/irc2b/data", methods=["GET"])
+def get_irc2b_data():
+    year = request.args.get("year", type=int) or _current_year()
+    rows = (
+        db.session.query(IRC2BTAFrequency, School)
+        .join(School, IRC2BTAFrequency.school_id == School.id)
+        .filter(IRC2BTAFrequency.year == year)
+        .all()
+    )
+    frequencies = {}
+    for freq, school in rows:
+        frequencies.setdefault(school.name, {})[freq.month_key] = freq.provided
+    return jsonify({"year": year, "frequencies": frequencies}), 200
+
+
+@app.route("/irc/irc3/data", methods=["GET"])
+def get_irc3_data():
+    year = request.args.get("year", type=int) or _current_year()
+    row = IRC3Status.query.filter_by(year=year).first()
+    status = None
+    if row:
+        status = {
+            "dedp_ta_count": row.dedp_ta_count,
+            "dedp_target": row.dedp_target,
+            "nondedp_ta_count": row.nondedp_ta_count,
+            "nondedp_target": row.nondedp_target,
         }
-
-    elif tab_id == "irc2b":
-        rows = (
-            db.session.query(IRC2BTAFrequency, School)
-            .join(School, IRC2BTAFrequency.school_id == School.id)
-            .filter(IRC2BTAFrequency.year == year)
-            .all()
-        )
-        # { school_name: { month_key: provided (bool) } }
-        frequencies = {}
-        for freq, school in rows:
-            frequencies.setdefault(school.name, {})[freq.month_key] = freq.provided
-        context["irc2b_frequencies"] = frequencies
-        context["schools"] = [s.to_dict() for s in School.query.order_by(School.name).all()]
-
-    elif tab_id == "irc3":
-        row = IRC3Status.query.filter_by(year=year).first()
-        context["irc3_status"] = (
-            {
-                "dedp_ta_count": row.dedp_ta_count,
-                "dedp_target": row.dedp_target,
-                "nondedp_ta_count": row.nondedp_ta_count,
-                "nondedp_target": row.nondedp_target,
-            }
-            if row
-            else None
-        )
-
-    return render_template(TEMPLATE_MAP[tab_id], **context)
+    return jsonify({"year": year, "status": status}), 200
 
 
 # ---------------------------------------------------------------------------
