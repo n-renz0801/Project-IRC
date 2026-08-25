@@ -6,43 +6,24 @@
   // Rating criteria reference data
   // ------------------------------------------------------------------
   const RATING_CRITERIA = [
-    {
-      num: 5,
-      label: "Outstanding",
-      range: "4.500 – 5.000",
-      min: 4.5,
-      max: 5.0,
-    },
-    {
-      num: 4,
-      label: "Very Satisfactory",
-      range: "3.500 – 4.499",
-      min: 3.5,
-      max: 4.499,
-    },
-    {
-      num: 3,
-      label: "Satisfactory",
-      range: "2.500 – 3.499",
-      min: 2.5,
-      max: 3.499,
-    },
-    {
-      num: 2,
-      label: "Unsatisfactory",
-      range: "1.500 – 2.499",
-      min: 1.5,
-      max: 2.499,
-    },
-    { num: 1, label: "Poor", range: "1.000 – 1.499", min: 1.0, max: 1.499 },
+    { num: 1, label: "Poor", range: "1.000 – 1.499", min: 1.0 },
+    { num: 2, label: "Unsatisfactory", range: "1.500 – 2.499", min: 1.5 },
+    { num: 3, label: "Satisfactory", range: "2.500 – 3.499", min: 2.5 },
+    { num: 4, label: "Very Satisfactory", range: "3.500 – 4.499", min: 3.5 },
+    { num: 5, label: "Outstanding", range: "4.500 – 5.000", min: 4.5 },
   ];
+
+  // Matches optional leading digits, an optional single decimal point,
+  // and more digits - i.e. free-form typing of a decimal number.
+  // Used to keep the final-rating field "pure typing" (no native
+  // number spinner, no auto-formatting while the user is mid-type).
+  const PARTIAL_DECIMAL_RE = /^\d*\.?\d*$/;
 
   function getRatingBand(value) {
     if (typeof value !== "number" || Number.isNaN(value)) return null;
     if (value < 1 || value > 5) return null;
-    // Use >= lower bound, matching the ranges top-down (5 first).
-    for (const band of RATING_CRITERIA) {
-      if (value >= band.min) return band;
+    for (let i = RATING_CRITERIA.length - 1; i >= 0; i--) {
+      if (value >= RATING_CRITERIA[i].min) return RATING_CRITERIA[i];
     }
     return null;
   }
@@ -62,8 +43,9 @@
   // DOM refs
   // ------------------------------------------------------------------
   const finalRatingInput = document.getElementById("irc8c-final-rating");
+  const adjectivalCard = document.getElementById("irc8c-adjectival-card");
   const ratingBadge = document.getElementById("irc8c-rating-badge");
-  const criteriaBody = document.getElementById("irc8c-criteria-body");
+  const criteriaStrip = document.getElementById("irc8c-criteria-strip");
 
   const devTableBody = document.getElementById("irc8c-dev-table-body");
 
@@ -94,17 +76,34 @@
   }
 
   // ------------------------------------------------------------------
-  // Final Rating + Criteria table
+  // Final Rating input: plain text field, digits + one decimal point
+  // only. No native number spinner, no keystroke reformatting.
   // ------------------------------------------------------------------
-  function renderCriteriaTable(activeNum) {
-    criteriaBody.innerHTML = RATING_CRITERIA.map((band) => {
+  finalRatingInput.addEventListener("beforeinput", (e) => {
+    if (e.data == null) return; // deletions, paste-clear, etc. are fine
+    const prospective =
+      finalRatingInput.value.slice(0, finalRatingInput.selectionStart) +
+      e.data +
+      finalRatingInput.value.slice(finalRatingInput.selectionEnd);
+    if (!PARTIAL_DECIMAL_RE.test(prospective)) {
+      e.preventDefault();
+    }
+  });
+
+  finalRatingInput.addEventListener("input", updateRatingDisplay);
+
+  // ------------------------------------------------------------------
+  // Criteria strip + Adjectival badge
+  // ------------------------------------------------------------------
+  function renderCriteriaStrip(activeNum) {
+    criteriaStrip.innerHTML = RATING_CRITERIA.map((band) => {
       const isActive = activeNum === band.num;
       return `
-        <tr${isActive ? ' class="irc8c-criteria-active"' : ""}>
-          <td>${band.num}</td>
-          <td>${band.label}</td>
-          <td>${band.range}</td>
-        </tr>
+        <div class="irc8c-criteria-chip${isActive ? ` irc8c-chip-${band.num}` : ""}">
+          <span class="irc8c-criteria-num">${band.num}</span>
+          <span class="irc8c-criteria-label">${band.label}</span>
+          <span class="irc8c-criteria-range">${band.range}</span>
+        </div>
       `;
     }).join("");
   }
@@ -114,36 +113,32 @@
     const value = raw === "" ? NaN : parseFloat(raw);
     const band = getRatingBand(value);
 
-    ratingBadge.classList.remove(
-      "irc8c-rating-empty",
-      "irc8c-rating-1",
-      "irc8c-rating-2",
-      "irc8c-rating-3",
-      "irc8c-rating-4",
-      "irc8c-rating-5",
-      "irc8c-rating-invalid",
+    adjectivalCard.classList.remove(
+      "irc8c-badge-1",
+      "irc8c-badge-2",
+      "irc8c-badge-3",
+      "irc8c-badge-4",
+      "irc8c-badge-5",
+      "irc8c-badge-invalid",
     );
 
     if (raw === "") {
       ratingBadge.textContent = "\u2014";
-      ratingBadge.classList.add("irc8c-rating-empty");
-      renderCriteriaTable(null);
+      renderCriteriaStrip(null);
       return;
     }
 
     if (!band) {
       ratingBadge.textContent = "Invalid rating";
-      ratingBadge.classList.add("irc8c-rating-invalid");
-      renderCriteriaTable(null);
+      adjectivalCard.classList.add("irc8c-badge-invalid");
+      renderCriteriaStrip(null);
       return;
     }
 
     ratingBadge.textContent = `${band.num} \u2013 ${band.label}`;
-    ratingBadge.classList.add(`irc8c-rating-${band.num}`);
-    renderCriteriaTable(band.num);
+    adjectivalCard.classList.add(`irc8c-badge-${band.num}`);
+    renderCriteriaStrip(band.num);
   }
-
-  finalRatingInput.addEventListener("input", updateRatingDisplay);
 
   // ------------------------------------------------------------------
   // Modal open / close (Development Plan entries)
@@ -213,7 +208,8 @@
   });
 
   // ------------------------------------------------------------------
-  // Development Plan table rendering
+  // Development Plan table rendering (no "No." column - rows are
+  // identified only by their action buttons' data-id)
   // ------------------------------------------------------------------
   function cell(value) {
     const text = value ? escapeHtml(value) : "";
@@ -226,7 +222,7 @@
     if (entries.length === 0) {
       devTableBody.innerHTML = `
         <tr class="irc8c-empty-row">
-          <td colspan="7">No development plan entries yet. Click &ldquo;Add Entry&rdquo; to get started.</td>
+          <td colspan="6">No development plan entries yet. Click &ldquo;Add Entry&rdquo; to get started.</td>
         </tr>
       `;
       return;
@@ -234,9 +230,8 @@
 
     devTableBody.innerHTML = entries
       .map(
-        (entry, index) => `
+        (entry) => `
       <tr>
-        <td>${index + 1}</td>
         ${cell(entry.strengths)}
         ${cell(entry.devNeeds)}
         ${cell(entry.actionPlan)}
@@ -296,6 +291,6 @@
   // ------------------------------------------------------------------
   // Initial render
   // ------------------------------------------------------------------
-  renderCriteriaTable(null);
+  renderCriteriaStrip(null);
   renderDevTable();
 })();
