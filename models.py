@@ -31,6 +31,14 @@ Design notes
   so the rest of the pipeline (upload, cascade delete, file manager) is
   already wired up; swap the `payload` column for real typed columns
   once you share IRC4's structure.
+
+* `UploadedFile.irc_type` is nullable. A per-tab upload (irc1a.html,
+  irc1b.html, irc2a.html uploading directly on their own tab) still
+  sets it to that single type, same as before. The home page's
+  combined monthly upload can feed *several* report tables from one
+  PDF, so it leaves `irc_type` NULL and represents "the file for this
+  month" instead -- use `UploadedFile.linked_irc_types()` to see which
+  section tables actually ended up with rows pointing back to it.
 """
 
 from datetime import datetime
@@ -63,8 +71,11 @@ class UploadedFile(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # Which report this PDF was uploaded for: 'irc1a', 'irc1b', 'irc2a', ...
-    irc_type = db.Column(db.String(10), nullable=False, index=True)
+    # Which single report this PDF was uploaded for: 'irc1a', 'irc1b',
+    # 'irc2a', ... . NULL for a home-page combined upload that may feed
+    # more than one report table -- see `linked_irc_types()` below for
+    # what such a file actually ended up populating.
+    irc_type = db.Column(db.String(10), nullable=True, index=True)
 
     original_filename = db.Column(db.String(255), nullable=False)
     stored_filename = db.Column(db.String(255), nullable=False)
@@ -110,10 +121,34 @@ class UploadedFile(db.Model):
         cascade="all, delete-orphan", passive_deletes=True,
     )
 
+    def linked_irc_types(self):
+        """Which section tables this file actually has rows in -- the
+        multi-section replacement for relying on the single `irc_type`
+        column. A home-page combined upload (irc_type=NULL) can link to
+        several of these at once; a per-tab upload will normally show
+        just the one matching its `irc_type`, once its /import step has
+        run (right after /extract, before /import, this is still empty
+        -- that's expected, nothing has been written yet)."""
+        types = []
+        if self.ratings:
+            types.append("irc1a")
+        if self.customer_counts:
+            types.append("irc1b")
+        if self.school_statuses:
+            types.append("irc2a")
+        if self.ta_frequencies:
+            types.append("irc2b")
+        if self.irc3_statuses:
+            types.append("irc3")
+        if self.irc4_entries:
+            types.append("irc4")
+        return types
+
     def to_dict(self):
         return {
             "id": self.id,
             "irc_type": self.irc_type,
+            "linked_irc_types": self.linked_irc_types(),
             "original_filename": self.original_filename,
             "relative_path": self.relative_path,
             "year": self.year,
