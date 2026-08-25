@@ -481,6 +481,63 @@ def _extract_irc9_entries(pdf):
 
 
 # ---------------------------------------------------------------------------
+# Shared section parsers
+#
+# Each of these parses ONE section out of a monthly report's full text and
+# returns "nothing found" in a form its caller can check with a plain
+# truthiness test (empty dict / None / empty list) rather than raising --
+# that's what lets the home page's combined extractor try all of them
+# against a single upload and simply skip whichever ones don't match,
+# without one missing section aborting the others. The single-type
+# per-tab routes below (extract_irc1a_pdf, etc.) call the same helpers,
+# then layer their own "this whole upload failed" checks on top.
+# ---------------------------------------------------------------------------
+def _parse_irc1a_indicators(full_text):
+    """Returns {indicator_id (1-10): rating (float)} for whatever
+    indicators could be matched in the text -- may be a partial set, or
+    empty if the section isn't present at all."""
+    indicators_data = {}
+    pattern = r'(\d+)\)\s*(.+?)\s+([\d.]+)(?:\s|$|Monthly)'
+    for match in re.finditer(pattern, full_text, re.DOTALL):
+        indicator_num = int(match.group(1))
+        if 1 <= indicator_num <= 10:
+            try:
+                rating = float(match.group(3))
+                if 1 <= rating <= 5:
+                    indicators_data[indicator_num] = rating
+            except ValueError:
+                pass
+    return indicators_data
+
+
+def _parse_irc1b_customers(full_text):
+    """Returns the customer count (int), or None if the "No. of
+    Customers:" line isn't present or couldn't be parsed."""
+    customers_pattern = r"No\.\s*of\s*Customers\s*:?\s*([\d,]+)"
+    match = re.search(customers_pattern, full_text, re.IGNORECASE)
+    if not match:
+        return None
+    try:
+        return int(match.group(1).replace(",", ""))
+    except ValueError:
+        return None
+
+
+def _parse_irc2a_schools(full_text):
+    """Returns a list of school names parsed from the "Schools Provided
+    with TA" section, or [] if that section isn't present or nothing
+    could be parsed from it."""
+    section_match = re.search(
+        r"Schools Provided with TA(.*?)(?:Prepared by:|$)",
+        full_text,
+        re.DOTALL | re.IGNORECASE,
+    )
+    if not section_match:
+        return []
+    return _parse_numbered_school_list(section_match.group(1))
+
+
+# ---------------------------------------------------------------------------
 # DB persistence helpers
 #
 # Each of these does an "upsert" keyed on the table's unique constraint
@@ -565,18 +622,40 @@ def _upsert_irc3_status(year, dedp_ta_count, dedp_target, nondedp_ta_count, nond
 
 @app.route("/")
 def home():
-    """Landing page shown when the app first opens. Also surfaces the
-    most recently uploaded PDFs, grouped by year/month, for the
-    centralized upload section on the home page."""
-    recent_uploads = (
-        UploadedFile.query.order_by(UploadedFile.uploaded_at.desc()).limit(10).all()
+    """Landing page shown when the app first opens. Also builds the
+    fixed 12-row month grid (current year only, for now -- see
+    storage.MONTH_KEYS/MONTH_FOLDER_NAMES) for the centralized upload
+    section's file manager: one file per month, or an empty slot."""
+    year = _current_year()
+
+    # Ordered ascending so that if more than one file ever ends up
+    # sharing a month/year (stale data from before the replace-on-
+    # reupload behavior existed), the most recently uploaded one wins
+    # the dict comprehension below.
+    files_this_year = (
+        UploadedFile.query
+        .filter_by(year=year)
+        .order_by(UploadedFile.uploaded_at.asc())
+        .all()
     )
+    files_by_month = {f.month_key: f for f in files_this_year if f.month_key}
+
+    month_grid = [
+        {
+            "month_key": month_key,
+            "month_label": storage.MONTH_FOLDER_NAMES[month_key],
+            "file": files_by_month.get(month_key),
+        }
+        for month_key in MONTH_KEYS
+    ]
+
     return render_template(
         "home.html",
         tabs=TABS,
         groups=GROUPS,
         active_tab=None,
-        recent_uploads=recent_uploads,
+        month_grid=month_grid,
+        current_year=year,
     )
 
 
@@ -724,6 +803,201 @@ def delete_file(file_id):
     return jsonify({"deleted": True, "id": file_id}), 200
 
 
+@app.route("/irc/home/extract", methods=["POST"])
+def extract_home_pdf():
+    """Combined home-page upload: runs every applicable section
+    extractor (IRC1a ratings, IRC1b customer count, IRC2a school list)
+    against a single PDF, instead of requiring one upload per report
+    type. A section that isn't found is simply omitted from the
+    response -- the whole upload only fails if the month header itself
+    can't be located, or if none of the sections matched anything.
+
+    As with the per-type extract routes, the file is saved and its
+    UploadedFile row registered immediately (irc_type left NULL, since
+    it may end up feeding more than one table -- see
+    UploadedFile.linked_irc_types()); nothing is written to the IRC
+    tables themselves until /irc/home/import confirms it.
+
+    If this year/month already has a file on record, its info is
+    returned as `existing_file` so the frontend can warn the user that
+    confirming the import will replace it (the actual replacement --
+    deleting the old file -- happens at /irc/home/import time, only
+    once the new one's data has been safely written).
+    """
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+    if not file.filename.endswith(".pdf"):
+        return jsonify({"error": "Only PDF files are supported"}), 400
+
+    try:
+        with pdfplumber.open(file) as pdf:
+            full_text = ""
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    full_text += page_text + "\n"
+
+        month_name, month_key = _extract_month(full_text)
+
+        if not month_name:
+            return jsonify({"error": "Could not find month in PDF header"}), 400
+        if not month_key:
+            return jsonify({"error": f"Unknown month: {month_name}"}), 400
+
+        sections = {}
+
+        irc1a_ratings = _parse_irc1a_indicators(full_text)
+        if irc1a_ratings:
+            sections["irc1a"] = {
+                str(indicator_id): {month_key: rating}
+                for indicator_id, rating in irc1a_ratings.items()
+            }
+
+        irc1b_customers = _parse_irc1b_customers(full_text)
+        if irc1b_customers is not None:
+            sections["irc1b"] = {"customers": irc1b_customers}
+
+        irc2a_schools = _parse_irc2a_schools(full_text)
+        if irc2a_schools:
+            sections["irc2a"] = {"schools": irc2a_schools}
+
+        if not sections:
+            return jsonify({
+                "error": "Found the report header but couldn't match any known "
+                         "section (TA ratings, customer count, or school list) "
+                         "in this PDF."
+            }), 400
+
+        year = _current_year()
+
+        existing = (
+            UploadedFile.query
+            .filter_by(year=year, month_key=month_key)
+            .order_by(UploadedFile.uploaded_at.desc())
+            .first()
+        )
+        existing_info = (
+            {"id": existing.id, "filename": existing.original_filename}
+            if existing else None
+        )
+
+        file_fields = storage.save_uploaded_pdf(
+            file, app.config["UPLOAD_ROOT"], irc_type="monthly", year=year, month_key=month_key
+        )
+        file_fields["irc_type"] = None  # combined upload -- see UploadedFile docstring
+        uploaded_file = UploadedFile(**file_fields)
+        db.session.add(uploaded_file)
+        db.session.commit()
+
+        return jsonify({
+            "month": month_name,
+            "month_key": month_key,
+            "year": year,
+            "file_id": uploaded_file.id,
+            "sections": sections,
+            "existing_file": existing_info,
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
+
+
+@app.route("/irc/home/import", methods=["POST"])
+def import_home_sections():
+    """Commits the user-confirmed (and possibly edited) subset of a
+    combined home-page upload.
+
+    Expected JSON body:
+        {
+          "file_id": 42,        // from /irc/home/extract's response
+          "year": 2026,         // optional, defaults to current year
+          "month_key": "jul",
+          "sections": {
+            "irc1a": {"1": 4.0, "2": 3.5, ...},      // optional
+            "irc1b": {"customers": 1234},             // optional
+            "irc2a": {"schools": ["School A", ...]}   // optional
+          }
+        }
+
+    Only the sections present in `sections` are written -- a section the
+    user removed/cleared in the review modal simply isn't included and
+    is left untouched, same spirit as the per-type /import routes.
+
+    Once the new file's data is safely written, this is also where a
+    month's file actually gets replaced: any *other* UploadedFile rows
+    for this exact year/month are deleted (cascading to their own
+    extracted records), so a month never ends up with more than one
+    file behind it.
+    """
+    data = request.get_json(silent=True) or {}
+    file_id = data.get("file_id")
+    month_key = data.get("month_key")
+    year = data.get("year") or _current_year()
+    sections = data.get("sections")
+
+    if month_key not in MONTH_KEYS:
+        return jsonify({"error": f"Invalid month_key: {month_key!r}"}), 400
+    if not isinstance(sections, dict) or not sections:
+        return jsonify({"error": "'sections' must include at least one section to import"}), 400
+
+    uploaded_file = UploadedFile.query.get(file_id) if file_id else None
+    results = {}
+
+    if "irc1a" in sections and isinstance(sections["irc1a"], dict):
+        ratings_by_indicator = {}
+        for key, value in sections["irc1a"].items():
+            try:
+                indicator_id = int(key)
+                rating = float(value)
+            except (TypeError, ValueError):
+                continue
+            if not (1 <= indicator_id <= 10):
+                continue
+            if not (1 <= rating <= 5):
+                continue
+            ratings_by_indicator[indicator_id] = rating
+        if ratings_by_indicator:
+            _upsert_irc1a_ratings(year, month_key, ratings_by_indicator, uploaded_file)
+            results["irc1a"] = {"updated": sorted(ratings_by_indicator.keys())}
+
+    if "irc1b" in sections and isinstance(sections["irc1b"], dict):
+        try:
+            customers = int(sections["irc1b"].get("customers"))
+        except (TypeError, ValueError):
+            customers = None
+        if customers is not None and customers >= 0:
+            _upsert_irc1b_customer_count(year, month_key, customers, uploaded_file)
+            results["irc1b"] = {"customers": customers}
+
+    if "irc2a" in sections and isinstance(sections["irc2a"], dict):
+        school_names = sections["irc2a"].get("schools")
+        if isinstance(school_names, list) and school_names:
+            updated, not_found = [], []
+            for name in school_names:
+                outcome = _upsert_irc2a_status(year, name, TA_STATUS_PROVIDED, month_key, uploaded_file)
+                (updated if outcome == "ok" else not_found).append(name)
+            results["irc2a"] = {"updated": updated, "not_found": not_found}
+
+    if not results:
+        return jsonify({"error": "No valid section data to import"}), 400
+
+    # Replace-on-reupload: now that the new file's sections are safely
+    # written, remove any other file(s) previously on record for this
+    # exact year/month, cascading to whatever they had extracted.
+    if uploaded_file is not None:
+        stale_files = UploadedFile.query.filter(
+            UploadedFile.year == year,
+            UploadedFile.month_key == month_key,
+            UploadedFile.id != uploaded_file.id,
+        ).all()
+        for stale in stale_files:
+            storage.delete_uploaded_file(stale, app.config["UPLOAD_ROOT"])
+
+    return jsonify({"year": year, "month_key": month_key, "results": results}), 200
+
+
 @app.route("/irc/irc1a/extract", methods=["POST"])
 def extract_irc1a_pdf():
     """Extract TA ratings from a monthly PDF.
@@ -759,22 +1033,8 @@ def extract_irc1a_pdf():
             return jsonify({"error": f"Unknown month: {month_name}"}), 400
         
         # Extract indicators and ratings - handle multiline text
-        # Look for patterns like "N) ... RATING" where ... can span multiple lines
-        # Use regex to find indicator numbers with ratings
-        indicators_data = {}
-        
-        # Find all instances of "N)" followed eventually by a rating
-        pattern = r'(\d+)\)\s*(.+?)\s+([\d.]+)(?:\s|$|Monthly)'
-        for match in re.finditer(pattern, full_text, re.DOTALL):
-            indicator_num = int(match.group(1))
-            if 1 <= indicator_num <= 10:
-                try:
-                    rating = float(match.group(3))
-                    if 1 <= rating <= 5:
-                        indicators_data[indicator_num] = rating
-                except ValueError:
-                    pass
-        
+        indicators_data = _parse_irc1a_indicators(full_text)
+
         if len(indicators_data) < 10:
             return jsonify({
                 "error": f"Could not extract all 10 indicators. Found {len(indicators_data)}. Please ensure the PDF has the correct format."
@@ -900,18 +1160,12 @@ def extract_irc1b_pdf():
             return jsonify({"error": f"Unknown month: {month_name}"}), 400
 
         # Extract "No. of Customers: N" — allow commas in the number (e.g. "1,234")
-        customers_pattern = r"No\.\s*of\s*Customers\s*:?\s*([\d,]+)"
-        customers_match = re.search(customers_pattern, full_text, re.IGNORECASE)
+        customers = _parse_irc1b_customers(full_text)
 
-        if not customers_match:
+        if customers is None:
             return jsonify({
                 "error": "Could not find 'No. of Customers:' in the PDF. Please ensure the PDF has the correct format."
             }), 400
-
-        try:
-            customers = int(customers_match.group(1).replace(",", ""))
-        except ValueError:
-            return jsonify({"error": "Could not parse the number of customers"}), 400
 
         # --- Persist: save the PDF and register its UploadedFile row now.
         # As with IRC1a, the actual IRC1BCustomerCount write is deferred to

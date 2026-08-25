@@ -94,17 +94,6 @@ block extra_css %}
       </div>
     </div>
 
-    <label class="home-upload-type-field">
-      <span>Report Type</span>
-      <select id="homeUploadType">
-        <option value="irc1a">
-          IRC1a &mdash; Monthly Customers Feedback Rating
-        </option>
-        <option value="irc1b">IRC1b &mdash; Number of Customers Served</option>
-        <option value="irc2a">IRC2a &mdash; Schools Provided with TA</option>
-      </select>
-    </label>
-
     <div class="home-upload-dropzone" id="homeUploadDropzone">
       <input
         type="file"
@@ -121,53 +110,68 @@ block extra_css %}
 
     <p id="homeUploadStatus" class="home-upload-status" hidden></p>
 
-    <!-- IRC2a returns a list of schools to confirm before anything is
-         written to the database — mirrors the preview-then-import flow
-         already used on the IRC2a tab itself. -->
-    <div id="homeUploadIrc2aReview" class="home-upload-irc2a-review" hidden>
-      <p class="home-upload-irc2a-hint">
-        Uncheck any school you don't want to mark as provided, then confirm.
-      </p>
-      <ul id="homeUploadIrc2aList" class="home-upload-irc2a-list"></ul>
+    <!-- One upload can feed several report cards at once (IRC1a ratings,
+         IRC1b customer count, IRC2a school list, ...). Each section found
+         in the PDF is shown here, editable, with its own include/skip
+         toggle, before anything is written to the database. -->
+    <div id="homeUploadReview" class="home-upload-review" hidden>
+      <p id="homeUploadReviewHint" class="home-upload-review-hint"></p>
+      <div
+        id="homeUploadReviewSections"
+        class="home-upload-review-sections"
+      ></div>
       <button
         type="button"
         class="home-upload-btn home-upload-btn--confirm"
-        id="homeUploadIrc2aConfirm"
+        id="homeUploadReviewConfirm"
       >
         Confirm Import
       </button>
     </div>
   </div>
 
-  <!-- Recent uploads card -->
+  <!-- Monthly file manager: one fixed row per month of the current year -->
   <div class="home-uploads-card">
-    <h3><i class="ti ti-files" aria-hidden="true"></i> Recent Uploads</h3>
+    <h3>
+      <i class="ti ti-calendar" aria-hidden="true"></i> Monthly Files ({{
+      current_year }})
+    </h3>
 
-    <ul id="homeRecentUploads" class="home-recent-uploads-list">
-      {% for f in recent_uploads %}
-      <li class="home-recent-upload-item" data-file-id="{{ f.id }}">
-        <span class="home-recent-upload-icon"
-          ><i class="ti ti-file-type-pdf" aria-hidden="true"></i
-        ></span>
-        <div class="home-recent-upload-info">
-          <span class="home-recent-upload-name">{{ f.original_filename }}</span>
-          <span class="home-recent-upload-meta">
-            {{ f.irc_type|upper }} {% if f.month_name %}&middot; {{ f.month_name
-            }}{% endif %} {{ f.year }}
-          </span>
-        </div>
+    <ul
+      id="homeMonthGrid"
+      class="home-month-grid"
+      data-year="{{ current_year }}"
+    >
+      {% for row in month_grid %}
+      <li
+        class="home-month-row{% if not row.file %} home-month-row--empty{% endif %}"
+        data-month-key="{{ row.month_key }}"
+        {%
+        if
+        row.file
+        %}data-file-id="{{ row.file.id }}"
+        {%
+        endif
+        %}
+      >
+        <span class="home-month-row-label">{{ row.month_label }}</span>
+        {% if row.file %}
+        <span
+          class="home-month-row-filename"
+          title="{{ row.file.original_filename }}"
+          >{{ row.file.original_filename }}</span
+        >
         <button
           type="button"
-          class="home-recent-upload-delete"
-          data-file-id="{{ f.id }}"
+          class="home-month-row-delete"
+          data-file-id="{{ row.file.id }}"
           title="Delete this file and everything extracted from it"
         >
           <i class="ti ti-trash" aria-hidden="true"></i>
         </button>
-      </li>
-      {% else %}
-      <li class="home-recent-upload-empty" id="homeRecentUploadsEmpty">
-        No files uploaded yet.
+        {% else %}
+        <span class="home-month-row-empty">No file uploaded yet</span>
+        {% endif %}
       </li>
       {% endfor %}
     </ul>
