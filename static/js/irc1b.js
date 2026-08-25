@@ -145,7 +145,57 @@
     recalcAll();
   });
 
+  // No "Confirm" button for manual typing (unlike a PDF import), so each
+  // cell saves itself once the user leaves it.
+  table.addEventListener(
+    "blur",
+    (e) => {
+      if (!e.target.matches("input.irc1b-customers")) return;
+      saveManualCount(e.target);
+    },
+    true, // capture, since blur does not bubble
+  );
+
+  function saveManualCount(input) {
+    if (input.value === "") return;
+    const customers = parseInt(input.value, 10);
+    if (Number.isNaN(customers) || customers < 0) return;
+
+    fetch("/irc/irc1b/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        month_key: input.dataset.month,
+        customers: customers,
+      }),
+    }).catch(() => {
+      /* Best-effort: a failed save shouldn't interrupt typing. */
+    });
+  }
+
+  // Loads whatever's already saved in the database for this year, so a
+  // page reload shows previously-imported/edited counts instead of an
+  // empty table (see /irc/irc1b/data in app.py).
+  function loadPersistedCounts() {
+    fetch("/irc/irc1b/data")
+      .then((res) => res.json())
+      .then((data) => {
+        const counts = data.counts || {};
+        Object.keys(counts).forEach((monthKey) => {
+          const input = table.querySelector(
+            `input.irc1b-customers[data-month="${monthKey}"]`,
+          );
+          if (input) input.value = counts[monthKey];
+        });
+        recalcAll();
+      })
+      .catch(() => {
+        /* Table just stays at its blank baseline. */
+      });
+  }
+
   recalcAll();
+  loadPersistedCounts();
 
   // --- File upload & extraction ---
   const fileInput = document.getElementById("fileInput");

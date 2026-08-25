@@ -406,19 +406,67 @@
 
   // Format each rating cell to exactly 3 decimal places once the user
   // leaves the field (blur), so "4" becomes "4.000" without disrupting typing.
+  // Manual typing needs its own persistence path -- unlike a PDF import,
+  // there's no "Confirm" button here, so each cell saves itself on blur.
   table.addEventListener(
     "blur",
     (e) => {
       if (!e.target.matches("input.irc1a-rating")) return;
       formatToThreeDecimals(e.target);
+      saveManualRating(e.target);
     },
     true, // capture, since blur does not bubble
   );
 
-  // Format any pre-filled values (e.g. loaded from the server) on page load
-  table
-    .querySelectorAll("tbody input.irc1a-rating")
-    .forEach((input) => formatToThreeDecimals(input));
+  function saveManualRating(input) {
+    const row = input.closest("tr[data-indicator]");
+    if (!row || input.value === "") return;
+
+    const indicatorId = row.dataset.indicator;
+    const monthKey = input.dataset.month;
+    const value = parseFloat(input.value);
+    if (Number.isNaN(value)) return;
+
+    fetch("/irc/irc1a/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        month_key: monthKey,
+        ratings: { [indicatorId]: value },
+      }),
+    }).catch(() => {
+      /* Best-effort: a failed save here shouldn't interrupt typing. The
+         next successful edit (or a page reload once connectivity is back)
+         will resend the current value anyway. */
+    });
+  }
+
+  // Loads whatever's already saved in the database for this year, so a
+  // page reload shows previously-imported/edited ratings instead of an
+  // empty table (see /irc/irc1a/data in app.py).
+  function loadPersistedRatings() {
+    fetch("/irc/irc1a/data")
+      .then((res) => res.json())
+      .then((data) => {
+        const ratings = data.ratings || {};
+        Object.keys(ratings).forEach((indicatorId) => {
+          Object.keys(ratings[indicatorId]).forEach((monthKey) => {
+            const input = table.querySelector(
+              `tbody tr[data-indicator="${indicatorId}"] input.irc1a-rating[data-month="${monthKey}"]`,
+            );
+            if (input) {
+              input.value = ratings[indicatorId][monthKey];
+              formatToThreeDecimals(input);
+            }
+          });
+        });
+        recalcAll();
+      })
+      .catch(() => {
+        /* Table just stays at its blank baseline. */
+      });
+  }
 
   recalcAll();
+  loadPersistedRatings();
 })();

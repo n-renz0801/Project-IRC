@@ -356,8 +356,81 @@
       if (!target.matches("input.irc2b-check")) return;
 
       updateDashboard();
+      saveManualCheck(section, target);
     });
   });
+
+  // Reads a row's school name straight from its label cell (strips the
+  // "N." numbering prefix the template renders), since the checkboxes
+  // themselves only carry a row index, not the school's name.
+  function getSchoolNameForRow(section, rowIndex) {
+    const table = getTable(section);
+    const row = table.querySelector(`tbody tr[data-row-index="${rowIndex}"]`);
+    const labelCell = row ? row.querySelector(".irc2b-label-col") : null;
+    if (!labelCell) return null;
+    return (labelCell.textContent || "").replace(/^\s*\d+\.\s*/, "").trim();
+  }
+
+  // No "Save" button on this grid -- every checkbox persists itself the
+  // moment it's toggled.
+  function saveManualCheck(section, checkbox) {
+    const schoolName = getSchoolNameForRow(section, checkbox.dataset.row);
+    if (!schoolName) return;
+
+    fetch("/irc/irc2b/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        updates: [
+          {
+            school_name: schoolName,
+            month_key: checkbox.dataset.month,
+            provided: checkbox.checked,
+          },
+        ],
+      }),
+    }).catch(() => {
+      /* Best-effort: the checkbox already reflects the change locally; a
+         failed save here just means a reload would show stale data. */
+    });
+  }
+
+  // Loads previously-saved checkmarks from the database and re-renders
+  // once they're in, so a page reload shows the grid as it was left
+  // instead of resetting every box back to unchecked (see /irc/irc2b/data
+  // in app.py).
+  function loadPersistedFrequencies() {
+    fetch("/irc/irc2b/data")
+      .then((res) => res.json())
+      .then((data) => {
+        const frequencies = data.frequencies || {};
+
+        SECTIONS.forEach((section) => {
+          const table = getTable(section);
+          if (!table) return;
+
+          table.querySelectorAll("tbody tr[data-row-index]").forEach((row) => {
+            const rowIndex = row.dataset.rowIndex;
+            const name = getSchoolNameForRow(section, rowIndex);
+            const monthMap = name ? frequencies[name] : null;
+            if (!monthMap) return;
+
+            Object.keys(monthMap).forEach((monthKey) => {
+              if (!monthMap[monthKey]) return;
+              const cb = row.querySelector(
+                `input.irc2b-check[data-month="${monthKey}"]`,
+              );
+              if (cb) cb.checked = true;
+            });
+          });
+        });
+
+        updateDashboard();
+      })
+      .catch(() => {
+        /* Grid just stays at its blank baseline. */
+      });
+  }
 
   // --- Total column header click: toggle Quarters <-> Months ---
   SECTIONS.forEach((section) => {
@@ -380,4 +453,5 @@
   // --- Initial render ---
   applyChartToggleButtons();
   updateDashboard();
+  loadPersistedFrequencies();
 })();

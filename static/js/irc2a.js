@@ -153,11 +153,35 @@
   }
 
   function initState() {
-    // Everyone starts as "unprovided" every time the page loads.
+    // Baseline: everyone starts as "unprovided" until loadPersistedState()
+    // (called from init(), below) overlays whatever's actually saved in
+    // the database for this year.
     state = {};
     SCHOOLS.forEach((s) => {
       state[s.name] = "unprovided";
     });
+  }
+
+  // Loads previously-saved statuses from the database and re-renders once
+  // they're in, so a page reload shows the board as it was left instead of
+  // resetting every school back to "Not Yet Provided" (see /irc/irc2a/data
+  // in app.py).
+  function loadPersistedState() {
+    fetch("/irc/irc2a/data")
+      .then((res) => res.json())
+      .then((data) => {
+        const statuses = data.statuses || {};
+        Object.keys(statuses).forEach((name) => {
+          if (Object.prototype.hasOwnProperty.call(state, name)) {
+            state[name] = statuses[name];
+          }
+        });
+        render(currentFilters());
+        updatePanelHeight();
+      })
+      .catch(() => {
+        /* Board just stays at the "everyone unprovided" baseline. */
+      });
   }
 
   function matchesFilters(school) {
@@ -351,6 +375,21 @@
   function toggleSchool(name) {
     state[name] = state[name] === "unprovided" ? "provided" : "unprovided";
     render(currentFilters());
+    saveManualStatus(name, state[name]);
+  }
+
+  // No "Confirm" button for a manual drag/click toggle (unlike the PDF
+  // import flow), so each move saves itself right away.
+  function saveManualStatus(name, status) {
+    fetch("/irc/irc2a/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ school_name: name, status: status }),
+    }).catch(() => {
+      /* Best-effort: a failed save shouldn't block the UI toggle the user
+         already saw happen. A page reload will just show the last
+         successfully-saved status. */
+    });
   }
 
   // Kept short and eased (no overshoot) so the move reads as a quick,
@@ -533,7 +572,13 @@
       return { pdfName, school: matched, status };
     });
 
-    pendingImport = { monthLabel, entries };
+    pendingImport = {
+      monthLabel,
+      entries,
+      fileId: data.file_id,
+      monthKey: data.month_key,
+      year: data.year,
+    };
   }
 
   // `status` here is the DISPLAY status (i.e. it already accounts for
@@ -654,6 +699,8 @@
       ).map((cb) => Number(cb.dataset.idx)),
     );
 
+    const namesToImport = [];
+
     pendingImport.entries.forEach((entry, idx) => {
       // "already-provided" schools get set to "provided" again here too —
       // harmless, since they already are — so that including them in the
@@ -664,12 +711,32 @@
         entry.status === "will-mark" || entry.status === "already-provided";
       if (isMatchedEntry && checkedIdxs.has(idx) && entry.school) {
         state[entry.school.name] = "provided";
+        namesToImport.push(entry.school.name);
       }
     });
 
+    render(currentFilters());
+
+    // Persist the confirmed subset. Extraction only registered the
+    // uploaded file -- this is the step that actually writes the DB
+    // (mirrors the home page's IRC2a review-then-import flow).
+    if (namesToImport.length) {
+      fetch("/irc/irc2a/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file_id: pendingImport.fileId,
+          year: pendingImport.year,
+          schools: namesToImport,
+        }),
+      }).catch(() => {
+        /* Best-effort: the board already reflects the change locally; a
+           failed save here just means a reload would show stale data. */
+      });
+    }
+
     pendingImport = null;
     hideImportModal();
-    render(currentFilters());
   }
 
   function initImportUpload() {
@@ -730,6 +797,8 @@
     els.dedpToggle.addEventListener("change", onDedpToggleChange);
 
     window.addEventListener("resize", onWindowResize);
+
+    loadPersistedState();
   }
 
   document.addEventListener("DOMContentLoaded", init);
