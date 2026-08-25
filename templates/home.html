@@ -4,6 +4,10 @@ block extra_css %}
   rel="stylesheet"
   href="{{ url_for('static', filename='css/home.css') }}"
 />
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/home-upload.css') }}"
+/>
 {% endblock %} {% block content %}
 <div class="page-hero">
   <h1>Welcome to SGOD PMES!</h1>
@@ -69,4 +73,106 @@ block extra_css %}
     </button>
   </div>
 </div>
+
+<hr class="page-divider" />
+
+<!-- ================= Centralized Upload Section ================= -->
+<div class="home-upload-row">
+  <!-- Upload card -->
+  <div class="home-upload-card">
+    <div class="home-upload-header">
+      <span class="home-upload-icon-badge"
+        ><i class="ti ti-cloud-upload" aria-hidden="true"></i
+      ></span>
+      <div>
+        <h2>Upload a Report PDF</h2>
+        <p class="home-upload-subtitle">
+          Upload any monthly report here. It's parsed automatically, filed under
+          its target month, and saved to the database — no need to visit the
+          report's own tab first.
+        </p>
+      </div>
+    </div>
+
+    <label class="home-upload-type-field">
+      <span>Report Type</span>
+      <select id="homeUploadType">
+        <option value="irc1a">
+          IRC1a &mdash; Monthly Customers Feedback Rating
+        </option>
+        <option value="irc1b">IRC1b &mdash; Number of Customers Served</option>
+        <option value="irc2a">IRC2a &mdash; Schools Provided with TA</option>
+      </select>
+    </label>
+
+    <div class="home-upload-dropzone" id="homeUploadDropzone">
+      <input
+        type="file"
+        id="homeUploadInput"
+        accept=".pdf"
+        style="display: none"
+      />
+      <div class="home-upload-icon"><i class="ti ti-file-upload"></i></div>
+      <button type="button" class="home-upload-btn" id="homeUploadBtn">
+        <i class="ti ti-upload" style="margin-right: 6px"></i> Choose PDF
+      </button>
+      <p class="home-upload-hint">or drag and drop here</p>
+    </div>
+
+    <p id="homeUploadStatus" class="home-upload-status" hidden></p>
+
+    <!-- IRC2a returns a list of schools to confirm before anything is
+         written to the database — mirrors the preview-then-import flow
+         already used on the IRC2a tab itself. -->
+    <div id="homeUploadIrc2aReview" class="home-upload-irc2a-review" hidden>
+      <p class="home-upload-irc2a-hint">
+        Uncheck any school you don't want to mark as provided, then confirm.
+      </p>
+      <ul id="homeUploadIrc2aList" class="home-upload-irc2a-list"></ul>
+      <button
+        type="button"
+        class="home-upload-btn home-upload-btn--confirm"
+        id="homeUploadIrc2aConfirm"
+      >
+        Confirm Import
+      </button>
+    </div>
+  </div>
+
+  <!-- Recent uploads card -->
+  <div class="home-uploads-card">
+    <h3><i class="ti ti-files" aria-hidden="true"></i> Recent Uploads</h3>
+
+    <ul id="homeRecentUploads" class="home-recent-uploads-list">
+      {% for f in recent_uploads %}
+      <li class="home-recent-upload-item" data-file-id="{{ f.id }}">
+        <span class="home-recent-upload-icon"
+          ><i class="ti ti-file-type-pdf" aria-hidden="true"></i
+        ></span>
+        <div class="home-recent-upload-info">
+          <span class="home-recent-upload-name">{{ f.original_filename }}</span>
+          <span class="home-recent-upload-meta">
+            {{ f.irc_type|upper }} {% if f.month_name %}&middot; {{ f.month_name
+            }}{% endif %} {{ f.year }}
+          </span>
+        </div>
+        <button
+          type="button"
+          class="home-recent-upload-delete"
+          data-file-id="{{ f.id }}"
+          title="Delete this file and everything extracted from it"
+        >
+          <i class="ti ti-trash" aria-hidden="true"></i>
+        </button>
+      </li>
+      {% else %}
+      <li class="home-recent-upload-empty" id="homeRecentUploadsEmpty">
+        No files uploaded yet.
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{{ url_for('static', filename='js/home-upload.js') }}"></script>
 {% endblock %}
