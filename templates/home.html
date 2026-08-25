@@ -77,49 +77,109 @@ block extra_css %}
 <hr class="page-divider" />
 
 <!-- ================= Centralized Upload Section ================= -->
-<div class="home-upload-row">
-  <!-- Upload card -->
-  <div class="home-upload-card">
-    <div class="home-upload-header">
-      <span class="home-upload-icon-badge"
-        ><i class="ti ti-cloud-upload" aria-hidden="true"></i
-      ></span>
-      <div>
-        <h2>Upload a Report PDF</h2>
-        <p class="home-upload-subtitle">
-          Upload any monthly report here. It's parsed automatically, filed under
-          its target month, and saved to the database — no need to visit the
-          report's own tab first.
-        </p>
-      </div>
-    </div>
+<div class="home-upload-compact" id="homeUploadDropzone">
+  <span class="home-upload-icon-badge"
+    ><i class="ti ti-cloud-upload" aria-hidden="true"></i
+  ></span>
+  <div class="home-upload-compact-text">
+    <h2>Upload a Report PDF</h2>
+    <p class="home-upload-subtitle">
+      Parsed automatically, filed under its target month, and saved — no need to
+      visit the report's own tab first.
+    </p>
+  </div>
+  <div class="home-upload-compact-action">
+    <input
+      type="file"
+      id="homeUploadInput"
+      accept=".pdf"
+      style="display: none"
+    />
+    <button type="button" class="home-upload-btn" id="homeUploadBtn">
+      <i class="ti ti-upload" style="margin-right: 6px"></i> Upload PDF
+    </button>
+    <p class="home-upload-hint">or drag and drop here</p>
+  </div>
+</div>
 
-    <div class="home-upload-dropzone" id="homeUploadDropzone">
-      <input
-        type="file"
-        id="homeUploadInput"
-        accept=".pdf"
-        style="display: none"
-      />
-      <div class="home-upload-icon"><i class="ti ti-file-upload"></i></div>
-      <button type="button" class="home-upload-btn" id="homeUploadBtn">
-        <i class="ti ti-upload" style="margin-right: 6px"></i> Choose PDF
+<p id="homeUploadStatus" class="home-upload-status" hidden></p>
+
+<!-- Monthly file manager: one fixed row per month of the current year -->
+<div class="home-uploads-card home-uploads-card--full">
+  <h3>
+    <i class="ti ti-calendar" aria-hidden="true"></i> Monthly Files ({{
+    current_year }})
+  </h3>
+
+  <ul id="homeMonthGrid" class="home-month-grid" data-year="{{ current_year }}">
+    {% for row in month_grid %}
+    <li
+      class="home-month-row{% if not row.file %} home-month-row--empty{% endif %}"
+      data-month-key="{{ row.month_key }}"
+      {%
+      if
+      row.file
+      %}data-file-id="{{ row.file.id }}"
+      {%
+      endif
+      %}
+    >
+      <span class="home-month-row-label">{{ row.month_label }}</span>
+      {% if row.file %}
+      <span
+        class="home-month-row-filename"
+        title="{{ row.file.original_filename }}"
+        >{{ row.file.original_filename }}</span
+      >
+      <button
+        type="button"
+        class="home-month-row-delete"
+        data-file-id="{{ row.file.id }}"
+        title="Delete this file and everything extracted from it"
+      >
+        <i class="ti ti-trash" aria-hidden="true"></i>
       </button>
-      <p class="home-upload-hint">or drag and drop here</p>
+      {% else %}
+      <span class="home-month-row-empty">No file uploaded yet</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<!-- One upload can feed several report cards at once (IRC1a ratings,
+     IRC1b customer count, IRC2a school list, ...). Each section found in
+     the PDF is shown here, editable, with its own include/skip toggle,
+     before anything is written to the database. Rendered as a modal so it
+     doesn't push the page layout around. -->
+<div class="home-upload-modal-overlay" id="homeUploadModalOverlay" hidden>
+  <div
+    class="home-upload-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="homeUploadModalTitle"
+  >
+    <div class="home-upload-modal-header">
+      <h2 id="homeUploadModalTitle">Review Extracted Data</h2>
+      <button
+        type="button"
+        class="home-upload-modal-close"
+        id="homeUploadModalClose"
+        aria-label="Close"
+      >
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
     </div>
 
-    <p id="homeUploadStatus" class="home-upload-status" hidden></p>
-
-    <!-- One upload can feed several report cards at once (IRC1a ratings,
-         IRC1b customer count, IRC2a school list, ...). Each section found
-         in the PDF is shown here, editable, with its own include/skip
-         toggle, before anything is written to the database. -->
-    <div id="homeUploadReview" class="home-upload-review" hidden>
+    <div class="home-upload-modal-body">
       <p id="homeUploadReviewHint" class="home-upload-review-hint"></p>
       <div
         id="homeUploadReviewSections"
         class="home-upload-review-sections"
       ></div>
+    </div>
+
+    <div class="home-upload-modal-footer">
       <button
         type="button"
         class="home-upload-btn home-upload-btn--confirm"
@@ -128,53 +188,6 @@ block extra_css %}
         Confirm Import
       </button>
     </div>
-  </div>
-
-  <!-- Monthly file manager: one fixed row per month of the current year -->
-  <div class="home-uploads-card">
-    <h3>
-      <i class="ti ti-calendar" aria-hidden="true"></i> Monthly Files ({{
-      current_year }})
-    </h3>
-
-    <ul
-      id="homeMonthGrid"
-      class="home-month-grid"
-      data-year="{{ current_year }}"
-    >
-      {% for row in month_grid %}
-      <li
-        class="home-month-row{% if not row.file %} home-month-row--empty{% endif %}"
-        data-month-key="{{ row.month_key }}"
-        {%
-        if
-        row.file
-        %}data-file-id="{{ row.file.id }}"
-        {%
-        endif
-        %}
-      >
-        <span class="home-month-row-label">{{ row.month_label }}</span>
-        {% if row.file %}
-        <span
-          class="home-month-row-filename"
-          title="{{ row.file.original_filename }}"
-          >{{ row.file.original_filename }}</span
-        >
-        <button
-          type="button"
-          class="home-month-row-delete"
-          data-file-id="{{ row.file.id }}"
-          title="Delete this file and everything extracted from it"
-        >
-          <i class="ti ti-trash" aria-hidden="true"></i>
-        </button>
-        {% else %}
-        <span class="home-month-row-empty">No file uploaded yet</span>
-        {% endif %}
-      </li>
-      {% endfor %}
-    </ul>
   </div>
 </div>
 {% endblock %} {% block extra_js %}

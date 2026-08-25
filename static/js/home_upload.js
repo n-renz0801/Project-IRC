@@ -6,7 +6,8 @@
   const uploadBtn = document.getElementById("homeUploadBtn");
   const statusEl = document.getElementById("homeUploadStatus");
 
-  const reviewPanel = document.getElementById("homeUploadReview");
+  const modalOverlay = document.getElementById("homeUploadModalOverlay");
+  const modalClose = document.getElementById("homeUploadModalClose");
   const reviewHint = document.getElementById("homeUploadReviewHint");
   const reviewSections = document.getElementById("homeUploadReviewSections");
   const confirmBtn = document.getElementById("homeUploadReviewConfirm");
@@ -81,30 +82,59 @@
     uploadBtn.disabled = isUploading;
     uploadBtn.innerHTML = isUploading
       ? "Uploading..."
-      : '<i class="ti ti-upload" style="margin-right: 6px"></i> Choose PDF';
+      : '<i class="ti ti-upload" style="margin-right: 6px"></i> Upload PDF';
+  }
+
+  function closeModal() {
+    if (!modalOverlay || modalOverlay.hidden) return;
+    modalOverlay.hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  function openModal() {
+    if (!modalOverlay) return;
+    modalOverlay.hidden = false;
+    document.body.style.overflow = "hidden";
   }
 
   function hideReview() {
-    if (reviewPanel) reviewPanel.hidden = true;
+    closeModal();
     if (reviewSections) reviewSections.innerHTML = "";
     pending = null;
   }
+
+  // --- Modal dismissal: X button, click outside the panel, Esc key ---
+  if (modalClose) {
+    modalClose.addEventListener("click", hideReview);
+  }
+
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) hideReview();
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modalOverlay && !modalOverlay.hidden) {
+      hideReview();
+    }
+  });
 
   // --- Drag & drop / choose file wiring (same pattern as the per-tab uploaders) ---
   uploadBtn.addEventListener("click", () => fileInput.click());
 
   dropzone.addEventListener("dragover", (e) => {
     e.preventDefault();
-    dropzone.classList.add("home-upload-dropzone--drag");
+    dropzone.classList.add("home-upload-compact--drag");
   });
 
   dropzone.addEventListener("dragleave", () => {
-    dropzone.classList.remove("home-upload-dropzone--drag");
+    dropzone.classList.remove("home-upload-compact--drag");
   });
 
   dropzone.addEventListener("drop", (e) => {
     e.preventDefault();
-    dropzone.classList.remove("home-upload-dropzone--drag");
+    dropzone.classList.remove("home-upload-compact--drag");
     const files = e.dataTransfer.files;
     if (files.length > 0) handleUpload(files[0]);
   });
@@ -322,7 +352,7 @@
       `Extracted ${foundLabels.length} section(s) for ${data.month.toUpperCase()}. Review below, then confirm.`,
       "info",
     );
-    reviewPanel.hidden = false;
+    openModal();
   }
 
   // --- Confirm button: gathers whatever sections are still included and imports them together ---
