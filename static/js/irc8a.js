@@ -62,44 +62,51 @@
   }
 
   // ================= State =================
-  const state = { kras: [] };
-  let kraCounter = 0;
-  let objCounter = 0;
-  let itemCounter = 0;
+  // `state.kras` mirrors exactly what GET /irc/irc8a/data returns (each KRA
+  // nesting its objectives, each objective nesting its quality/efficiency/
+  // timeliness indicator arrays and its `ratings` object) -- there's no
+  // more locally-generated data here, everything comes from the server.
+  //
+  // Expand/collapse is the one piece of UI state the server doesn't know
+  // about (and shouldn't -- it's not data, it's how you're currently
+  // looking at the data), so it's tracked separately in these two sets
+  // rather than mixed into the fetched objects. That way a full re-fetch
+  // after any save never resets what's open on screen.
+  const state = { kras: [], year: null };
+  const openKras = new Set();
+  const openObjectives = new Set();
 
-  function uid(prefix) {
-    return (
-      prefix +
-      "_" +
-      Date.now().toString(36) +
-      Math.random().toString(36).slice(2, 7)
-    );
+  function id(v) {
+    return String(v);
   }
 
-  function newObjective() {
-    return {
-      id: uid("obj"),
-      text: "",
-      weight: null,
-      isOpen: true,
-      quality: [],
-      efficiency: [],
-      timeliness: [],
-      timeline: "",
-      mov: null,
-      actualResults: "",
-      ratings: { quality: "", efficiency: "", timeliness: "" },
-    };
-  }
-
-  function newKra() {
-    return {
-      id: uid("kra"),
-      text: "",
-      weight: null,
-      isOpen: true,
-      objectives: [],
-    };
+  // ================= API helper =================
+  async function apiCall(method, url, body) {
+    const opts = { method, headers: {} };
+    if (body !== undefined) {
+      opts.headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(body);
+    }
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch (e) {
+      throw new Error(
+        "Network error — please check your connection and try again.",
+      );
+    }
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (e) {
+      // no/invalid JSON body — fall through with data = null
+    }
+    if (!res.ok) {
+      throw new Error(
+        (data && data.error) || "Something went wrong. Please try again.",
+      );
+    }
+    return data;
   }
 
   // ================= Helpers =================
@@ -158,6 +165,38 @@
     return avg * (w / 100);
   }
 
+  // ================= Lookups =================
+  function findKra(kraId) {
+    return state.kras.find((k) => id(k.id) === id(kraId));
+  }
+
+  function findObjective(kraId, objId) {
+    const kra = findKra(kraId);
+    if (!kra) return null;
+    return kra.objectives.find((o) => id(o.id) === id(objId)) || null;
+  }
+
+  // Replaces (or appends) an objective returned by the server into its
+  // owning KRA's `objectives` array. Used after every save that returns a
+  // full objective — add/edit objective, MOV, actual results, timeline,
+  // and rating changes all funnel through here so the local tree always
+  // matches what was just persisted.
+  function upsertObjective(updatedObj) {
+    const kra = findKra(updatedObj.kraId);
+    if (!kra) return;
+    const idx = kra.objectives.findIndex((o) => id(o.id) === id(updatedObj.id));
+    if (idx === -1) kra.objectives.push(updatedObj);
+    else kra.objectives[idx] = updatedObj;
+  }
+
+  function upsertIndicator(kraId, objId, category, item) {
+    const obj = findObjective(kraId, objId);
+    if (!obj) return;
+    const idx = obj[category].findIndex((i) => id(i.id) === id(item.id));
+    if (idx === -1) obj[category].push(item);
+    else obj[category][idx] = item;
+  }
+
   // ================= Render =================
   function render() {
     listEl.innerHTML = "";
@@ -205,10 +244,11 @@
 
   function renderKraCard(kra, kraIndex) {
     const card = document.createElement("div");
+    const isOpen = openKras.has(id(kra.id));
     card.className =
       "irc8a-kra-card " +
       kraPaletteClass(kraIndex) +
-      (kra.isOpen ? " is-open" : "");
+      (isOpen ? " is-open" : "");
     card.dataset.kraId = kra.id;
 
     const totalObjWeight = sumWeights(kra.objectives);
@@ -219,7 +259,7 @@
       Math.abs(totalObjWeight - kraWeightNum) >= 0.005;
 
     card.innerHTML = `
-      <div class="irc8a-kra-header" data-action="toggle-kra" title="Click to ${kra.isOpen ? "collapse" : "expand"}">
+      <div class="irc8a-kra-header" data-action="toggle-kra" title="Click to ${isOpen ? "collapse" : "expand"}">
         <div class="irc8a-kra-header-top">
           <span class="irc8a-kra-eyebrow">Key Result Area ${kraIndex + 1}</span>
         </div>
@@ -259,7 +299,8 @@
 
   function renderObjectiveCard(kra, obj, objIndex) {
     const card = document.createElement("div");
-    card.className = "irc8a-objective-card" + (obj.isOpen ? " is-open" : "");
+    const isOpen = openObjectives.has(id(obj.id));
+    card.className = "irc8a-objective-card" + (isOpen ? " is-open" : "");
     card.dataset.kraId = kra.id;
     card.dataset.objId = obj.id;
 
@@ -267,7 +308,7 @@
     const letter = letterLabel(objIndex);
 
     card.innerHTML = `
-      <div class="irc8a-objective-header" data-action="toggle-objective" title="Click to ${obj.isOpen ? "collapse" : "expand"}">
+      <div class="irc8a-objective-header" data-action="toggle-objective" title="Click to ${isOpen ? "collapse" : "expand"}">
         <div class="irc8a-objective-header-top">
           <span class="irc8a-objective-eyebrow">Objective ${letter}</span>
         </div>
@@ -382,11 +423,15 @@
   }
 
   function renderRatingField(obj, field, label) {
-    const value = obj.ratings[field];
+    const rawValue = obj.ratings[field];
+    // ratings coming from the server are numbers (1-5) or null -- normalize
+    // to the same "" / "1".."5" string vocabulary the <select> options use.
+    const value =
+      rawValue === null || rawValue === undefined ? "" : String(rawValue);
     const options = ["", "1", "2", "3", "4", "5"]
       .map((v) => {
         const text = v === "" ? "Not rated" : v;
-        const selected = String(value) === v ? " selected" : "";
+        const selected = value === v ? " selected" : "";
         return `<option value="${v}"${selected}>${text}</option>`;
       })
       .join("");
@@ -398,10 +443,11 @@
     `;
   }
 
-  // Indicator items are now clickable: clicking one sets that category's
-  // rating to the item's rate (single-select — setting a new one replaces
-  // the old value). The rating dropdown and the indicator list stay in
-  // sync in both directions, since both read from obj.ratings[category].
+  // Indicator items are clickable: clicking one sets that category's rating
+  // to the item's rate (single-select — setting a new one replaces the old
+  // value). The rating dropdown and the indicator list stay in sync in both
+  // directions, since both read from obj.ratings[category] and both save
+  // through the same /objective/<id>/rating endpoint.
   function renderIndicatorGroup(obj, category, label) {
     const wrap = document.createElement("div");
     wrap.className = "irc8a-indicator-group";
@@ -445,17 +491,6 @@
     `;
 
     return wrap;
-  }
-
-  // ================= Lookups =================
-  function findKra(kraId) {
-    return state.kras.find((k) => k.id === kraId);
-  }
-
-  function findObjective(kraId, objId) {
-    const kra = findKra(kraId);
-    if (!kra) return null;
-    return kra.objectives.find((o) => o.id === objId) || null;
   }
 
   // ================= Modal control =================
@@ -507,7 +542,6 @@
       }
     } else if (ctx.mode === "add-objective" || ctx.mode === "edit-objective") {
       const isEdit = ctx.mode === "edit-objective";
-      const kra = findKra(ctx.kraId);
       const obj = isEdit ? findObjective(ctx.kraId, ctx.objId) : null;
       modalTitle.textContent = isEdit ? "Edit Objective" : "Add Objective";
       fieldPrimaryWrap.style.display = "block";
@@ -527,7 +561,7 @@
       ).label;
       const existingItems = obj[ctx.category];
       const item = isEdit
-        ? existingItems.find((i) => i.id === ctx.itemId)
+        ? existingItems.find((i) => id(i.id) === id(ctx.itemId))
         : null;
       modalTitle.textContent =
         (isEdit ? "Edit " : "Add ") + catLabel + " Indicator";
@@ -582,86 +616,118 @@
     .querySelector("#irc8a-entry-modal .irc8a-modal-content")
     .addEventListener("click", (e) => e.stopPropagation());
 
-  modalSubmit.addEventListener("click", () => {
+  function parseWeightInput() {
+    const weightRaw = weightInput.value.trim();
+    if (weightRaw === "") return { ok: true, weight: null };
+    const weight = parseFloat(weightRaw);
+    if (isNaN(weight) || weight < 0 || weight > 100) {
+      alert("Weight must be a number between 0 and 100.");
+      return { ok: false };
+    }
+    return { ok: true, weight };
+  }
+
+  modalSubmit.addEventListener("click", async () => {
     if (!modalCtx) return;
     const mode = modalCtx.mode;
 
-    if (mode === "add-kra" || mode === "edit-kra") {
-      const text = primaryInput.value.trim();
-      const weightRaw = weightInput.value.trim();
-      if (!text) return alert("Please describe the KRA.");
-      const weight = weightRaw === "" ? null : parseFloat(weightRaw);
-      if (weightRaw !== "" && (isNaN(weight) || weight < 0 || weight > 100)) {
-        return alert("Weight must be a number between 0 and 100.");
-      }
-      if (mode === "add-kra") {
-        const kra = newKra();
-        kra.text = text;
-        kra.weight = weight;
-        state.kras.push(kra);
-      } else {
-        const kra = findKra(modalCtx.kraId);
-        kra.text = text;
-        kra.weight = weight;
-      }
-    } else if (mode === "add-objective" || mode === "edit-objective") {
-      const text = primaryInput.value.trim();
-      const weightRaw = weightInput.value.trim();
-      if (!text) return alert("Please describe the objective.");
-      const weight = weightRaw === "" ? null : parseFloat(weightRaw);
-      if (weightRaw !== "" && (isNaN(weight) || weight < 0 || weight > 100)) {
-        return alert("Weight must be a number between 0 and 100.");
-      }
-      const kra = findKra(modalCtx.kraId);
-      if (mode === "add-objective") {
-        const obj = newObjective();
-        obj.text = text;
-        obj.weight = weight;
-        kra.objectives.push(obj);
-      } else {
-        const obj = findObjective(modalCtx.kraId, modalCtx.objId);
-        obj.text = text;
-        obj.weight = weight;
-      }
-    } else if (mode === "add-rubric" || mode === "edit-rubric") {
-      const label = primaryInput.value.trim();
-      const rate = parseInt(rateSelect.value, 10);
-      if (!label) return alert("Please describe this rating level.");
-      if (!rate) return alert("Please select a rating level.");
-      const obj = findObjective(modalCtx.kraId, modalCtx.objId);
-      if (mode === "add-rubric") {
-        obj[modalCtx.category].push({ id: uid("item"), rate, label });
-      } else {
-        const item = obj[modalCtx.category].find(
-          (i) => i.id === modalCtx.itemId,
-        );
-        item.rate = rate;
-        item.label = label;
-      }
-    } else if (mode === "edit-mov") {
-      const url = urlInput.value.trim();
-      if (!url) return alert("Please paste a link.");
-      const obj = findObjective(modalCtx.kraId, modalCtx.objId);
-      obj.mov = url;
-    } else if (mode === "edit-actual") {
-      const text = primaryInput.value.trim();
-      const obj = findObjective(modalCtx.kraId, modalCtx.objId);
-      obj.actualResults = text;
-    } else if (mode === "edit-timeline") {
-      const text = primaryInput.value.trim();
-      const obj = findObjective(modalCtx.kraId, modalCtx.objId);
-      obj.timeline = text;
-    }
+    // Disable while the request is in flight so a double-click can't fire
+    // two saves for the same entry.
+    modalSubmit.disabled = true;
+    try {
+      if (mode === "add-kra" || mode === "edit-kra") {
+        const text = primaryInput.value.trim();
+        if (!text) return alert("Please describe the KRA.");
+        const w = parseWeightInput();
+        if (!w.ok) return;
 
-    closeModal();
-    render();
+        const body = { text, weight: w.weight };
+        if (mode === "edit-kra") body.id = modalCtx.kraId;
+        else body.year = state.year;
+
+        const kra = await apiCall("POST", "/irc/irc8a/kra", body);
+        if (mode === "add-kra") {
+          state.kras.push(kra);
+          openKras.add(id(kra.id));
+        } else {
+          const idx = state.kras.findIndex((k) => id(k.id) === id(kra.id));
+          if (idx !== -1) state.kras[idx] = kra;
+        }
+      } else if (mode === "add-objective" || mode === "edit-objective") {
+        const text = primaryInput.value.trim();
+        if (!text) return alert("Please describe the objective.");
+        const w = parseWeightInput();
+        if (!w.ok) return;
+
+        const body = { text, weight: w.weight };
+        if (mode === "edit-objective") body.id = modalCtx.objId;
+        else body.kraId = modalCtx.kraId;
+
+        const obj = await apiCall("POST", "/irc/irc8a/objective", body);
+        upsertObjective(obj);
+        if (mode === "add-objective") openObjectives.add(id(obj.id));
+      } else if (mode === "add-rubric" || mode === "edit-rubric") {
+        const label = primaryInput.value.trim();
+        const rate = parseInt(rateSelect.value, 10);
+        if (!label) return alert("Please describe this rating level.");
+        if (!rate) return alert("Please select a rating level.");
+
+        const body = {
+          objectiveId: modalCtx.objId,
+          category: modalCtx.category,
+          rate,
+          label,
+        };
+        if (mode === "edit-rubric") body.id = modalCtx.itemId;
+
+        const item = await apiCall("POST", "/irc/irc8a/indicator", body);
+        upsertIndicator(
+          modalCtx.kraId,
+          modalCtx.objId,
+          modalCtx.category,
+          item,
+        );
+      } else if (mode === "edit-mov") {
+        const url = urlInput.value.trim();
+        if (!url) return alert("Please paste a link.");
+        const obj = await apiCall(
+          "POST",
+          `/irc/irc8a/objective/${modalCtx.objId}/mov`,
+          { url },
+        );
+        upsertObjective(obj);
+      } else if (mode === "edit-actual") {
+        const text = primaryInput.value.trim();
+        const obj = await apiCall(
+          "POST",
+          `/irc/irc8a/objective/${modalCtx.objId}/actual-results`,
+          { text },
+        );
+        upsertObjective(obj);
+      } else if (mode === "edit-timeline") {
+        const text = primaryInput.value.trim();
+        const obj = await apiCall(
+          "POST",
+          `/irc/irc8a/objective/${modalCtx.objId}/timeline`,
+          { text },
+        );
+        upsertObjective(obj);
+      }
+
+      closeModal();
+      render();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      modalSubmit.disabled = false;
+    }
   });
 
   // ================= Add KRA button =================
   addKraBtn.addEventListener("click", () => openModal({ mode: "add-kra" }));
 
   // ================= Delegated clicks =================
-  listEl.addEventListener("click", (e) => {
+  listEl.addEventListener("click", async (e) => {
     const actionEl = e.target.closest("[data-action]");
     if (!actionEl) return;
 
@@ -680,8 +746,8 @@
           )
         )
           return;
-        const kra = findKra(kraId);
-        kra.isOpen = !kra.isOpen;
+        if (openKras.has(id(kraId))) openKras.delete(id(kraId));
+        else openKras.add(id(kraId));
         render();
         break;
       }
@@ -696,8 +762,14 @@
           )
         )
           return;
-        state.kras = state.kras.filter((k) => k.id !== kraId);
-        render();
+        try {
+          await apiCall("DELETE", `/irc/irc8a/kra/${kraId}`);
+          state.kras = state.kras.filter((k) => id(k.id) !== id(kraId));
+          openKras.delete(id(kraId));
+          render();
+        } catch (err) {
+          alert(err.message);
+        }
         break;
       }
       case "add-objective":
@@ -710,8 +782,8 @@
           )
         )
           return;
-        const obj = findObjective(kraId, objId);
-        obj.isOpen = !obj.isOpen;
+        if (openObjectives.has(id(objId))) openObjectives.delete(id(objId));
+        else openObjectives.add(id(objId));
         render();
         break;
       }
@@ -727,8 +799,14 @@
           )
         )
           return;
-        kra.objectives = kra.objectives.filter((o) => o.id !== objId);
-        render();
+        try {
+          await apiCall("DELETE", `/irc/irc8a/objective/${objId}`);
+          kra.objectives = kra.objectives.filter((o) => id(o.id) !== id(objId));
+          openObjectives.delete(id(objId));
+          render();
+        } catch (err) {
+          alert(err.message);
+        }
         break;
       }
       case "add-rubric":
@@ -753,27 +831,34 @@
         const category = actionEl.dataset.category;
         const itemId = actionEl.dataset.itemId;
         if (!confirm("Remove this indicator? This cannot be undone.")) return;
-        obj[category] = obj[category].filter((i) => i.id !== itemId);
-        // If the removed indicator was the one driving the rating, clear it.
-        if (
-          obj.ratings[category] !== "" &&
-          !obj[category].some(
-            (i) => String(i.rate) === String(obj.ratings[category]),
-          )
-        ) {
-          // Keep the rating as-is; it may have been set manually too.
+        try {
+          await apiCall("DELETE", `/irc/irc8a/indicator/${itemId}`);
+          // The selected rating (obj.ratings[category]) is intentionally
+          // left as-is even if it was this indicator's rate -- it may
+          // have been set manually too, and the server never derives it
+          // from the indicator list (see models.py's IRC8AObjective docs).
+          obj[category] = obj[category].filter((i) => id(i.id) !== id(itemId));
+          render();
+        } catch (err) {
+          alert(err.message);
         }
-        render();
         break;
       }
       case "edit-mov":
         openModal({ mode: "edit-mov", kraId, objId });
         break;
       case "delete-mov": {
-        const obj = findObjective(kraId, objId);
-        if (!confirm("Remove this MOV link?")) return;
-        obj.mov = null;
-        render();
+        try {
+          const obj = await apiCall(
+            "POST",
+            `/irc/irc8a/objective/${objId}/mov`,
+            { url: "" },
+          );
+          upsertObjective(obj);
+          render();
+        } catch (err) {
+          alert(err.message);
+        }
         break;
       }
       case "edit-actual":
@@ -792,10 +877,19 @@
         const obj = findObjective(kraId, objId);
         const category = actionEl.dataset.category;
         const itemId = actionEl.dataset.itemId;
-        const item = obj[category].find((i) => i.id === itemId);
+        const item = obj[category].find((i) => id(i.id) === id(itemId));
         if (!item) return;
-        obj.ratings[category] = String(item.rate);
-        render();
+        try {
+          const updated = await apiCall(
+            "POST",
+            `/irc/irc8a/objective/${objId}/rating`,
+            { category, rating: item.rate },
+          );
+          upsertObjective(updated);
+          render();
+        } catch (err) {
+          alert(err.message);
+        }
         break;
       }
     }
@@ -804,21 +898,53 @@
   // ================= Ratings: dropdown changes stay in sync with indicators =================
   // A full render() keeps the indicator highlight and the dropdown value
   // consistent with each other in both directions, without duplicating the
-  // sync logic. State lives in JS objects, so open/closed states are
-  // preserved across the re-render.
-  listEl.addEventListener("change", (e) => {
+  // sync logic. Both directions save through the same rating endpoint, so
+  // the server is always the single source of truth for obj.ratings.
+  listEl.addEventListener("change", async (e) => {
     const select = e.target.closest('[data-role="rating-select"]');
     if (!select) return;
 
     const objCard = select.closest(".irc8a-objective-card");
-    const kraId = objCard.dataset.kraId;
     const objId = objCard.dataset.objId;
-    const obj = findObjective(kraId, objId);
-    obj.ratings[select.dataset.field] = select.value;
+    const category = select.dataset.field;
+    const rating = select.value === "" ? null : parseInt(select.value, 10);
 
-    render();
+    try {
+      const updated = await apiCall(
+        "POST",
+        `/irc/irc8a/objective/${objId}/rating`,
+        { category, rating },
+      );
+      upsertObjective(updated);
+      render();
+    } catch (err) {
+      alert(err.message);
+      render(); // revert the dropdown to the last-saved value
+    }
   });
 
-  // ================= Initial render =================
-  render();
+  // ================= Initial load =================
+  async function init() {
+    try {
+      const data = await apiCall("GET", "/irc/irc8a/data");
+      state.year = data.year;
+      state.kras = data.kras;
+      // Everything starts expanded on a fresh load, matching the old
+      // in-memory default (newKra()/newObjective() both set isOpen: true).
+      state.kras.forEach((kra) => {
+        openKras.add(id(kra.id));
+        kra.objectives.forEach((obj) => openObjectives.add(id(obj.id)));
+      });
+      render();
+    } catch (err) {
+      listEl.innerHTML = "";
+      emptyStateEl.style.display = "none";
+      const errBox = document.createElement("p");
+      errBox.className = "irc8a-indicator-empty";
+      errBox.textContent = "Couldn't load this report: " + err.message;
+      listEl.appendChild(errBox);
+    }
+  }
+
+  init();
 })();
