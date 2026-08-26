@@ -536,37 +536,40 @@ block content %}
   </div>
 
   <!-- Reusable template for a school row (used inside the modal).
-       Reverted: name / DEDP badge / remove button are plain flex siblings
-       again (spread via justify-content: space-between on
-       .irc4-school-row), not grouped into a wrapper. The horizontal shift
-       that grouping used to work around is instead prevented by
-       `scrollbar-gutter: stable` on .irc4-school-list, which reserves the
-       scrollbar's width up front so rows never move when it appears. The
-       numeric prefix in front of the name is added purely via a CSS
-       counter (see .irc4-school-list / .irc4-school-row-name::before in
-       irc4.css), so no markup is needed for it here. -->
+       .irc4-school-row is a zero-padding outer container: its first child
+       (inserted by irc4.js's renderModalChips -> buildTaIndicatorBox) is
+       the TA-provided indicator box, which needs to sit flush against the
+       row's left edge at full height. Everything else -- name, DEDP
+       badge (inserted before the remove button), remove button -- lives
+       inside .irc4-school-row-content, which carries the row's actual
+       padding/spacing. The numeric prefix in front of the name is added
+       purely via a CSS counter (see .irc4-school-list /
+       .irc4-school-row-name::before in irc4.css), so no markup is needed
+       for it here. -->
   <template id="irc4-chip-template">
     <div class="irc4-school-row" data-school="">
-      <span class="irc4-school-row-name"></span>
-      <button type="button" class="irc4-chip-remove" title="Remove">
-        <svg
-          class="irc4-icon"
-          viewBox="0 0 24 24"
-          width="13"
-          height="13"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-          <path d="M10 11v6"></path>
-          <path d="M14 11v6"></path>
-          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-      </button>
+      <div class="irc4-school-row-content">
+        <span class="irc4-school-row-name"></span>
+        <button type="button" class="irc4-chip-remove" title="Remove">
+          <svg
+            class="irc4-icon"
+            viewBox="0 0 24 24"
+            width="13"
+            height="13"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+            <path d="M10 11v6"></path>
+            <path d="M14 11v6"></path>
+            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </div>
     </div>
   </template>
 </section>

@@ -13,7 +13,10 @@ from models import (
     IRC2ASchoolStatus,
     IRC2BTAFrequency,
     IRC3Status,
-    IRC4Entry,
+    IRC4Plan,
+    IRC4Objective,
+    IRC4Group,
+    IRC4GroupSchool,
     IRC5Entry,
     IRC6Entry,
     IRC7Row,
@@ -722,6 +725,17 @@ def view_tab(tab_id):
     if active_tab is None:
         abort(404)
     return render_template(TEMPLATE_MAP[tab_id], tabs=TABS, active_tab=active_tab)
+
+
+# ---------------------------------------------------------------------------
+# Shared school master list -- lets any tab (IRC4's group-builder, etc.)
+# build a school picker straight from the database instead of keeping its
+# own hardcoded copy of the roster in sync by hand.
+# ---------------------------------------------------------------------------
+@app.route("/irc/schools", methods=["GET"])
+def get_schools():
+    schools = School.query.order_by(School.name.asc()).all()
+    return jsonify({"schools": [s.to_dict() for s in schools]}), 200
 
 
 # ---------------------------------------------------------------------------
@@ -1523,6 +1537,207 @@ def extract_irc9_pdf():
 
     except Exception as e:
         return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
+
+
+# ---------------------------------------------------------------------------
+# IRC4 -- Technical Assistance (TA) Catch-up Plan
+#
+# No PDF pipeline here (built by hand from IRC3's results, same as
+# IRC5/IRC6) -- these routes just persist whatever the page's editable
+# fields, "Add Objective" button, and Add/Edit Group modal submit.
+# ---------------------------------------------------------------------------
+def _ensure_irc4_plan(year):
+    """Guarantees a plan row exists for `year`, and that it starts with
+    the recommended minimum of three (blank) objectives -- mirroring the
+    seeding _ensure_irc6_seed does for IRC6's Goal/Outcome rows, and what
+    irc4.js used to do purely in memory before this table existed. Safe
+    to call on every GET/POST -- a no-op past the first call for a given
+    year."""
+    plan = IRC4Plan.query.filter_by(year=year).first()
+    if plan is None:
+        plan = IRC4Plan(year=year)
+        db.session.add(plan)
+        db.session.flush()  # assigns plan.id so the objectives below can reference it
+
+    if not plan.objectives:
+        for i in range(3):
+            db.session.add(IRC4Objective(plan_id=plan.id, text="", sort_order=i))
+
+    db.session.commit()
+    return plan
+
+
+@app.route("/irc/irc4/data", methods=["GET"])
+def get_irc4_data():
+    year = request.args.get("year", type=int) or _current_year()
+    plan = _ensure_irc4_plan(year)
+    return jsonify(plan.to_dict()), 200
+
+
+@app.route("/irc/irc4/plan", methods=["POST"])
+def save_irc4_plan():
+    """Persists the Activity / TA Receiver / MOV's free-text fields.
+    Whichever of the three keys are present in the body get written;
+    omitted keys are left untouched.
+
+    Expected JSON body:
+        { "year": 2026, "activity": "...", "taReceiver": "...", "movs": "..." }
+    """
+    data = request.get_json(silent=True) or {}
+    year = data.get("year") or _current_year()
+    plan = _ensure_irc4_plan(year)
+
+    if "activity" in data:
+        plan.activity = data.get("activity") or ""
+    if "taReceiver" in data:
+        plan.ta_receiver = data.get("taReceiver") or ""
+    if "movs" in data:
+        plan.movs = data.get("movs") or ""
+
+    db.session.commit()
+    return jsonify(plan.to_dict()), 200
+
+
+@app.route("/irc/irc4/objective", methods=["POST"])
+def save_irc4_objective():
+    """Creates a new objective (id omitted), or updates an existing one's
+    text (id included).
+
+    Expected JSON body:
+        { "id": 7, "year": 2026, "text": "..." }   // omit/null "id" to create
+    """
+    data = request.get_json(silent=True) or {}
+    objective_id = data.get("id")
+    year = data.get("year") or _current_year()
+    text = data.get("text") or ""
+
+    if objective_id:
+        objective = IRC4Objective.query.get(objective_id)
+        if objective is None:
+            return jsonify({"error": "Objective not found"}), 404
+        objective.text = text
+    else:
+        plan = _ensure_irc4_plan(year)
+        max_order = (
+            db.session.query(db.func.max(IRC4Objective.sort_order))
+            .filter_by(plan_id=plan.id)
+            .scalar()
+        )
+        objective = IRC4Objective(
+            plan_id=plan.id,
+            text=text,
+            sort_order=(max_order + 1) if max_order is not None else 0,
+        )
+        db.session.add(objective)
+
+    db.session.commit()
+    return jsonify(objective.to_dict()), 200
+
+
+@app.route("/irc/irc4/objective/<int:objective_id>", methods=["DELETE"])
+def delete_irc4_objective(objective_id):
+    objective = IRC4Objective.query.get(objective_id)
+    if objective is None:
+        return jsonify({"error": "Objective not found"}), 404
+    db.session.delete(objective)
+    db.session.commit()
+    return jsonify({"deleted": True, "id": objective_id}), 200
+
+
+@app.route("/irc/irc4/group", methods=["POST"])
+def save_irc4_group():
+    """Creates a new group (id omitted), or updates an existing one's
+    schools/schedule (id included). The school list is always replaced
+    wholesale -- simplest way to reconcile "whatever's in the modal's
+    draft now" against what's persisted, without diffing add/remove sets
+    by hand. School names that don't match the School table are reported
+    back under "not_found" (same convention as /irc/irc2b/save) instead
+    of failing the whole request.
+
+    Expected JSON body:
+        {
+          "id": 3,                              // omit/null to create a new group
+          "year": 2026,
+          "schools": ["Antipolo NHS", "Cupang ES"],
+          "schedule": "jul"                     // one of MONTH_KEYS, or null/omitted
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    group_id = data.get("id")
+    year = data.get("year") or _current_year()
+    schedule = data.get("schedule") or None
+    school_names = data.get("schools")
+
+    if schedule is not None and schedule not in MONTH_KEYS:
+        return jsonify({"error": f"Invalid schedule: {schedule!r}"}), 400
+    if not isinstance(school_names, list):
+        return jsonify({"error": "'schools' must be a list"}), 400
+
+    if group_id:
+        group = IRC4Group.query.get(group_id)
+        if group is None:
+            return jsonify({"error": "Group not found"}), 404
+    else:
+        plan = _ensure_irc4_plan(year)
+        max_order = (
+            db.session.query(db.func.max(IRC4Group.sort_order))
+            .filter_by(plan_id=plan.id)
+            .scalar()
+        )
+        group = IRC4Group(plan_id=plan.id, sort_order=(max_order + 1) if max_order is not None else 0)
+        db.session.add(group)
+        db.session.flush()  # assigns group.id for the junction rows below
+
+    group.schedule_month_key = schedule
+
+    IRC4GroupSchool.query.filter_by(group_id=group.id).delete()
+
+    not_found = []
+    for i, name in enumerate(school_names):
+        school = School.query.filter_by(name=name).first()
+        if school is None:
+            not_found.append(name)
+            continue
+        db.session.add(IRC4GroupSchool(group_id=group.id, school_id=school.id, sort_order=i))
+
+    db.session.commit()
+
+    result = group.to_dict()
+    result["not_found"] = not_found
+    return jsonify(result), 200
+
+
+@app.route("/irc/irc4/group/<int:group_id>", methods=["DELETE"])
+def delete_irc4_group(group_id):
+    group = IRC4Group.query.get(group_id)
+    if group is None:
+        return jsonify({"error": "Group not found"}), 404
+    db.session.delete(group)  # cascades to its IRC4GroupSchool junction rows
+    db.session.commit()
+    return jsonify({"deleted": True, "id": group_id}), 200
+
+
+@app.route("/irc/irc4/school-ta-status", methods=["GET"])
+def get_irc4_school_ta_status():
+    """Per-school count of months marked 'provided' in IRC2b's TA
+    frequency grid, for the given year -- the source of IRC4's
+    TA-provided indicator in the Add/Edit Group modal (NOT IRC2a, which
+    only tracks current provided/unprovided status, not a count).
+    Year-scoped, matching how every other monthly table in this app
+    resets each year. Schools with a count of 0 are omitted entirely, so
+    the response only lists schools actually worth flagging.
+
+    Response: { "Antipolo NHS": 3, "Cupang ES": 1, ... }
+    """
+    year = request.args.get("year", type=int) or _current_year()
+    rows = (
+        db.session.query(School.name, db.func.count(IRC2BTAFrequency.id))
+        .join(IRC2BTAFrequency, IRC2BTAFrequency.school_id == School.id)
+        .filter(IRC2BTAFrequency.year == year, IRC2BTAFrequency.provided.is_(True))
+        .group_by(School.name)
+        .all()
+    )
+    return jsonify({name: count for name, count in rows if count > 0}), 200
 
 
 # ---------------------------------------------------------------------------

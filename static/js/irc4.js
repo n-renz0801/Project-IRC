@@ -6,113 +6,19 @@
   const MIN_OBJECTIVES = 3;
   const MAX_SUGGESTIONS = 8;
 
-  // Same master school list used in IRC2a, kept in sync so a school name
-  // selected here matches what IRC2a already tracks — including its level
-  // (elementary/secondary) and DEDP-priority status, which now drive this
-  // page's color-coding and badges too. A school may be selected into more
-  // than one group (e.g. it receives TA in two different months) — no
-  // exclusivity here.
-  const SCHOOLS = [
-    { name: "Antipolo City Senior High School", level: "secondary" },
-    { name: "Antipolo City SPED Center", level: "elementary" },
-    { name: "Antipolo National Science and Technology HS", level: "secondary" },
-    { name: "Antipolo NHS", level: "secondary" },
-    { name: "Apia Integrated School", level: "secondary" },
-    { name: "Bagong Nayon I ES", level: "elementary" },
-    { name: "Bagong Nayon II ES", level: "elementary" },
-    { name: "Bagong Nayon II NHS", level: "secondary" },
-    { name: "Bagong Nayon IV ES", level: "elementary" },
-    { name: "Binayoyo Integrated School", level: "secondary" },
-    { name: "Cabading ES", level: "elementary" },
-    { name: "Calawis ES", level: "elementary" },
-    { name: "Calawis NHS", level: "secondary" },
-    { name: "Canumay ES", level: "elementary" },
-    { name: "Canumay NHS", level: "secondary" },
-    { name: "Cupang ES", level: "elementary" },
-    { name: "Cupang ES Annex", level: "elementary" },
-    { name: "Cupang NHS", level: "secondary" },
-    { name: "Dalig ES", level: "elementary" },
-    { name: "Dalig NHS", level: "secondary" },
-    { name: "Dela Paz ES", level: "elementary" },
-    { name: "Dela Paz NHS", level: "secondary" },
-    { name: "Inuman ES", level: "elementary" },
-    { name: "Isaias S. Tapales ES", level: "elementary" },
-    { name: "Jesus S. Cabarrus ES", level: "elementary" },
-    { name: "Juan Sumulong ES", level: "elementary" },
-    { name: "Kaila ES", level: "elementary" },
-    { name: "Kaysakat ES", level: "elementary" },
-    { name: "Kaysakat NHS", level: "secondary" },
-    { name: "Knights of Columbus ES", level: "elementary" },
-    { name: "Libis ES", level: "elementary" },
-    { name: "Lores ES", level: "elementary" },
-    { name: "Mambugan I ES", level: "elementary" },
-    { name: "Mambugan II ES", level: "elementary" },
-    { name: "Mambugan NHS", level: "secondary" },
-    { name: "Marcelino M. Santos NHS", level: "secondary" },
-    { name: "Maximo L. Gatlabayan MNHS", level: "secondary" },
-    { name: "Mayamot ES", level: "elementary" },
-    { name: "Mayamot NHS", level: "secondary" },
-    { name: "Muntindilaw ES", level: "elementary" },
-    { name: "Muntindilaw NHS", level: "secondary" },
-    { name: "Nazarene Ville ES", level: "elementary" },
-    { name: "Old Boso-Boso ES", level: "elementary" },
-    { name: "Old Boso-Boso NHS", level: "secondary" },
-    { name: "Paglitaw ES", level: "elementary" },
-    { name: "Pantay ES", level: "elementary" },
-    { name: "Peace Village ES", level: "elementary" },
-    { name: "Peñafrancia ES", level: "elementary" },
-    { name: "Peñafrancia ES Annex", level: "elementary" },
-    { name: "Rizza ES", level: "elementary" },
-    { name: "Rizza NHS", level: "secondary" },
-    { name: "San Antonio Village ES", level: "elementary" },
-    { name: "San Isidro ES", level: "elementary" },
-    { name: "San Isidro NHS", level: "secondary" },
-    { name: "San Jose NHS", level: "secondary" },
-    { name: "San Joseph ES", level: "elementary" },
-    { name: "San Juan NHS", level: "secondary" },
-    { name: "San Luis ES", level: "elementary" },
-    { name: "San Roque NHS", level: "secondary" },
-    { name: "San Ysiro ES", level: "elementary" },
-    { name: "Sapinit ES", level: "elementary" },
-    { name: "Sta. Cruz ES", level: "elementary" },
-    { name: "Sumilang ES", level: "elementary" },
-    { name: "Taguete ES", level: "elementary" },
-    { name: "Tanza ES", level: "elementary" },
-    { name: "Teofila Z. Rovero MES", level: "elementary" },
-    { name: "Upper Kilingan ES", level: "elementary" },
-  ]
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name));
+  // Master school list + DEDP-priority set, fetched once from the School
+  // table on init (see loadSchools()) instead of being hardcoded here —
+  // this keeps IRC4 in sync with IRC2a/IRC2b/the rest of the app by
+  // construction, rather than by manually copy-pasting the roster.
+  // A school may be selected into more than one group (e.g. it receives
+  // TA in two different months) — no exclusivity here.
+  let SCHOOLS = [];
+  let DEDP_PRIORITY = new Set();
 
-  // Schools tagged as DEDP Priority — identical set to IRC2a.
-  const DEDP_PRIORITY = new Set([
-    "Antipolo NHS",
-    "Bagong Nayon I ES",
-    "Bagong Nayon II ES",
-    "Bagong Nayon II NHS",
-    "Bagong Nayon IV ES",
-    "Cupang ES",
-    "Dalig NHS",
-    "Dela Paz ES",
-    "Jesus S. Cabarrus ES",
-    "Juan Sumulong ES",
-    "Kaysakat ES",
-    "Lores ES",
-    "Mambugan I ES",
-    "Mambugan II ES",
-    "Mambugan NHS",
-    "Maximo L. Gatlabayan MNHS",
-    "Mayamot ES",
-    "Muntindilaw ES",
-    "Peace Village ES",
-    "Peñafrancia ES",
-    "Rizza ES",
-    "San Antonio Village ES",
-    "San Isidro ES",
-    "San Isidro NHS",
-    "San Jose NHS",
-    "Tanza ES",
-  ]);
+  // School name -> count of IRC2b months marked "provided" this year.
+  // Fetched fresh every time the Add/Edit Group modal opens (see
+  // refreshTaStatus()); schools with no TA yet simply have no entry.
+  let taStatusMap = {};
 
   const MONTH_LABELS = {
     Jan: "January",
@@ -130,7 +36,11 @@
   };
 
   /**
-   * Single-activity state (only one activity per plan).
+   * Single-activity state (only one activity per plan), mirroring
+   * IRC4Plan.to_dict() on the server. `id` fields below are the database
+   * row ids returned by /irc/irc4/*, not locally-generated ones — every
+   * objective/group is persisted (and assigned its real id) at the point
+   * it's created, not just when the page is later saved as a whole.
    * {
    *   activity: string,
    *   objectives: Array<{ id, text }>,
@@ -151,12 +61,73 @@
   // on Save. `editingGroupId` is null while adding a brand-new group.
   let modalDraft = { editingGroupId: null, schools: [], schedule: "" };
 
-  let uidCounter = 0;
   const els = {};
 
-  function genId(prefix) {
-    uidCounter += 1;
-    return `${prefix}-${Date.now().toString(36)}-${uidCounter}`;
+  // ---- server fetch helpers -------------------------------------------
+
+  async function loadSchools() {
+    try {
+      const res = await fetch("/irc/schools");
+      const payload = await res.json();
+      const list = (payload && payload.schools) || [];
+      SCHOOLS = list
+        .map((s) => ({ name: s.name, level: s.level }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      DEDP_PRIORITY = new Set(
+        list.filter((s) => s.is_dedp_priority).map((s) => s.name),
+      );
+    } catch (e) {
+      SCHOOLS = [];
+      DEDP_PRIORITY = new Set();
+    }
+  }
+
+  // Fetched once when the Add/Edit Group modal opens (see openModal), so
+  // the indicator reflects however up-to-date IRC2b's records are at the
+  // moment the modal is used, without re-fetching on every keystroke.
+  async function refreshTaStatus() {
+    try {
+      const res = await fetch("/irc/irc4/school-ta-status");
+      taStatusMap = (await res.json()) || {};
+    } catch (e) {
+      taStatusMap = {};
+    }
+  }
+
+  async function loadPlan() {
+    try {
+      const res = await fetch("/irc/irc4/data");
+      const payload = await res.json();
+      data = {
+        activity: payload.activity || "",
+        objectives: payload.objectives || [],
+        groups: payload.groups || [],
+        taReceiver: payload.taReceiver || "",
+        movs: payload.movs || "",
+      };
+    } catch (e) {
+      /* Falls back to the blank baseline declared above. */
+    }
+  }
+
+  function savePlanField(field, value) {
+    fetch("/irc/irc4/plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value }),
+    }).catch(() => {
+      /* Best-effort, same as IRC2b's per-checkbox save: the field already
+         reflects the change locally; a failed save just risks stale data
+         on the next reload. */
+    });
+  }
+
+  function debounce(fn, waitMs) {
+    let timer = null;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), waitMs);
+    };
   }
 
   function letterLabel(index) {
@@ -380,18 +351,55 @@
     const li = frag.querySelector(".irc4-objective-item");
     li.dataset.objId = obj.id;
 
+    // Debounced so typing doesn't fire a save on every keystroke — only
+    // once input has paused for a moment (same tradeoff as savePlanField).
+    const saveText = debounce((val) => {
+      fetch("/irc/irc4/objective", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: obj.id, text: val }),
+      }).catch(() => {
+        /* Best-effort: obj.text already reflects the change locally. */
+      });
+    }, 500);
+
     const fieldEl = li.querySelector(".irc4-field");
     initEditableField(fieldEl, obj.text, (val) => {
       obj.text = val;
+      saveText(val);
     });
 
     return li;
   }
 
-  function addObjective() {
-    const obj = { id: genId("obj"), text: "" };
-    data.objectives.push(obj);
+  // Renders whatever's currently in data.objectives (loaded from the
+  // server) — used once at init, after loadPlan() has populated it.
+  function renderObjectivesFromData() {
+    els.objectivesList.innerHTML = "";
+    data.objectives.forEach((obj) => {
+      els.objectivesList.appendChild(buildObjectiveNode(obj));
+    });
+    relabelObjectives();
+    updateObjectivesWarning();
+  }
 
+  // "Add Objective" creates the row server-side first, so it gets a real
+  // id before anything tries to reference it (e.g. a save fired from a
+  // fast follow-up edit).
+  async function addObjective() {
+    let obj;
+    try {
+      const res = await fetch("/irc/irc4/objective", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "" }),
+      });
+      obj = await res.json();
+    } catch (e) {
+      return; // Can't track an objective that was never actually saved.
+    }
+
+    data.objectives.push(obj);
     const li = buildObjectiveNode(obj);
     els.objectivesList.appendChild(li);
     relabelObjectives();
@@ -399,17 +407,26 @@
   }
 
   function removeObjective(objId) {
-    const idx = data.objectives.findIndex((o) => o.id === objId);
+    const idx = data.objectives.findIndex(
+      (o) => String(o.id) === String(objId),
+    );
     if (idx === -1) return;
     data.objectives.splice(idx, 1);
 
     const li = els.objectivesList.querySelector(
-      `.irc4-objective-item[data-obj-id="${CSS.escape(objId)}"]`,
+      `.irc4-objective-item[data-obj-id="${CSS.escape(String(objId))}"]`,
     );
     if (li) li.remove();
 
     relabelObjectives();
     updateObjectivesWarning();
+
+    fetch(`/irc/irc4/objective/${encodeURIComponent(objId)}`, {
+      method: "DELETE",
+    }).catch(() => {
+      /* Best-effort, same as everywhere else — the item is already gone
+         from the UI; a failed delete just risks it reappearing on reload. */
+    });
   }
 
   function onObjectivesClick(e) {
@@ -477,7 +494,7 @@
 
   function renderGroupView(group) {
     const existing = els.groupsList.querySelector(
-      `.irc4-group-view[data-group-id="${CSS.escape(group.id)}"]`,
+      `.irc4-group-view[data-group-id="${CSS.escape(String(group.id))}"]`,
     );
     const node = buildGroupViewNode(group);
     if (existing) {
@@ -488,20 +505,26 @@
   }
 
   function removeGroup(groupId) {
-    const idx = data.groups.findIndex((g) => g.id === groupId);
+    const idx = data.groups.findIndex((g) => String(g.id) === String(groupId));
     if (idx === -1) return;
     data.groups.splice(idx, 1);
 
     const card = els.groupsList.querySelector(
-      `.irc4-group-view[data-group-id="${CSS.escape(groupId)}"]`,
+      `.irc4-group-view[data-group-id="${CSS.escape(String(groupId))}"]`,
     );
     if (card) card.remove();
 
     updateGroupsEmptyState();
+
+    fetch(`/irc/irc4/group/${encodeURIComponent(groupId)}`, {
+      method: "DELETE",
+    }).catch(() => {
+      /* Best-effort, same as everywhere else in this file. */
+    });
   }
 
   function findGroup(groupId) {
-    return data.groups.find((g) => g.id === groupId) || null;
+    return data.groups.find((g) => String(g.id) === String(groupId)) || null;
   }
 
   function onGroupsClick(e) {
@@ -523,6 +546,31 @@
     }
   }
 
+  // ---- modal: TA-provided indicator (sourced from IRC2b, via taStatusMap) --
+  //
+  // Shown only inside the modal (search dropdown + selected chips) — never
+  // on the main page's read-only group cards. Always renders the box
+  // (school's level color), but only fills in the check + count when
+  // taStatusMap has a > 0 entry for that school; otherwise it's an empty
+  // colored strip of the same fixed width.
+
+  function buildTaIndicatorBox(name, meta) {
+    const box = document.createElement("span");
+    box.className = "irc4-ta-indicator";
+    if (meta && meta.level) box.dataset.level = meta.level;
+
+    const count = taStatusMap[name] || 0;
+    if (count > 0) {
+      box.innerHTML =
+        '<svg class="irc4-ta-indicator-icon" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
+        '<polyline points="20 6 9 17 4 12"></polyline></svg>' +
+        `<span class="irc4-ta-indicator-label">TA<br>${count}X</span>`;
+    }
+
+    return box;
+  }
+
   // ---- modal: school search + selected list --------------------------
 
   function renderModalChips() {
@@ -535,13 +583,16 @@
       const meta = getSchoolMeta(name);
       if (meta) row.dataset.level = meta.level;
 
+      // Flush against the row's left edge, ahead of everything else.
+      row.insertBefore(buildTaIndicatorBox(name, meta), row.firstChild);
+
       row.querySelector(".irc4-school-row-name").textContent = name;
 
       if (isDedpSchool(name)) {
         // Reverted: badge is inserted directly into the row (a plain flex
         // sibling next to the name and remove button), spread apart via
-        // justify-content: space-between on .irc4-school-row — not grouped
-        // into a wrapper next to the remove button.
+        // justify-content: space-between on .irc4-school-row-content — not
+        // grouped into a wrapper next to the remove button.
         const badge = document.createElement("span");
         badge.className = "irc4-badge irc4-badge--dedp";
         badge.textContent = "DEDP";
@@ -566,17 +617,25 @@
     item.dataset.name = school.name;
     if (school.level) item.dataset.level = school.level;
 
+    // Flush against the item's left edge, ahead of everything else.
+    item.appendChild(buildTaIndicatorBox(school.name, school));
+
+    const content = document.createElement("span");
+    content.className = "irc4-school-suggestion-content";
+
     const nameSpan = document.createElement("span");
     nameSpan.className = "irc4-school-suggestion-name";
     nameSpan.textContent = school.name;
-    item.appendChild(nameSpan);
+    content.appendChild(nameSpan);
 
     if (isDedpSchool(school.name)) {
       const badge = document.createElement("span");
       badge.className = "irc4-badge irc4-badge--dedp";
       badge.textContent = "DEDP";
-      item.appendChild(badge);
+      content.appendChild(badge);
     }
+
+    item.appendChild(content);
 
     // mousedown + preventDefault so the search input never blurs before
     // the click is registered (avoids a focus/blur race condition).
@@ -720,7 +779,12 @@
       item.type = "button";
       item.className = "irc4-school-suggestion-item";
       item.dataset.code = m.code;
-      item.textContent = m.label;
+
+      const content = document.createElement("span");
+      content.className = "irc4-school-suggestion-content";
+      content.textContent = m.label;
+      item.appendChild(content);
+
       item.addEventListener("mousedown", (e) => {
         e.preventDefault();
         selectScheduleMonth(m.code);
@@ -804,25 +868,33 @@
 
   // ---- modal: open / close / save -------------------------------------
 
-  function openModal() {
+  async function openModal() {
     els.modalSchoolSearch.value = "";
     hideSuggestions();
     els.modalScheduleInput.value = MONTH_LABELS[modalDraft.schedule] || "";
     hideScheduleSuggestions();
-    renderModalChips();
+
     els.modal.style.display = "flex";
     suppressNextSchoolOpen = true;
     els.modalSchoolSearch.focus();
+
+    // Render immediately with whatever TA-status data is already cached
+    // (empty on the very first open this session), then fetch a fresh
+    // copy and re-render so the indicator reflects IRC2b's current
+    // records rather than a stale snapshot from an earlier modal open.
+    renderModalChips();
+    await refreshTaStatus();
+    renderModalChips();
   }
 
-  function openAddGroupModal() {
+  async function openAddGroupModal() {
     modalDraft = { editingGroupId: null, schools: [], schedule: "" };
     els.modalTitle.textContent = "Add Group";
     els.modalSave.textContent = "Save Group";
-    openModal();
+    await openModal();
   }
 
-  function openEditGroupModal(groupId) {
+  async function openEditGroupModal(groupId) {
     const group = findGroup(groupId);
     if (!group) return;
     modalDraft = {
@@ -832,7 +904,7 @@
     };
     els.modalTitle.textContent = "Edit Group";
     els.modalSave.textContent = "Save Changes";
-    openModal();
+    await openModal();
   }
 
   function closeModal() {
@@ -841,28 +913,47 @@
     hideScheduleSuggestions();
   }
 
-  function saveModal() {
+  async function saveModal() {
     // Resolve any schedule text the user typed but never blurred out of
     // (e.g. they typed a month then clicked Save directly).
     resolveScheduleInput();
 
-    if (modalDraft.editingGroupId) {
-      const group = findGroup(modalDraft.editingGroupId);
-      if (group) {
-        group.schools = modalDraft.schools.slice();
-        group.schedule = modalDraft.schedule;
-        renderGroupView(group);
-      }
-    } else {
-      const group = {
-        id: genId("group"),
-        schools: modalDraft.schools.slice(),
-        schedule: modalDraft.schedule,
-      };
-      data.groups.push(group);
-      renderGroupView(group);
+    const payload = {
+      schools: modalDraft.schools.slice(),
+      schedule: modalDraft.schedule || null,
+    };
+    if (modalDraft.editingGroupId) payload.id = modalDraft.editingGroupId;
+
+    let saved;
+    try {
+      const res = await fetch("/irc/irc4/group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      saved = await res.json();
+    } catch (e) {
+      closeModal();
+      return; // Nothing persisted, nothing to render.
     }
 
+    const group = {
+      id: saved.id,
+      schools: saved.schools || [],
+      schedule: saved.schedule || "",
+    };
+
+    if (modalDraft.editingGroupId) {
+      const idx = data.groups.findIndex(
+        (g) => String(g.id) === String(group.id),
+      );
+      if (idx !== -1) data.groups[idx] = group;
+      else data.groups.push(group);
+    } else {
+      data.groups.push(group);
+    }
+
+    renderGroupView(group);
     updateGroupsEmptyState();
     closeModal();
   }
@@ -871,18 +962,36 @@
   // Init
   // ============================================================
 
-  function init() {
+  const debouncedSaveActivity = debounce(
+    (val) => savePlanField("activity", val),
+    500,
+  );
+  const debouncedSaveTaReceiver = debounce(
+    (val) => savePlanField("taReceiver", val),
+    500,
+  );
+  const debouncedSaveMovs = debounce((val) => savePlanField("movs", val), 500);
+
+  async function init() {
     cacheEls();
     if (!els.root) return; // not on this page
 
+    // Schools first (objectives/groups render against SCHOOLS metadata),
+    // then the saved plan itself.
+    await loadSchools();
+    await loadPlan();
+
     initEditableField(els.activityField, data.activity, (val) => {
       data.activity = val;
+      debouncedSaveActivity(val);
     });
     initEditableField(els.taReceiverField, data.taReceiver, (val) => {
       data.taReceiver = val;
+      debouncedSaveTaReceiver(val);
     });
     initEditableField(els.movsField, data.movs, (val) => {
       data.movs = val;
+      debouncedSaveMovs(val);
     });
 
     els.addObjectiveBtn.addEventListener("click", addObjective);
@@ -914,9 +1023,11 @@
     els.modalScheduleInput.addEventListener("click", onModalScheduleOpen);
     els.modalScheduleInput.addEventListener("blur", onModalScheduleBlur);
 
-    // Start with the recommended minimum of three objective fields.
-    // Groups start empty — the user adds the first one via the modal.
-    for (let i = 0; i < MIN_OBJECTIVES; i++) addObjective();
+    // Objectives/groups were already loaded by loadPlan() above (the
+    // server guarantees at least three blank objectives exist) — render
+    // what came back instead of seeding it client-side.
+    renderObjectivesFromData();
+    data.groups.forEach(renderGroupView);
     updateGroupsEmptyState();
   }
 
