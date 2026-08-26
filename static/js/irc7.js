@@ -41,10 +41,30 @@
   };
 
   // ---------- Data model for added groups/columns ----------
-  const groups = new Map(); // groupId -> { id, name }
-  let columns = []; // ordered array of { id, name, type, groupId|null }
-  let colCounter = 0;
-  let groupCounter = 0;
+  //
+  // Columns/values are persisted server-side (see /irc/irc7/data,
+  // /irc/irc7/columns, /irc/irc7/column/<id>, /irc/irc7/group/<name>, and
+  // /irc/irc7/cell). `columns` here is a client-side cache using the
+  // server's real integer ids.
+  //
+  // A "group" has no separate identity in the schema -- it's just the
+  // group_name shared by however many IRC7Column rows have it (see
+  // models.py). But the UI still needs to know exactly which *rendered
+  // header block* a click came from (two separate "Add Columns" batches
+  // could reuse the same group name and would then render as two
+  // side-by-side header blocks) -- `columnBlocks` gives each rendered
+  // block its own client-only token for that purpose, while `groupName`
+  // is what's actually sent to the backend. Renaming/deleting "a group"
+  // therefore affects every block sharing that name, matching what
+  // actually happens server-side -- see editModalSave/removeGroup below.
+  const columnBlocks = new Map(); // blockToken -> { groupName, columnIds: Set<number> }
+  const colIdToBlock = new Map(); // colId -> blockToken
+  let blockCounter = 0;
+  let columns = []; // ordered array of { id, name, type, groupName|null }
+  let rowsData = []; // fixed reference rows (schools/offerings) from the server
+  let cellValues = {}; // "rowId:colId" -> value, for the current year
+
+  const YEAR = new Date().getFullYear();
 
   // ================= FLUID-UNTIL-MINIMUM COLUMN LAYOUT =================
   // Every <col> in #irc7-colgroup carries a data-min-width (px). Whenever
@@ -81,6 +101,56 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(recalcLayout, 100);
   });
+
+  // ================= LOADING FIXED ROWS + SAVED COLUMNS/VALUES =================
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str == null ? "" : str;
+    return div.innerHTML;
+  }
+
+  // The six leading columns (School ID, Name, Curricular Offering, DLC,
+  // Status, Classification) used to be hardcoded directly into
+  // irc7.html's <tbody>. They now come from IRC7Row (seeded once via
+  // storage.seed_irc7_rows()), so the tbody starts empty and this
+  // builds those rows from the fetched data instead.
+  function renderFixedRows(rows) {
+    tbody.innerHTML = "";
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
+      tr.dataset.rowId = row.id;
+      tr.innerHTML = `
+        <td>${escapeHtml(row.schoolIdCode)}</td>
+        <td>${escapeHtml(row.schoolName)}</td>
+        <td>${escapeHtml(row.curricularOffering)}</td>
+        <td>${escapeHtml(row.dlc)}</td>
+        <td>${escapeHtml(row.dedpStatus)}</td>
+        <td>${escapeHtml(row.classification)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function loadData() {
+    try {
+      const res = await fetch(`/irc/irc7/data?year=${YEAR}`);
+      if (!res.ok) throw new Error("Failed to load data");
+      const data = await res.json();
+
+      rowsData = data.rows || [];
+      cellValues = data.values || {};
+      renderFixedRows(rowsData);
+
+      const sortedColumns = (data.columns || [])
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+      renderColumnsBatch(sortedColumns);
+    } catch (err) {
+      console.error("Failed to load IRC7 data:", err);
+      recalcLayout();
+    }
+  }
 
   // ---------- Mode state: null | 'edit' | 'delete' ----------
   let activeMode = null;
@@ -199,7 +269,7 @@
     groupsContainer.appendChild(createGroupBlock());
   });
 
-  modalSubmit.addEventListener("click", () => {
+  modalSubmit.addEventListener("click", async () => {
     const newColumns = [];
 
     groupsContainer.querySelectorAll(".irc7-group-block").forEach((block) => {
@@ -221,13 +291,29 @@
       return;
     }
 
-    addColumnsToTable(newColumns);
-    hideAddModal();
+    try {
+      const res = await fetch("/irc/irc7/columns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ columns: newColumns }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      const data = await res.json();
+      renderColumnsBatch(data.columns);
+      hideAddModal();
+    } catch (err) {
+      console.error("Failed to add IRC7 columns:", err);
+      alert("Could not add these columns. Please try again.");
+    }
   });
 
-  // ================= BUILDING NEW COLUMNS INTO THE TABLE =================
-
-  function addColumnsToTable(newColumns) {
+  // ================= BUILDING COLUMNS INTO THE TABLE =================
+  //
+  // Used both for the initial load (the full saved column list, in
+  // sort_order) and for a freshly-added batch (just the columns the
+  // server handed back from POST /irc/irc7/columns) -- either way, the
+  // list is already in the order it should render in.
+  function renderColumnsBatch(newColumns) {
     let i = 0;
     while (i < newColumns.length) {
       const col = newColumns[i];
@@ -243,41 +329,48 @@
           j++;
         }
 
-        const groupId = "g" + ++groupCounter;
-        groups.set(groupId, { id: groupId, name: col.groupName });
+        const blockToken = "blk" + ++blockCounter;
+        columnBlocks.set(blockToken, {
+          groupName: col.groupName,
+          columnIds: new Set(batch.map((c) => c.id)),
+        });
+        batch.forEach((c) => colIdToBlock.set(c.id, blockToken));
 
         const groupTh = buildGroupHeaderCell(
-          groupId,
+          blockToken,
           col.groupName,
           batch.length,
         );
         groupRow.appendChild(groupTh);
 
         batch.forEach((c) => {
-          const colId = "c" + ++colCounter;
-          columns.push({ id: colId, name: c.name, type: c.type, groupId });
+          columns.push({
+            id: c.id,
+            name: c.name,
+            type: c.type,
+            groupName: c.groupName,
+          });
 
-          const th = buildColumnHeaderCell(colId, c.name);
+          const th = buildColumnHeaderCell(c.id, c.name);
           colRow.appendChild(th);
-          colgroup.appendChild(buildColElement(colId, c.type));
-          appendCellToRows(colId, c.type);
+          colgroup.appendChild(buildColElement(c.id, c.type));
+          appendCellToRows(c.id, c.type);
         });
 
         i = j;
       } else {
-        const colId = "c" + ++colCounter;
         columns.push({
-          id: colId,
+          id: col.id,
           name: col.name,
           type: col.type,
-          groupId: null,
+          groupName: null,
         });
 
-        const th = buildColumnHeaderCell(colId, col.name);
+        const th = buildColumnHeaderCell(col.id, col.name);
         th.rowSpan = 2;
         groupRow.appendChild(th);
-        colgroup.appendChild(buildColElement(colId, col.type));
-        appendCellToRows(colId, col.type);
+        colgroup.appendChild(buildColElement(col.id, col.type));
+        appendCellToRows(col.id, col.type);
         i++;
       }
     }
@@ -315,23 +408,47 @@
 
   function appendCellToRows(colId, type) {
     tbody.querySelectorAll("tr").forEach((tr) => {
+      const rowId = Number(tr.dataset.rowId);
       const td = document.createElement("td");
       td.className = "irc7-editable-cell";
       td.dataset.colId = colId;
 
-      const input = buildCellInput(type);
+      const existingValue = cellValues[`${rowId}:${colId}`];
+      const input = buildCellInput(type, rowId, colId, existingValue);
       td.appendChild(input);
       tr.appendChild(td);
     });
   }
 
-  function buildCellInput(type) {
+  function buildCellInput(type, rowId, colId, initialValue) {
     const input = document.createElement("input");
     input.type = type === "number" ? "number" : "text";
     input.className = "irc7-cell-input irc7-cell-input--" + type;
     if (type === "number") input.step = "any";
     if (type === "paragraph") input.placeholder = "Enter text...";
+    if (initialValue !== undefined && initialValue !== null) {
+      input.value = initialValue;
+    }
+
+    input.addEventListener("change", () => {
+      saveCellValue(rowId, colId, input.value);
+    });
+
     return input;
+  }
+
+  async function saveCellValue(rowId, colId, value) {
+    try {
+      const res = await fetch("/irc/irc7/cell", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rowId, columnId: colId, year: YEAR, value }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      cellValues[`${rowId}:${colId}`] = value === "" ? null : value;
+    } catch (err) {
+      console.error("Failed to save IRC7 cell:", err);
+    }
   }
 
   // ================= EDIT / DELETE MODE: header clicks =================
@@ -363,13 +480,13 @@
     editingTarget = { kind, id };
 
     if (kind === "group") {
-      const group = groups.get(id);
-      if (!group) return;
+      const block = columnBlocks.get(id);
+      if (!block) return;
       editModalTitle.textContent = "Edit Group";
-      editNameInput.value = group.name;
+      editNameInput.value = block.groupName;
       editTypeWrapper.style.display = "none";
     } else {
-      const col = columns.find((c) => c.id === id);
+      const col = columns.find((c) => c.id === Number(id));
       if (!col) return;
       editModalTitle.textContent = "Edit Column";
       editNameInput.value = col.name;
@@ -393,7 +510,7 @@
     .querySelector("#editItemModal .irc7-modal-content")
     .addEventListener("click", (e) => e.stopPropagation());
 
-  editModalSave.addEventListener("click", () => {
+  editModalSave.addEventListener("click", async () => {
     if (!editingTarget) return;
     const newName = editNameInput.value.trim();
     if (!newName) {
@@ -401,86 +518,133 @@
       return;
     }
 
-    if (editingTarget.kind === "group") {
-      const group = groups.get(editingTarget.id);
-      group.name = newName;
-      const th = groupRow.querySelector(
-        `th[data-group-id="${editingTarget.id}"]`,
-      );
-      if (th) th.textContent = newName;
-    } else {
-      const col = columns.find((c) => c.id === editingTarget.id);
-      const newType = editTypeSelect.value;
-      const typeChanged = col.type !== newType;
-      col.name = newName;
-      col.type = newType;
+    try {
+      if (editingTarget.kind === "group") {
+        const block = columnBlocks.get(editingTarget.id);
+        if (!block) return;
+        const oldName = block.groupName;
 
-      const th = colRow.querySelector(`th[data-col-id="${editingTarget.id}"]`);
-      if (th) th.textContent = newName;
-
-      if (typeChanged) {
-        // Update the column's minimum width to match the new type, then
-        // let recalcLayout() redistribute space.
-        const colEl = colgroup.querySelector(
-          `col[data-col-id="${editingTarget.id}"]`,
+        const res = await fetch(
+          `/irc/irc7/group/${encodeURIComponent(oldName)}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: newName }),
+          },
         );
-        if (colEl) {
-          colEl.dataset.minWidth =
-            ADDED_COLUMN_MIN_WIDTH[newType] || ADDED_COLUMN_MIN_WIDTH.text;
+        if (!res.ok) throw new Error("Rename failed");
+
+        // The backend renames every column sharing oldName, across every
+        // rendered block -- mirror that here, not just the block clicked.
+        columnBlocks.forEach((b, token) => {
+          if (b.groupName === oldName) {
+            b.groupName = newName;
+            const th = groupRow.querySelector(`th[data-group-id="${token}"]`);
+            if (th) th.textContent = newName;
+          }
+        });
+        columns.forEach((c) => {
+          if (c.groupName === oldName) c.groupName = newName;
+        });
+      } else {
+        const col = columns.find((c) => c.id === Number(editingTarget.id));
+        if (!col) return;
+        const newType = editTypeSelect.value;
+        const typeChanged = col.type !== newType;
+
+        const res = await fetch(`/irc/irc7/column/${col.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: newName, type: newType }),
+        });
+        if (!res.ok) throw new Error("Save failed");
+
+        col.name = newName;
+        col.type = newType;
+
+        const th = colRow.querySelector(`th[data-col-id="${col.id}"]`);
+        if (th) th.textContent = newName;
+
+        if (typeChanged) {
+          // Update the column's minimum width to match the new type, then
+          // let recalcLayout() redistribute space.
+          const colEl = colgroup.querySelector(`col[data-col-id="${col.id}"]`);
+          if (colEl) {
+            colEl.dataset.minWidth =
+              ADDED_COLUMN_MIN_WIDTH[newType] || ADDED_COLUMN_MIN_WIDTH.text;
+          }
+
+          tbody
+            .querySelectorAll(`td[data-col-id="${col.id}"]`)
+            .forEach((td) => {
+              const tr = td.closest("tr");
+              const rowId = Number(tr.dataset.rowId);
+              const oldVal = td.querySelector("input")?.value || "";
+              const keepValue =
+                newType !== "number" ||
+                oldVal === "" ||
+                !Number.isNaN(parseFloat(oldVal));
+              td.innerHTML = "";
+              const input = buildCellInput(
+                newType,
+                rowId,
+                col.id,
+                keepValue ? oldVal : "",
+              );
+              td.appendChild(input);
+            });
+
+          recalcLayout();
         }
-
-        tbody
-          .querySelectorAll(`td[data-col-id="${editingTarget.id}"]`)
-          .forEach((td) => {
-            const oldVal = td.querySelector("input")?.value || "";
-            td.innerHTML = "";
-            const input = buildCellInput(newType);
-            if (
-              newType !== "number" ||
-              oldVal === "" ||
-              !Number.isNaN(parseFloat(oldVal))
-            ) {
-              input.value = oldVal;
-            }
-            td.appendChild(input);
-          });
-
-        recalcLayout();
       }
-    }
 
-    hideEditModal();
-    // Stay in edit mode so the user can edit another header right away.
+      hideEditModal();
+      // Stay in edit mode so the user can edit another header right away.
+    } catch (err) {
+      console.error("Failed to save IRC7 edit:", err);
+      alert("Could not save this change. Please try again.");
+    }
   });
 
   // ---------- Delete ----------
 
   function handleRemove(kind, id) {
     if (kind === "group") {
-      const group = groups.get(id);
-      if (!group) return;
+      const block = columnBlocks.get(id);
+      if (!block) return;
       if (
         !confirm(
-          `Remove the group "${group.name}" and all its columns? This cannot be undone.`,
+          `Remove the group "${block.groupName}" and all its columns? This cannot be undone.`,
         )
       ) {
         return;
       }
       removeGroup(id);
     } else {
-      const col = columns.find((c) => c.id === id);
+      const col = columns.find((c) => c.id === Number(id));
       if (!col) return;
       if (!confirm(`Remove the column "${col.name}"? This cannot be undone.`)) {
         return;
       }
-      removeColumn(id);
+      removeColumn(col.id);
     }
     // Stay in delete mode so the user can remove more without retoggling.
   }
 
-  function removeColumn(colId) {
+  async function removeColumn(colId) {
     const col = columns.find((c) => c.id === colId);
     if (!col) return;
+
+    try {
+      const res = await fetch(`/irc/irc7/column/${colId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Delete failed");
+    } catch (err) {
+      console.error("Failed to delete IRC7 column:", err);
+      alert("Could not delete this column. Please try again.");
+      return;
+    }
 
     const th =
       colRow.querySelector(`th[data-col-id="${colId}"]`) ||
@@ -494,18 +658,20 @@
       .querySelectorAll(`td[data-col-id="${colId}"]`)
       .forEach((td) => td.remove());
 
-    if (col.groupId) {
-      const remaining = columns.filter(
-        (c) => c.groupId === col.groupId && c.id !== colId,
-      );
+    const blockToken = colIdToBlock.get(colId);
+    if (blockToken) {
+      const block = columnBlocks.get(blockToken);
+      block.columnIds.delete(colId);
+      colIdToBlock.delete(colId);
+
       const groupTh = groupRow.querySelector(
-        `th[data-group-id="${col.groupId}"]`,
+        `th[data-group-id="${blockToken}"]`,
       );
-      if (remaining.length === 0) {
+      if (block.columnIds.size === 0) {
         if (groupTh) groupTh.remove();
-        groups.delete(col.groupId);
+        columnBlocks.delete(blockToken);
       } else if (groupTh) {
-        groupTh.colSpan = remaining.length;
+        groupTh.colSpan = block.columnIds.size;
       }
     }
 
@@ -513,29 +679,56 @@
     recalcLayout();
   }
 
-  function removeGroup(groupId) {
-    const colsInGroup = columns
-      .filter((c) => c.groupId === groupId)
-      .map((c) => c.id);
+  async function removeGroup(blockToken) {
+    const block = columnBlocks.get(blockToken);
+    if (!block) return;
+    const groupName = block.groupName;
 
-    const groupTh = groupRow.querySelector(`th[data-group-id="${groupId}"]`);
-    if (groupTh) groupTh.remove();
+    try {
+      const res = await fetch(
+        `/irc/irc7/group/${encodeURIComponent(groupName)}`,
+        {
+          method: "DELETE",
+        },
+      );
+      if (!res.ok) throw new Error("Delete failed");
+    } catch (err) {
+      console.error("Failed to delete IRC7 group:", err);
+      alert("Could not delete this group. Please try again.");
+      return;
+    }
 
-    colsInGroup.forEach((colId) => {
-      const th = colRow.querySelector(`th[data-col-id="${colId}"]`);
-      if (th) th.remove();
-      const colEl = colgroup.querySelector(`col[data-col-id="${colId}"]`);
-      if (colEl) colEl.remove();
-      tbody
-        .querySelectorAll(`td[data-col-id="${colId}"]`)
-        .forEach((td) => td.remove());
+    // The backend deletes every column sharing this group name, across
+    // every rendered block -- remove all of them here too, not just the
+    // block that was clicked.
+    const blocksToRemove = [];
+    columnBlocks.forEach((b, token) => {
+      if (b.groupName === groupName) blocksToRemove.push(token);
     });
 
-    columns = columns.filter((c) => c.groupId !== groupId);
-    groups.delete(groupId);
+    blocksToRemove.forEach((token) => {
+      const b = columnBlocks.get(token);
+      const groupTh = groupRow.querySelector(`th[data-group-id="${token}"]`);
+      if (groupTh) groupTh.remove();
+
+      b.columnIds.forEach((colId) => {
+        const th = colRow.querySelector(`th[data-col-id="${colId}"]`);
+        if (th) th.remove();
+        const colEl = colgroup.querySelector(`col[data-col-id="${colId}"]`);
+        if (colEl) colEl.remove();
+        tbody
+          .querySelectorAll(`td[data-col-id="${colId}"]`)
+          .forEach((td) => td.remove());
+        colIdToBlock.delete(colId);
+      });
+
+      columnBlocks.delete(token);
+    });
+
+    columns = columns.filter((c) => c.groupName !== groupName);
     recalcLayout();
   }
 
-  // ---------- Initial layout ----------
-  recalcLayout();
+  // ---------- Initial load ----------
+  loadData();
 })();

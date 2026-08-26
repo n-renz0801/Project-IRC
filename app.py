@@ -14,9 +14,25 @@ from models import (
     IRC2BTAFrequency,
     IRC3Status,
     IRC4Entry,
+    IRC5Entry,
+    IRC6Entry,
+    IRC7Row,
+    IRC7Column,
+    IRC7CellValue,
+    IRC8BRating,
     MONTH_KEYS,
     TA_STATUS_PROVIDED,
     TA_STATUS_UNPROVIDED,
+    IRC5_NATURE_FUNDED,
+    IRC5_NATURE_NONFUNDED,
+    IRC6_KIND_GOAL,
+    IRC6_KIND_OUTCOME,
+    IRC6_KIND_OUTPUT,
+    IRC7_COLUMN_TYPE_TEXT,
+    IRC7_COLUMN_TYPE_NUMBER,
+    IRC7_COLUMN_TYPE_PARAGRAPH,
+    IRC8B_SECTION_CBC,
+    IRC8B_SECTION_CS,
 )
 import storage
 
@@ -52,8 +68,10 @@ def init_db_command():
     with app.app_context():
         db.create_all()
         added = storage.seed_schools()
+        added_irc7 = storage.seed_irc7_rows()
         print(f"Database ready at {app.config['SQLALCHEMY_DATABASE_URI']}")
         print(f"Seeded {added} new school(s) (existing schools were left untouched).")
+        print(f"Seeded {added_irc7} new IRC7 row(s) (existing rows were left untouched).")
 
 # ---------------------------------------------------------------------------
 # Fixed list of tabs. This system has exactly 13 Individual Report Cards
@@ -1507,6 +1525,404 @@ def extract_irc9_pdf():
         return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
 
 
+# ---------------------------------------------------------------------------
+# IRC5 -- Post Program Evaluation Results
+#
+# No PDF pipeline here (see models.py) -- these routes just persist
+# whatever the "Add Entry" modal in irc5.js submits.
+# ---------------------------------------------------------------------------
+@app.route("/irc/irc5/data", methods=["GET"])
+def get_irc5_data():
+    year = request.args.get("year", type=int) or _current_year()
+    rows = IRC5Entry.query.filter_by(year=year).order_by(IRC5Entry.id.asc()).all()
+    return jsonify({"year": year, "entries": [r.to_dict() for r in rows]}), 200
+
+
+@app.route("/irc/irc5/entry", methods=["POST"])
+def save_irc5_entry():
+    """Creates a new entry, or updates an existing one if 'id' is included.
+
+    Expected JSON body:
+        {
+          "id": 7,                 // omit/null to create a new entry
+          "year": 2026,
+          "title": "...", "nature": "Funded",
+          "dateIsoList": ["2026-07-01", ...], "dateDisplay": "Jul. 1, 2026",
+          "participants": "...", "rating": 3.75, "descVal": "Strongly Agree",
+          "indicator": "...", "cause": "...", "measures": "..."
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    entry_id = data.get("id")
+    year = data.get("year") or _current_year()
+    title = (data.get("title") or "").strip()
+    nature = data.get("nature")
+
+    if not title:
+        return jsonify({"error": "'title' is required"}), 400
+    if nature not in (IRC5_NATURE_FUNDED, IRC5_NATURE_NONFUNDED):
+        return jsonify({"error": f"Invalid nature: {nature!r}"}), 400
+
+    rating_raw = data.get("rating")
+    try:
+        rating = float(rating_raw) if rating_raw not in (None, "") else None
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid rating"}), 400
+
+    if entry_id:
+        entry = IRC5Entry.query.get(entry_id)
+        if entry is None:
+            return jsonify({"error": "Entry not found"}), 404
+    else:
+        entry = IRC5Entry(year=year)
+        db.session.add(entry)
+
+    entry.year = year
+    entry.title = title
+    entry.nature = nature
+    entry.date_iso_list = data.get("dateIsoList") or []
+    entry.date_display = data.get("dateDisplay") or ""
+    entry.participants = data.get("participants")
+    entry.rating = rating
+    entry.desc_val = data.get("descVal")
+    entry.indicator = data.get("indicator")
+    entry.cause = data.get("cause")
+    entry.measures = data.get("measures")
+
+    db.session.commit()
+    return jsonify(entry.to_dict()), 200
+
+
+@app.route("/irc/irc5/entry/<int:entry_id>", methods=["DELETE"])
+def delete_irc5_entry(entry_id):
+    entry = IRC5Entry.query.get(entry_id)
+    if entry is None:
+        return jsonify({"error": "Entry not found"}), 404
+    db.session.delete(entry)
+    db.session.commit()
+    return jsonify({"deleted": True, "id": entry_id}), 200
+
+
+# ---------------------------------------------------------------------------
+# IRC6 -- Monitoring & Evaluation Plan
+# ---------------------------------------------------------------------------
+def _ensure_irc6_seed(year):
+    """Guarantees a Goal row and an Outcome row exist for `year`, mirroring
+    the seeding irc6.js used to do purely in memory before this table
+    existed. Safe to call on every GET/POST -- it's a no-op once both
+    rows exist."""
+    if not IRC6Entry.query.filter_by(year=year, kind=IRC6_KIND_GOAL).first():
+        db.session.add(IRC6Entry(year=year, kind=IRC6_KIND_GOAL, sort_order=0))
+    if not IRC6Entry.query.filter_by(year=year, kind=IRC6_KIND_OUTCOME).first():
+        db.session.add(IRC6Entry(year=year, kind=IRC6_KIND_OUTCOME, sort_order=1))
+    db.session.commit()
+
+
+@app.route("/irc/irc6/data", methods=["GET"])
+def get_irc6_data():
+    year = request.args.get("year", type=int) or _current_year()
+    _ensure_irc6_seed(year)
+    rows = (
+        IRC6Entry.query.filter_by(year=year)
+        .order_by(IRC6Entry.sort_order.asc(), IRC6Entry.id.asc())
+        .all()
+    )
+    return jsonify({"year": year, "entries": [r.to_dict() for r in rows]}), 200
+
+
+@app.route("/irc/irc6/entry", methods=["POST"])
+def save_irc6_entry():
+    """Creates a new Output (id omitted), or updates an existing Goal /
+    Outcome / Output row (id included). A row's `kind` is fixed at
+    creation and never changes here -- only Outputs can be created this
+    way; Goal/Outcome only ever come from _ensure_irc6_seed.
+
+    Expected JSON body:
+        {
+          "id": 7,          // omit/null to create a new Output
+          "year": 2026,
+          "title": "...",   // Output only -- ignored for Goal/Outcome
+          "objectives": "...", "indicators": "...", "definition": "...",
+          "dcSource": "...", "dcPerson": "...", "dcFreq": "...",
+          "daUsed": "...", "daPerson": "...", "daFreq": "...",
+          "users": "...",
+          "repComm": "...", "repFreq": "..."
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    entry_id = data.get("id")
+    year = data.get("year") or _current_year()
+
+    field_map = {
+        "objectives": "objectives", "indicators": "indicators", "definition": "definition",
+        "dcSource": "dc_source", "dcPerson": "dc_person", "dcFreq": "dc_freq",
+        "daUsed": "da_used", "daPerson": "da_person", "daFreq": "da_freq",
+        "users": "users", "repComm": "rep_comm", "repFreq": "rep_freq",
+    }
+
+    if entry_id:
+        entry = IRC6Entry.query.get(entry_id)
+        if entry is None:
+            return jsonify({"error": "Entry not found"}), 404
+    else:
+        _ensure_irc6_seed(year)
+        max_order = db.session.query(db.func.max(IRC6Entry.sort_order)).filter_by(year=year).scalar() or 0
+        entry = IRC6Entry(year=year, kind=IRC6_KIND_OUTPUT, sort_order=max_order + 1)
+        db.session.add(entry)
+
+    if entry.kind == IRC6_KIND_OUTPUT:
+        entry.title = (data.get("title") or "").strip()
+
+    for json_key, col_name in field_map.items():
+        if json_key in data:
+            setattr(entry, col_name, data[json_key])
+
+    db.session.commit()
+    return jsonify(entry.to_dict()), 200
+
+
+@app.route("/irc/irc6/entry/<int:entry_id>", methods=["DELETE"])
+def delete_irc6_entry(entry_id):
+    entry = IRC6Entry.query.get(entry_id)
+    if entry is None:
+        return jsonify({"error": "Entry not found"}), 404
+    if entry.kind != IRC6_KIND_OUTPUT:
+        return jsonify({"error": "Goal and Outcome rows cannot be deleted"}), 400
+    db.session.delete(entry)
+    db.session.commit()
+    return jsonify({"deleted": True, "id": entry_id}), 200
+
+
+# ---------------------------------------------------------------------------
+# IRC7 -- SGOD Dashboard Data
+#
+# Fixed rows (schools/curricular offerings) come from IRC7Row, seeded once
+# via storage.seed_irc7_rows() -- these routes never create/delete rows.
+# Columns (IRC7Column) are user-defined and fully CRUD-able; values
+# (IRC7CellValue) are year-scoped and saved one cell at a time as the user
+# edits the table. See the IRC7* section of models.py for the full
+# rationale behind this EAV-style shape.
+# ---------------------------------------------------------------------------
+@app.route("/irc/irc7/data", methods=["GET"])
+def get_irc7_data():
+    year = request.args.get("year", type=int) or _current_year()
+    rows = IRC7Row.query.order_by(IRC7Row.sort_order.asc()).all()
+    columns = IRC7Column.query.order_by(IRC7Column.sort_order.asc()).all()
+    cell_values = IRC7CellValue.query.filter_by(year=year).all()
+    values = {f"{cv.row_id}:{cv.column_id}": cv.value for cv in cell_values}
+    return jsonify({
+        "year": year,
+        "rows": [r.to_dict() for r in rows],
+        "columns": [c.to_dict() for c in columns],
+        "values": values,
+    }), 200
+
+
+@app.route("/irc/irc7/columns", methods=["POST"])
+def add_irc7_columns():
+    """Adds one or more columns in one call, matching the "Add Columns"
+    modal's ability to submit several groups/columns at once.
+
+    Expected JSON body:
+        { "columns": [ {"name": "...", "type": "text", "groupName": "..."}, ... ] }
+
+    Columns sharing the same non-empty groupName are meant to render
+    under one spanning group header on the frontend (see irc7.js);
+    nothing about that grouping is enforced here beyond storing the name.
+    """
+    data = request.get_json(silent=True) or {}
+    new_columns = data.get("columns")
+    if not isinstance(new_columns, list) or not new_columns:
+        return jsonify({"error": "'columns' must be a non-empty list"}), 400
+
+    valid_types = (IRC7_COLUMN_TYPE_TEXT, IRC7_COLUMN_TYPE_NUMBER, IRC7_COLUMN_TYPE_PARAGRAPH)
+    max_order = db.session.query(db.func.max(IRC7Column.sort_order)).scalar() or 0
+
+    created = []
+    for col in new_columns:
+        name = (col.get("name") or "").strip()
+        col_type = col.get("type") or IRC7_COLUMN_TYPE_TEXT
+        group_name = (col.get("groupName") or "").strip() or None
+        if not name:
+            continue
+        if col_type not in valid_types:
+            return jsonify({"error": f"Invalid column type: {col_type!r}"}), 400
+        max_order += 1
+        new_col = IRC7Column(name=name, type=col_type, group_name=group_name, sort_order=max_order)
+        db.session.add(new_col)
+        created.append(new_col)
+
+    if not created:
+        return jsonify({"error": "Please add at least one column with a name."}), 400
+
+    db.session.commit()
+    return jsonify({"columns": [c.to_dict() for c in created]}), 200
+
+
+@app.route("/irc/irc7/column/<int:column_id>", methods=["PUT"])
+def edit_irc7_column(column_id):
+    """Expected JSON body: { "name": "...", "type": "text" }"""
+    data = request.get_json(silent=True) or {}
+    column = IRC7Column.query.get(column_id)
+    if column is None:
+        return jsonify({"error": "Column not found"}), 404
+
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Name cannot be empty"}), 400
+    col_type = data.get("type") or column.type
+    if col_type not in (IRC7_COLUMN_TYPE_TEXT, IRC7_COLUMN_TYPE_NUMBER, IRC7_COLUMN_TYPE_PARAGRAPH):
+        return jsonify({"error": f"Invalid column type: {col_type!r}"}), 400
+
+    column.name = name
+    column.type = col_type
+    db.session.commit()
+    return jsonify(column.to_dict()), 200
+
+
+@app.route("/irc/irc7/column/<int:column_id>", methods=["DELETE"])
+def delete_irc7_column(column_id):
+    column = IRC7Column.query.get(column_id)
+    if column is None:
+        return jsonify({"error": "Column not found"}), 404
+    db.session.delete(column)  # cascades to this column's cell values
+    db.session.commit()
+    return jsonify({"deleted": True, "id": column_id}), 200
+
+
+@app.route("/irc/irc7/group/<path:group_name>", methods=["PUT"])
+def rename_irc7_group(group_name):
+    """Renames every column currently sharing `group_name` -- there's no
+    separate "group" row in the schema (see models.py), so a group's
+    identity IS its name; renaming necessarily applies to all of its
+    columns at once, however many separate "Add Columns" batches they
+    originally came from.
+
+    Expected JSON body: { "name": "New Group Name" }
+    """
+    data = request.get_json(silent=True) or {}
+    new_name = (data.get("name") or "").strip()
+    if not new_name:
+        return jsonify({"error": "Name cannot be empty"}), 400
+
+    columns = IRC7Column.query.filter_by(group_name=group_name).all()
+    if not columns:
+        return jsonify({"error": "Group not found"}), 404
+
+    for col in columns:
+        col.group_name = new_name
+    db.session.commit()
+    return jsonify({"groupName": new_name, "columnIds": [c.id for c in columns]}), 200
+
+
+@app.route("/irc/irc7/group/<path:group_name>", methods=["DELETE"])
+def delete_irc7_group(group_name):
+    """Deletes every column sharing `group_name` (and, via cascade, every
+    cell value stored under them) -- see rename_irc7_group's docstring
+    for why this applies to the whole name, not just one batch."""
+    columns = IRC7Column.query.filter_by(group_name=group_name).all()
+    if not columns:
+        return jsonify({"error": "Group not found"}), 404
+
+    for col in columns:
+        db.session.delete(col)
+    db.session.commit()
+    return jsonify({"deleted": True, "groupName": group_name}), 200
+
+
+@app.route("/irc/irc7/cell", methods=["POST"])
+def save_irc7_cell():
+    """Expected JSON body:
+        { "rowId": 12, "columnId": 5, "year": 2026, "value": "1234" }
+
+    Saving an empty string just clears the cell (stored as NULL) rather
+    than being treated as an error -- irc7.js calls this on every cell's
+    "change" event, including clearing one out."""
+    data = request.get_json(silent=True) or {}
+    row_id = data.get("rowId")
+    column_id = data.get("columnId")
+    year = data.get("year") or _current_year()
+    value = data.get("value")
+
+    if IRC7Row.query.get(row_id) is None:
+        return jsonify({"error": "Row not found"}), 404
+    if IRC7Column.query.get(column_id) is None:
+        return jsonify({"error": "Column not found"}), 404
+
+    if value == "":
+        value = None
+
+    cell = IRC7CellValue.query.filter_by(row_id=row_id, column_id=column_id, year=year).first()
+    if cell is None:
+        cell = IRC7CellValue(row_id=row_id, column_id=column_id, year=year)
+        db.session.add(cell)
+    cell.value = value
+    db.session.commit()
+
+    return jsonify({"rowId": row_id, "columnId": column_id, "year": year, "value": value}), 200
+
+
+# ---------------------------------------------------------------------------
+# IRC8b -- Core Behavioral Competencies and Core Skills
+#
+# The sections/subsections/criteria are a fixed list hardcoded in irc8b.js
+# (DATA) -- only the 1-5 ratings themselves are persisted here, keyed by
+# which criterion they belong to (see models.py's IRC8BRating).
+# ---------------------------------------------------------------------------
+@app.route("/irc/irc8b/data", methods=["GET"])
+def get_irc8b_data():
+    year = request.args.get("year", type=int) or _current_year()
+    rows = IRC8BRating.query.filter_by(year=year).all()
+
+    ratings = {}
+    for row in rows:
+        ratings.setdefault(row.subsection_key, {})[str(row.criterion_index)] = row.rating
+
+    return jsonify({"year": year, "ratings": ratings}), 200
+
+
+@app.route("/irc/irc8b/rating", methods=["POST"])
+def save_irc8b_rating():
+    """Expected JSON body:
+        { "year": 2026, "sectionKey": "cbc", "subsectionKey": "self_management",
+          "criterionIndex": 0, "rating": 4 }
+
+    'rating' may be null/omitted to clear a previously-set rating --
+    irc8b.js does this when the user clicks an already-selected button.
+    """
+    data = request.get_json(silent=True) or {}
+    year = data.get("year") or _current_year()
+    section_key = data.get("sectionKey")
+    subsection_key = data.get("subsectionKey")
+    criterion_index = data.get("criterionIndex")
+    rating = data.get("rating")
+
+    if section_key not in (IRC8B_SECTION_CBC, IRC8B_SECTION_CS):
+        return jsonify({"error": f"Invalid sectionKey: {section_key!r}"}), 400
+    if not subsection_key or criterion_index is None:
+        return jsonify({"error": "'subsectionKey' and 'criterionIndex' are required"}), 400
+    if rating is not None and rating not in (1, 2, 3, 4, 5):
+        return jsonify({"error": f"Invalid rating: {rating!r}"}), 400
+
+    row = IRC8BRating.query.filter_by(
+        year=year, subsection_key=subsection_key, criterion_index=criterion_index
+    ).first()
+    if row is None:
+        row = IRC8BRating(year=year, subsection_key=subsection_key, criterion_index=criterion_index)
+        db.session.add(row)
+    row.section_key = section_key
+    row.rating = rating
+    db.session.commit()
+
+    return jsonify({
+        "year": year,
+        "sectionKey": section_key,
+        "subsectionKey": subsection_key,
+        "criterionIndex": criterion_index,
+        "rating": rating,
+    }), 200
+
+
 def not_found(e):
     return render_template("404.html", tabs=TABS, active_tab=None), 404
 
@@ -1519,4 +1935,5 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
         storage.seed_schools()
+        storage.seed_irc7_rows()
     app.run(debug=True)

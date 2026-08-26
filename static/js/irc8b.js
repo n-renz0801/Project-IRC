@@ -144,6 +144,64 @@
     });
   });
 
+  // Which section (cbc/cs) each subsection belongs to -- needed when
+  // saving a rating, since the server stores sectionKey alongside it
+  // (see models.IRC8BRating) even though the client mostly indexes by
+  // subsectionKey alone.
+  const SUBSECTION_TO_SECTION = {};
+  DATA.forEach((section) => {
+    section.subsections.forEach((sub) => {
+      SUBSECTION_TO_SECTION[sub.key] = section.key;
+    });
+  });
+
+  const YEAR = new Date().getFullYear();
+
+  // Ratings themselves are persisted server-side (see /irc/irc8b/data and
+  // /irc/irc8b/rating) -- the sections/subsections/criteria above stay
+  // hardcoded, only the numbers the user picks are saved.
+  async function loadRatings() {
+    try {
+      const res = await fetch(`/irc/irc8b/data?year=${YEAR}`);
+      if (!res.ok) throw new Error("Failed to load ratings");
+      const data = await res.json();
+      const serverRatings = data.ratings || {};
+
+      Object.keys(serverRatings).forEach((subKey) => {
+        if (!ratings[subKey]) return; // unknown subsection key -- ignore
+        const idxMap = serverRatings[subKey];
+        Object.keys(idxMap).forEach((idxStr) => {
+          const idx = Number(idxStr);
+          if (idx >= 0 && idx < ratings[subKey].length) {
+            ratings[subKey][idx] = idxMap[idxStr];
+          }
+        });
+      });
+    } catch (err) {
+      console.error("Failed to load IRC8b ratings:", err);
+    }
+    render();
+  }
+
+  async function saveRating(subKey, idx, value) {
+    try {
+      const res = await fetch("/irc/irc8b/rating", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          year: YEAR,
+          sectionKey: SUBSECTION_TO_SECTION[subKey],
+          subsectionKey: subKey,
+          criterionIndex: idx,
+          rating: value,
+        }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+    } catch (err) {
+      console.error("Failed to save IRC8b rating:", err);
+    }
+  }
+
   // ================= Helpers =================
   function fmtNum(n) {
     if (n === null || n === undefined || isNaN(n)) return "—";
@@ -275,11 +333,13 @@
     const rate = parseInt(btn.dataset.rate, 10);
 
     // Clicking the already-selected rating clears it; otherwise sets it.
-    ratings[subKey][idx] = ratings[subKey][idx] === rate ? null : rate;
+    const newValue = ratings[subKey][idx] === rate ? null : rate;
+    ratings[subKey][idx] = newValue;
 
     render();
+    saveRating(subKey, idx, newValue);
   });
 
-  // ================= Initial render =================
-  render();
+  // ================= Initial load =================
+  loadRatings();
 })();
