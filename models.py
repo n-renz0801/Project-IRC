@@ -1,8 +1,14 @@
 """
 SGOD_PMES -- Database Models
 =============================
-SQLAlchemy models for IRC1a through IRC4, plus the central `UploadedFile`
-table that every PDF-extracted record links back to.
+SQLAlchemy models for IRC1a through IRC4, IRC5, IRC6, IRC7, and IRC8b, plus
+the central `UploadedFile` table that every PDF-extracted record links
+back to.
+
+IRC5, IRC6, IRC7, and IRC8b have no PDF extraction pipeline -- everything
+in those tables is entered by hand through their own tab's UI, so none of
+their models carry an `uploaded_file_id` column. See the section header
+above each one for its specific shape.
 
 Design notes
 ------------
@@ -57,6 +63,20 @@ TA_STATUS_UNPROVIDED = "unprovided"
 
 SCHOOL_LEVEL_ELEMENTARY = "elementary"
 SCHOOL_LEVEL_SECONDARY = "secondary"
+
+IRC5_NATURE_FUNDED = "Funded"
+IRC5_NATURE_NONFUNDED = "Non-Funded"
+
+IRC6_KIND_GOAL = "goal"
+IRC6_KIND_OUTCOME = "outcome"
+IRC6_KIND_OUTPUT = "output"
+
+IRC7_COLUMN_TYPE_TEXT = "text"
+IRC7_COLUMN_TYPE_NUMBER = "number"
+IRC7_COLUMN_TYPE_PARAGRAPH = "paragraph"
+
+IRC8B_SECTION_CBC = "cbc"
+IRC8B_SECTION_CS = "cs"
 
 
 # ---------------------------------------------------------------------------
@@ -314,5 +334,285 @@ class IRC4Entry(db.Model):
     year = db.Column(db.Integer, nullable=False, index=True)
     month_key = db.Column(db.String(3), nullable=True)
     payload = db.Column(db.JSON, nullable=False, default=dict)
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# IRC5 -- Post Program Evaluation Results (one row per activity)
+#
+# No PDF pipeline for this one (per the SMME Section's evaluation results,
+# typed in by hand), so there's no uploaded_file_id here -- unlike the
+# tables above, nothing here is ever populated from an /extract endpoint.
+# `year` still exists so entries file under a report period the same way
+# every other table in this app does.
+# ---------------------------------------------------------------------------
+class IRC5Entry(db.Model):
+    __tablename__ = "irc5_entries"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    year = db.Column(db.Integer, nullable=False, index=True)
+
+    title = db.Column(db.String(255), nullable=False)
+    nature = db.Column(db.String(20), nullable=False)  # IRC5_NATURE_FUNDED | IRC5_NATURE_NONFUNDED
+
+    # List of ISO "YYYY-MM-DD" strings, e.g. ["2026-12-11", "2026-12-14", ...].
+    # `date_display` caches the frontend's hybrid "Dec. 11, 14-16, 2026"
+    # formatting of that same list, so the table can render without
+    # recomputing it -- it's derived data, kept in sync by the save route.
+    date_iso_list = db.Column(db.JSON, nullable=False, default=list)
+    date_display = db.Column(db.String(255), nullable=False, default="")
+
+    participants = db.Column(db.Text, nullable=True)
+
+    # Overall Rating (1.00-4.00) and its derived Descriptive Value
+    # (Strongly Agree / Agree / Disagree / Strongly Disagree, per the
+    # 0.75-wide bands in irc5.js's computeDescVal). `desc_val` is cached
+    # here for the same reason as `date_display` -- it's recomputed from
+    # `rating` on every save, never trusted as independently-entered data.
+    rating = db.Column(db.Float, nullable=True)
+    desc_val = db.Column(db.String(30), nullable=True)
+
+    indicator = db.Column(db.Text, nullable=True)
+    cause = db.Column(db.Text, nullable=True)
+    measures = db.Column(db.Text, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "year": self.year,
+            "title": self.title,
+            "nature": self.nature,
+            "dateIsoList": self.date_iso_list or [],
+            "dateDisplay": self.date_display,
+            "participants": self.participants,
+            "rating": self.rating,
+            "descVal": self.desc_val,
+            "indicator": self.indicator,
+            "cause": self.cause,
+            "measures": self.measures,
+        }
+
+
+# ---------------------------------------------------------------------------
+# IRC6 -- Monitoring & Evaluation Plan (Goal / Outcome / Output rows)
+#
+# One "goal" row and one "outcome" row per year are expected to exist
+# (seeded the same way irc6.js seeds them client-side), plus any number of
+# "output" rows. `sort_order` preserves each output's position -- outputs
+# are numbered by position at render time (see irc6.js's outputNumberFor),
+# never stored as a literal "Output N" value, so deleting one still leaves
+# the rest numbering cleanly.
+#
+# The partial unique index below enforces "at most one goal row and one
+# outcome row per year" at the DB level without constraining "output" rows,
+# which are meant to repeat.
+# ---------------------------------------------------------------------------
+class IRC6Entry(db.Model):
+    __tablename__ = "irc6_entries"
+    __table_args__ = (
+        db.Index(
+            "uq_irc6_goal_outcome_per_year",
+            "year", "kind",
+            unique=True,
+            sqlite_where=db.text("kind != 'output'"),
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    year = db.Column(db.Integer, nullable=False, index=True)
+    kind = db.Column(db.String(10), nullable=False)  # IRC6_KIND_GOAL | IRC6_KIND_OUTCOME | IRC6_KIND_OUTPUT
+
+    # Only meaningful when kind == IRC6_KIND_OUTPUT; blank for goal/outcome.
+    title = db.Column(db.String(255), nullable=False, default="")
+
+    objectives = db.Column(db.Text, nullable=True)
+    indicators = db.Column(db.Text, nullable=True)
+    definition = db.Column(db.Text, nullable=True)
+
+    dc_source = db.Column(db.Text, nullable=True)   # Data Collection: Source/Methods
+    dc_person = db.Column(db.String(255), nullable=True)
+    dc_freq = db.Column(db.String(255), nullable=True)
+
+    da_used = db.Column(db.Text, nullable=True)      # Data Analysis: Data Used
+    da_person = db.Column(db.String(255), nullable=True)
+    da_freq = db.Column(db.String(255), nullable=True)
+
+    users = db.Column(db.Text, nullable=True)         # Users of M&E Results
+
+    rep_comm = db.Column(db.Text, nullable=True)      # Reporting: Communication Strategies
+    rep_freq = db.Column(db.String(255), nullable=True)
+
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "year": self.year,
+            "kind": self.kind,
+            "title": self.title,
+            "objectives": self.objectives,
+            "indicators": self.indicators,
+            "definition": self.definition,
+            "dcSource": self.dc_source,
+            "dcPerson": self.dc_person,
+            "dcFreq": self.dc_freq,
+            "daUsed": self.da_used,
+            "daPerson": self.da_person,
+            "daFreq": self.da_freq,
+            "users": self.users,
+            "repComm": self.rep_comm,
+            "repFreq": self.rep_freq,
+        }
+
+
+# ---------------------------------------------------------------------------
+# IRC7 -- SGOD Dashboard Data (user-extensible spreadsheet)
+#
+# irc7.html ships with a *fixed* set of rows (one per school / curricular
+# offering combination -- some schools appear twice, once per offering) and
+# a *fixed* set of leading columns (School ID, School Name, Curricular
+# Offering, DLC, Status, School Classification). On top of that, the user
+# can add any number of extra columns (grouped or standalone, each typed
+# text/number/paragraph) via the "Add Column" modal, and fill in a value
+# for each one against each row.
+#
+# That's modeled here as three tables instead of one wide table:
+#   - IRC7Row     -- the fixed reference rows, seeded once (see
+#                    storage.seed_irc7_rows()), analogous to School.
+#   - IRC7Column  -- the user-defined columns/groups, added and removed
+#                    freely through the UI.
+#   - IRC7CellValue -- one value per (row, column, year) -- EAV-style,
+#                    since the set of columns is unbounded and changes at
+#                    runtime. `value` is always stored as text; number
+#                    columns are parsed/validated at the API layer.
+# `year` lives on IRC7CellValue (not IRC7Row/IRC7Column) since the rows and
+# the column definitions are shared across years, but the entered data for
+# a given school+column is naturally year-scoped, like everything else in
+# this app that isn't a static master list.
+# ---------------------------------------------------------------------------
+class IRC7Row(db.Model):
+    """One fixed reference row: a school, or a school's specific curricular
+    offering. Seeded once from the dataset baked into the old irc7.html
+    (see storage.seed_irc7_rows()); not created/deleted through the UI."""
+
+    __tablename__ = "irc7_rows"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # DepEd School ID as printed on the report -- kept as a string since a
+    # few source rows have it blank (e.g. "Dela Paz ES"), and it's never
+    # used arithmetically. Deliberately NOT unique: several rows legitimately
+    # share the same school_id_code (one per curricular offering).
+    school_id_code = db.Column(db.String(20), nullable=True)
+    school_name = db.Column(db.String(150), nullable=False)
+    curricular_offering = db.Column(db.String(50), nullable=False)
+    dlc = db.Column(db.String(10), nullable=True)  # District Learning Cluster, e.g. "II-D"
+    dedp_status = db.Column(db.String(11), nullable=False, default="non-DEDP")  # "DEDP" | "non-DEDP"
+    classification = db.Column(db.String(20), nullable=True)  # Small / Medium / Large / Very Large
+
+    # Preserves the original on-screen row order (seed order), since rows
+    # aren't alphabetically unambiguous on their own (duplicate names).
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    cell_values = db.relationship(
+        "IRC7CellValue", backref="row",
+        cascade="all, delete-orphan", passive_deletes=True,
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "schoolIdCode": self.school_id_code,
+            "schoolName": self.school_name,
+            "curricularOffering": self.curricular_offering,
+            "dlc": self.dlc,
+            "dedpStatus": self.dedp_status,
+            "classification": self.classification,
+            "sortOrder": self.sort_order,
+        }
+
+
+class IRC7Column(db.Model):
+    """A user-added column, standalone or part of a named group. Deleting a
+    column (or a whole group) cascades to every cell value stored under
+    it, mirroring irc7.js's removeColumn()/removeGroup() UI behavior."""
+
+    __tablename__ = "irc7_columns"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    name = db.Column(db.String(150), nullable=False)
+    type = db.Column(db.String(20), nullable=False, default=IRC7_COLUMN_TYPE_TEXT)
+
+    # Null for a standalone column; columns sharing the same group_name are
+    # rendered under one spanning header, same as irc7.js's `groupName`.
+    group_name = db.Column(db.String(150), nullable=True)
+
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    cell_values = db.relationship(
+        "IRC7CellValue", backref="column",
+        cascade="all, delete-orphan", passive_deletes=True,
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "type": self.type,
+            "groupName": self.group_name,
+            "sortOrder": self.sort_order,
+        }
+
+
+class IRC7CellValue(db.Model):
+    __tablename__ = "irc7_cell_values"
+    __table_args__ = (
+        db.UniqueConstraint("row_id", "column_id", "year", name="uq_irc7_row_column_year"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    row_id = db.Column(db.Integer, db.ForeignKey("irc7_rows.id", ondelete="CASCADE"), nullable=False)
+    column_id = db.Column(db.Integer, db.ForeignKey("irc7_columns.id", ondelete="CASCADE"), nullable=False)
+
+    year = db.Column(db.Integer, nullable=False, index=True)
+    value = db.Column(db.Text, nullable=True)
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# IRC8b -- Core Behavioral Competencies and Core Skills (rating sheet)
+#
+# The sections/subsections/criteria themselves are a fixed, hardcoded list
+# (see irc8b.js's DATA) -- nothing about that structure is stored in the DB.
+# Only the 1-5 ratings the user assigns per criterion are persisted, keyed
+# by which criterion they belong to (subsection_key + its 0-based position
+# in that subsection's criteria list) plus year, so a rating survives a
+# reload but the criteria text/order still lives in the frontend.
+# ---------------------------------------------------------------------------
+class IRC8BRating(db.Model):
+    __tablename__ = "irc8b_ratings"
+    __table_args__ = (
+        db.UniqueConstraint("year", "subsection_key", "criterion_index", name="uq_irc8b_year_subsection_criterion"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    year = db.Column(db.Integer, nullable=False, index=True)
+    section_key = db.Column(db.String(10), nullable=False)      # IRC8B_SECTION_CBC | IRC8B_SECTION_CS
+    subsection_key = db.Column(db.String(40), nullable=False)   # e.g. "self_management"
+    criterion_index = db.Column(db.Integer, nullable=False)     # 0-based position within the subsection's criteria
+
+    rating = db.Column(db.Integer, nullable=True)  # 1-5, or NULL if cleared
 
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

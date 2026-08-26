@@ -2,8 +2,11 @@
   const tab = document.getElementById("irc6-tab");
   if (!tab) return;
 
-  // In-memory store of entries. Swap this out for a fetch()/POST to
-  // Flask once a persistence layer exists for IRC6.
+  // Entries are persisted server-side (see /irc/irc6/data, /irc/irc6/entry,
+  // and models.IRC6Entry). `entries` here is just a client-side cache of
+  // whatever the server returned, refreshed on load and kept in sync after
+  // every save/delete -- ids, and the Goal/Outcome seed rows themselves,
+  // always come from the server (see app.py's _ensure_irc6_seed).
   //
   // Each entry: { id, kind: 'goal' | 'outcome' | 'output', title,
   //   objectives, indicators, definition,
@@ -12,38 +15,14 @@
   //   users, repComm, repFreq }
   //
   // 'title' is only meaningful for kind === 'output'. Goal and Outcome
-  // are seeded once, always present, and are edit-only (no delete, no
-  // title field) — the label itself is fixed. Outputs are numbered by
-  // their position among kind === 'output' entries at render time, so
-  // deleting one automatically renumbers the rest; nothing is stored.
+  // are always present, and are edit-only (no delete, no title field) —
+  // the label itself is fixed. Outputs are numbered by their position
+  // among kind === 'output' entries at render time, so deleting one
+  // automatically renumbers the rest; nothing is stored.
+  const YEAR = new Date().getFullYear();
   let entries = [];
   let editingId = null; // id of entry currently being edited, or null for "add"
-  let nextId = 1;
   let pendingDeleteId = null;
-
-  function makeSeedEntry(kind, title) {
-    return {
-      id: nextId++,
-      kind,
-      title: title || "",
-      objectives: "",
-      indicators: "",
-      definition: "",
-      dcSource: "",
-      dcPerson: "",
-      dcFreq: "",
-      daUsed: "",
-      daPerson: "",
-      daFreq: "",
-      users: "",
-      repComm: "",
-      repFreq: "",
-    };
-  }
-
-  entries.push(makeSeedEntry("goal"));
-  entries.push(makeSeedEntry("outcome"));
-  entries.push(makeSeedEntry("output", ""));
 
   // ------------------------------------------------------------------
   // DOM refs
@@ -97,6 +76,43 @@
     const div = document.createElement("div");
     div.textContent = str == null ? "" : str;
     return div.innerHTML;
+  }
+
+  // Server fields come back with nulls for anything never filled in;
+  // normalize those into "" so the rest of this file (which always dealt
+  // in trimmed strings from form submissions) doesn't need to special-case
+  // null vs "".
+  function normalizeEntry(e) {
+    return {
+      id: e.id,
+      kind: e.kind,
+      title: e.title || "",
+      objectives: e.objectives || "",
+      indicators: e.indicators || "",
+      definition: e.definition || "",
+      dcSource: e.dcSource || "",
+      dcPerson: e.dcPerson || "",
+      dcFreq: e.dcFreq || "",
+      daUsed: e.daUsed || "",
+      daPerson: e.daPerson || "",
+      daFreq: e.daFreq || "",
+      users: e.users || "",
+      repComm: e.repComm || "",
+      repFreq: e.repFreq || "",
+    };
+  }
+
+  async function loadEntries() {
+    try {
+      const res = await fetch(`/irc/irc6/data?year=${YEAR}`);
+      if (!res.ok) throw new Error("Failed to load entries");
+      const data = await res.json();
+      entries = (data.entries || []).map(normalizeEntry);
+    } catch (err) {
+      console.error("Failed to load IRC6 entries:", err);
+      entries = [];
+    }
+    renderTable();
   }
 
   function autosizeTextarea(el) {
@@ -228,10 +244,19 @@
     if (e.target === confirmOverlay) closeDeleteConfirm();
   });
 
-  confirmDeleteBtn.addEventListener("click", () => {
+  confirmDeleteBtn.addEventListener("click", async () => {
     if (pendingDeleteId !== null) {
-      entries = entries.filter((en) => en.id !== pendingDeleteId);
-      renderTable();
+      try {
+        const res = await fetch(`/irc/irc6/entry/${pendingDeleteId}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Delete failed");
+        entries = entries.filter((en) => en.id !== pendingDeleteId);
+        renderTable();
+      } catch (err) {
+        console.error("Failed to delete IRC6 output:", err);
+        alert("Could not delete this output. Please try again.");
+      }
     }
     closeDeleteConfirm();
   });
@@ -319,7 +344,7 @@
   // ------------------------------------------------------------------
   // Form submit
   // ------------------------------------------------------------------
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const kind =
@@ -328,6 +353,8 @@
         : entries.find((en) => en.id === editingId).kind;
 
     const entryData = {
+      id: editingId,
+      year: YEAR,
       title: kind === "output" ? fTitle.value.trim() : "",
       objectives: fObjectives.value.trim(),
       indicators: fIndicators.value.trim(),
@@ -343,19 +370,32 @@
       repFreq: fRepFreq.value.trim(),
     };
 
-    if (editingId !== null) {
-      const idx = entries.findIndex((en) => en.id === editingId);
-      if (idx !== -1) entries[idx] = { ...entries[idx], ...entryData };
-    } else {
-      entries.push({ id: nextId++, kind: "output", ...entryData });
-    }
+    try {
+      const res = await fetch("/irc/irc6/entry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entryData),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      const saved = normalizeEntry(await res.json());
 
-    renderTable();
-    closeModal();
+      if (editingId !== null) {
+        const idx = entries.findIndex((en) => en.id === editingId);
+        if (idx !== -1) entries[idx] = saved;
+      } else {
+        entries.push(saved);
+      }
+
+      renderTable();
+      closeModal();
+    } catch (err) {
+      console.error("Failed to save IRC6 entry:", err);
+      alert("Could not save this entry. Please try again.");
+    }
   });
 
   // ------------------------------------------------------------------
-  // Initial render
+  // Initial load
   // ------------------------------------------------------------------
-  renderTable();
+  loadEntries();
 })();

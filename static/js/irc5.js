@@ -19,11 +19,14 @@
   const WEEKDAY_COUNT = 7;
   const TEXTAREA_MIN_HEIGHT = 44; // px, must match the CSS default height
 
-  // In-memory store of entries. Swap this out for a fetch()/POST to
-  // Flask once a persistence layer exists for IRC5.
+  // Entries are persisted server-side (see /irc/irc5/data, /irc/irc5/entry,
+  // and models.IRC5Entry). `entries` here is just a client-side cache of
+  // whatever the server returned, refreshed on load and kept in sync after
+  // every save/delete -- ids always come from the server, never generated
+  // locally.
+  const YEAR = new Date().getFullYear();
   let entries = [];
   let editingId = null; // id of entry currently being edited, or null for "add"
-  let nextId = 1;
   let pendingDeleteId = null; // id awaiting confirmation in the delete modal
 
   // Calendar state (scoped to whatever modal instance is open)
@@ -132,6 +135,41 @@
     const div = document.createElement("div");
     div.textContent = str == null ? "" : str;
     return div.innerHTML;
+  }
+
+  // Server fields (year, nulls for unset rating/participants/etc.) are
+  // normalized here into the same all-strings shape the rest of this file
+  // already assumes -- entries built from form submissions always trimmed
+  // strings, so keeping that shape means renderTable/openModalForEdit
+  // don't need to special-case null vs "".
+  function normalizeEntry(e) {
+    return {
+      id: e.id,
+      title: e.title || "",
+      nature: e.nature || "",
+      dateIsoList: e.dateIsoList || [],
+      dateDisplay: e.dateDisplay || "",
+      participants: e.participants || "",
+      rating:
+        e.rating !== null && e.rating !== undefined ? String(e.rating) : "",
+      descVal: e.descVal || "",
+      indicator: e.indicator || "",
+      cause: e.cause || "",
+      measures: e.measures || "",
+    };
+  }
+
+  async function loadEntries() {
+    try {
+      const res = await fetch(`/irc/irc5/data?year=${YEAR}`);
+      if (!res.ok) throw new Error("Failed to load entries");
+      const data = await res.json();
+      entries = (data.entries || []).map(normalizeEntry);
+    } catch (err) {
+      console.error("Failed to load IRC5 entries:", err);
+      entries = [];
+    }
+    renderTable();
   }
 
   // Grows a textarea to fit its content, but never shrinks below the
@@ -440,10 +478,19 @@
     if (e.target === confirmOverlay) closeDeleteConfirm();
   });
 
-  confirmDeleteBtn.addEventListener("click", () => {
+  confirmDeleteBtn.addEventListener("click", async () => {
     if (pendingDeleteId !== null) {
-      entries = entries.filter((en) => en.id !== pendingDeleteId);
-      renderTable();
+      try {
+        const res = await fetch(`/irc/irc5/entry/${pendingDeleteId}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Delete failed");
+        entries = entries.filter((en) => en.id !== pendingDeleteId);
+        renderTable();
+      } catch (err) {
+        console.error("Failed to delete IRC5 entry:", err);
+        alert("Could not delete this entry. Please try again.");
+      }
     }
     closeDeleteConfirm();
   });
@@ -518,36 +565,52 @@
   // ------------------------------------------------------------------
   // Form submit
   // ------------------------------------------------------------------
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const dateIsoList = Array.from(selectedDates).sort();
+    const ratingText = fRating.value.trim();
     const entryData = {
+      id: editingId,
+      year: YEAR,
       title: fTitle.value.trim(),
       nature: fNature.value,
       dateIsoList,
       dateDisplay: formatDateSelection(selectedDates),
       participants: fParticipants.value.trim(),
-      rating: fRating.value.trim(),
+      rating: ratingText === "" ? null : parseFloat(ratingText),
       descVal: fDescVal.value,
       indicator: fIndicator.value.trim(),
       cause: fCause.value.trim(),
       measures: fMeasures.value.trim(),
     };
 
-    if (editingId !== null) {
-      const idx = entries.findIndex((en) => en.id === editingId);
-      if (idx !== -1) entries[idx] = { ...entries[idx], ...entryData };
-    } else {
-      entries.push({ id: nextId++, ...entryData });
-    }
+    try {
+      const res = await fetch("/irc/irc5/entry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entryData),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      const saved = normalizeEntry(await res.json());
 
-    renderTable();
-    closeModal();
+      if (editingId !== null) {
+        const idx = entries.findIndex((en) => en.id === editingId);
+        if (idx !== -1) entries[idx] = saved;
+      } else {
+        entries.push(saved);
+      }
+
+      renderTable();
+      closeModal();
+    } catch (err) {
+      console.error("Failed to save IRC5 entry:", err);
+      alert("Could not save this entry. Please try again.");
+    }
   });
 
   // ------------------------------------------------------------------
-  // Initial render
+  // Initial load
   // ------------------------------------------------------------------
-  renderTable();
+  loadEntries();
 })();

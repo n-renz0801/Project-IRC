@@ -32,7 +32,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from werkzeug.utils import secure_filename
 
-from models import School, UploadedFile, db
+from models import IRC7Row, School, UploadedFile, db
 
 MONTH_KEYS = [
     "jan", "feb", "mar", "apr", "may", "jun",
@@ -246,6 +246,123 @@ def seed_schools():
         School(name=name, level=level, is_dedp_priority=name in _DEDP_PRIORITY)
         for name, level in _SCHOOLS_SEED
         if name not in existing_names
+    ]
+
+    if new_rows:
+        db.session.bulk_save_objects(new_rows)
+        db.session.commit()
+
+    return len(new_rows)
+
+
+# ---------------------------------------------------------------------------
+# One-time IRC7 reference-row seed (source: the fixed rows previously
+# hardcoded directly into irc7.html's <tbody>). Each tuple is:
+#   (school_id_code, school_name, curricular_offering, dlc, dedp_status,
+#    classification)
+# A handful of schools legitimately appear twice (once per curricular
+# offering, e.g. Apia Integrated School / Elementary and /Secondary) -- that
+# duplication is preserved here rather than collapsed, since it's what
+# irc7.js's fixed table actually showed.
+# ---------------------------------------------------------------------------
+_IRC7_ROWS_SEED = [
+    ("321507", "Antipolo City National Science and Technology HS", "JHS with SHS", "II-D", "non-DEDP", "Small"),
+    ("342175", "Antipolo City Senior HS", "Secondary", "I-A", "non-DEDP", "Large"),
+    ("500392", "Antipolo City SPED Center", "Elementary", "I-B", "non-DEDP", "Small"),
+    ("301418", "Antipolo NHS", "Secondary", "I-A", "DEDP", "Very Large"),
+    ("500391", "Apia Integrated School", "Elementary", "II-F", "non-DEDP", "Small"),
+    ("500391", "Apia Integrated School", "Secondary", "II-F", "non-DEDP", "Small"),
+    ("109319", "Bagong Nayon I ES", "Elementary", "I-A", "DEDP", "Very Large"),
+    ("109320", "Bagong Nayon II ES", "Elementary", "I-B", "DEDP", "Very Large"),
+    ("301419", "Bagong Nayon II NHS", "JHS with SHS", "I-B", "DEDP", "Very Large"),
+    ("109321", "Bagong Nayon IV ES", "Elementary", "I-B", "DEDP", "Very Large"),
+    ("501119", "Binayoyo Integrated School", "Elementary", "II-F", "non-DEDP", "Small"),
+    ("501119", "Binayoyo Integrated School", "Secondary", "II-F", "non-DEDP", "Small"),
+    ("109335", "Cabading ES", "Elementary", "II-D", "non-DEDP", "Small"),
+    ("109348", "Calawis ES", "Elementary", "II-F", "non-DEDP", "Small"),
+    ("301431", "Calawis NHS", "JHS with SHS", "II-F", "non-DEDP", "Small"),
+    ("109349", "Canumay ES", "Elementary", "II-G", "non-DEDP", "Small"),
+    ("321502", "Canumay NHS", "JHS with SHS", "II-G", "non-DEDP", "Small"),
+    ("109323", "Cupang ES", "Elementary", "II-C", "DEDP", "Very Large"),
+    ("230002", "Cupang ES Annex", "Elementary", "II-C", "non-DEDP", "Small"),
+    ("301420", "Cupang NHS", "Secondary", "II-C", "non-DEDP", "Large"),
+    ("109324", "Dalig ES", "Elementary", "II-A", "non-DEDP", "Small"),
+    ("321506", "Dalig NHS", "JHS with SHS", "II-B", "DEDP", "Large"),
+    (None, "Dela Paz ES", "Elementary", "I-A", "DEDP", "Large"),
+    ("321505", "Dela Paz NHS", "JHS with SHS", "I-A", "non-DEDP", "Large"),
+    ("109326", "Inuman ES", "Elementary", "II-D", "non-DEDP", "Large"),
+    ("109350", "Isaias S. Tapales ES", "Elementary", "II-B", "non-DEDP", "Very Large"),
+    ("109351", "Jesus S. Cabarrus ES", "Elementary", "II-B", "DEDP", "Large"),
+    ("109327", "Juan Sumulong ES", "Elementary", "II-A", "DEDP", "Very Large"),
+    ("109328", "Kaila ES", "Elementary", "II-A", "non-DEDP", "Medium"),
+    ("109352", "Kaysakat ES", "Elementary", "II-G", "DEDP", "Small"),
+    ("301421", "Kaysakat NHS", "JHS with SHS", "II-G", "non-DEDP", "Small"),
+    ("230003", "Knights of Columbus ES", "Elementary", "II-A", "non-DEDP", "Medium"),
+    ("109322", "Libis ES", "Elementary", "II-G", "non-DEDP", "Small"),
+    ("109329", "Lores ES", "Elementary", "II-A", "DEDP", "Large"),
+    ("109330", "Mambugan I ES", "Elementary", "I-C", "DEDP", "Large"),
+    ("230005", "Mambugan II ES", "Elementary", "I-C", "DEDP", "Medium"),
+    ("301448", "Mambugan NHS", "Secondary", "I-C", "DEDP", "Very Large"),
+    ("321501", "Marcelino M. Santos NHS", "JHS with SHS", "II-B", "non-DEDP", "Medium"),
+    ("301450", "Maximo L. Gatlabayan Memorial NHS", "JHS with SHS", "II-E", "DEDP", "Large"),
+    ("109331", "Mayamot ES", "Elementary", "I-C", "DEDP", "Very Large"),
+    ("301422", "Mayamot NHS", "JHS with SHS", "I-C", "non-DEDP", "Very Large"),
+    ("109332", "Muntindilaw ES", "Elementary", "I-C", "DEDP", "Medium"),
+    ("301423", "Muntindilaw NHS", "JHS with SHS", "I-C", "non-DEDP", "Medium"),
+    ("109333", "Nazarene Ville ES", "Elementary", "II-A", "non-DEDP", "Medium"),
+    ("109334", "Old Boso-boso ES", "Elementary", "II-E", "non-DEDP", "Large"),
+    ("308101", "Old Boso-boso NHS", "JHS with SHS", "II-E", "non-DEDP", "Medium"),
+    ("230006", "Paglitaw ES", "Elementary", "II-F", "non-DEDP", "Small"),
+    ("109354", "Pantay ES", "Elementary", "II-B", "non-DEDP", "Medium"),
+    ("109336", "Peace Village ES", "Elementary", "II-D", "DEDP", "Large"),
+    ("109337", "Pe\u00f1afrancia ES", "Elementary", "II-C", "DEDP", "Very Large"),
+    ("109338", "Pe\u00f1afrancia ES Annex", "Elementary", "II-C", "non-DEDP", "Small"),
+    ("109357", "Rizza ES", "Elementary", "II-E", "DEDP", "Medium"),
+    ("321504", "Rizza NHS", "JHS with SHS", "II-E", "non-DEDP", "Small"),
+    ("109358", "San Antonio Village ES", "Elementary", "II-B", "DEDP", "Large"),
+    ("109339", "San Isidro ES", "Elementary", "I-B", "DEDP", "Very Large"),
+    ("301426", "San Isidro NHS", "JHS with SHS", "I-B", "DEDP", "Large"),
+    ("301457", "San Jose NHS", "JHS with SHS", "II-A", "DEDP", "Very Large"),
+    ("109359", "San Joseph ES", "Elementary", "II-G", "non-DEDP", "Small"),
+    ("301427", "San Juan NHS", "JHS with SHS", "II-F", "non-DEDP", "Medium"),
+    ("109340", "San Luis ES", "Elementary", "II-D", "non-DEDP", "Medium"),
+    ("301425", "San Roque NHS", "JHS with SHS", "II-A", "non-DEDP", "Very Large"),
+    ("109360", "San Ysiro ES", "Elementary", "II-G", "non-DEDP", "Small"),
+    ("109341", "Sapinit ES", "Elementary", "II-F", "non-DEDP", "Medium"),
+    ("109342", "Sta. Cruz ES", "Elementary", "I-A", "non-DEDP", "Very Large"),
+    ("109361", "Sumilang ES", "Elementary", "II-E", "non-DEDP", "Small"),
+    ("111082", "Taguete ES", "Elementary", "II-C", "non-DEDP", "Medium"),
+    ("230001", "Tanza ES", "Elementary", "II-D", "DEDP", "Medium"),
+    ("109343", "Teofila Z. Rovero Memorial ES", "Elementary", "II-B", "non-DEDP", "Medium"),
+    ("109363", "Upper Kilingan ES", "Elementary", "II-E", "non-DEDP", "Small"),
+]
+
+
+def seed_irc7_rows():
+    """Idempotent, mirroring seed_schools(): only inserts rows that don't
+    already exist for that exact (school_name, curricular_offering) pair,
+    so it's safe to re-run and won't create duplicates or touch existing
+    rows' data. Run once after `db.create_all()` (see app.py's `init-db`
+    CLI command)."""
+    existing_pairs = {
+        (name, offering)
+        for (name, offering) in db.session.query(
+            IRC7Row.school_name, IRC7Row.curricular_offering
+        ).all()
+    }
+
+    new_rows = [
+        IRC7Row(
+            school_id_code=school_id_code,
+            school_name=name,
+            curricular_offering=offering,
+            dlc=dlc,
+            dedp_status=status,
+            classification=classification,
+            sort_order=i,
+        )
+        for i, (school_id_code, name, offering, dlc, status, classification) in enumerate(_IRC7_ROWS_SEED)
+        if (name, offering) not in existing_pairs
     ]
 
     if new_rows:
