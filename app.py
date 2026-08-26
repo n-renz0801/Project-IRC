@@ -13,16 +13,17 @@ from models import (
     IRC2ASchoolStatus,
     IRC2BTAFrequency,
     IRC3Status,
-    IRC4Plan,
-    IRC4Objective,
-    IRC4Group,
-    IRC4GroupSchool,
+    IRC4Entry,
     IRC5Entry,
     IRC6Entry,
     IRC7Row,
     IRC7Column,
     IRC7CellValue,
     IRC8BRating,
+    IRC8AKra,
+    IRC8AObjective,
+    IRC8AIndicator,
+    IRC8A_CATEGORIES,
     MONTH_KEYS,
     TA_STATUS_PROVIDED,
     TA_STATUS_UNPROVIDED,
@@ -725,17 +726,6 @@ def view_tab(tab_id):
     if active_tab is None:
         abort(404)
     return render_template(TEMPLATE_MAP[tab_id], tabs=TABS, active_tab=active_tab)
-
-
-# ---------------------------------------------------------------------------
-# Shared school master list -- lets any tab (IRC4's group-builder, etc.)
-# build a school picker straight from the database instead of keeping its
-# own hardcoded copy of the roster in sync by hand.
-# ---------------------------------------------------------------------------
-@app.route("/irc/schools", methods=["GET"])
-def get_schools():
-    schools = School.query.order_by(School.name.asc()).all()
-    return jsonify({"schools": [s.to_dict() for s in schools]}), 200
 
 
 # ---------------------------------------------------------------------------
@@ -1540,207 +1530,6 @@ def extract_irc9_pdf():
 
 
 # ---------------------------------------------------------------------------
-# IRC4 -- Technical Assistance (TA) Catch-up Plan
-#
-# No PDF pipeline here (built by hand from IRC3's results, same as
-# IRC5/IRC6) -- these routes just persist whatever the page's editable
-# fields, "Add Objective" button, and Add/Edit Group modal submit.
-# ---------------------------------------------------------------------------
-def _ensure_irc4_plan(year):
-    """Guarantees a plan row exists for `year`, and that it starts with
-    the recommended minimum of three (blank) objectives -- mirroring the
-    seeding _ensure_irc6_seed does for IRC6's Goal/Outcome rows, and what
-    irc4.js used to do purely in memory before this table existed. Safe
-    to call on every GET/POST -- a no-op past the first call for a given
-    year."""
-    plan = IRC4Plan.query.filter_by(year=year).first()
-    if plan is None:
-        plan = IRC4Plan(year=year)
-        db.session.add(plan)
-        db.session.flush()  # assigns plan.id so the objectives below can reference it
-
-    if not plan.objectives:
-        for i in range(3):
-            db.session.add(IRC4Objective(plan_id=plan.id, text="", sort_order=i))
-
-    db.session.commit()
-    return plan
-
-
-@app.route("/irc/irc4/data", methods=["GET"])
-def get_irc4_data():
-    year = request.args.get("year", type=int) or _current_year()
-    plan = _ensure_irc4_plan(year)
-    return jsonify(plan.to_dict()), 200
-
-
-@app.route("/irc/irc4/plan", methods=["POST"])
-def save_irc4_plan():
-    """Persists the Activity / TA Receiver / MOV's free-text fields.
-    Whichever of the three keys are present in the body get written;
-    omitted keys are left untouched.
-
-    Expected JSON body:
-        { "year": 2026, "activity": "...", "taReceiver": "...", "movs": "..." }
-    """
-    data = request.get_json(silent=True) or {}
-    year = data.get("year") or _current_year()
-    plan = _ensure_irc4_plan(year)
-
-    if "activity" in data:
-        plan.activity = data.get("activity") or ""
-    if "taReceiver" in data:
-        plan.ta_receiver = data.get("taReceiver") or ""
-    if "movs" in data:
-        plan.movs = data.get("movs") or ""
-
-    db.session.commit()
-    return jsonify(plan.to_dict()), 200
-
-
-@app.route("/irc/irc4/objective", methods=["POST"])
-def save_irc4_objective():
-    """Creates a new objective (id omitted), or updates an existing one's
-    text (id included).
-
-    Expected JSON body:
-        { "id": 7, "year": 2026, "text": "..." }   // omit/null "id" to create
-    """
-    data = request.get_json(silent=True) or {}
-    objective_id = data.get("id")
-    year = data.get("year") or _current_year()
-    text = data.get("text") or ""
-
-    if objective_id:
-        objective = IRC4Objective.query.get(objective_id)
-        if objective is None:
-            return jsonify({"error": "Objective not found"}), 404
-        objective.text = text
-    else:
-        plan = _ensure_irc4_plan(year)
-        max_order = (
-            db.session.query(db.func.max(IRC4Objective.sort_order))
-            .filter_by(plan_id=plan.id)
-            .scalar()
-        )
-        objective = IRC4Objective(
-            plan_id=plan.id,
-            text=text,
-            sort_order=(max_order + 1) if max_order is not None else 0,
-        )
-        db.session.add(objective)
-
-    db.session.commit()
-    return jsonify(objective.to_dict()), 200
-
-
-@app.route("/irc/irc4/objective/<int:objective_id>", methods=["DELETE"])
-def delete_irc4_objective(objective_id):
-    objective = IRC4Objective.query.get(objective_id)
-    if objective is None:
-        return jsonify({"error": "Objective not found"}), 404
-    db.session.delete(objective)
-    db.session.commit()
-    return jsonify({"deleted": True, "id": objective_id}), 200
-
-
-@app.route("/irc/irc4/group", methods=["POST"])
-def save_irc4_group():
-    """Creates a new group (id omitted), or updates an existing one's
-    schools/schedule (id included). The school list is always replaced
-    wholesale -- simplest way to reconcile "whatever's in the modal's
-    draft now" against what's persisted, without diffing add/remove sets
-    by hand. School names that don't match the School table are reported
-    back under "not_found" (same convention as /irc/irc2b/save) instead
-    of failing the whole request.
-
-    Expected JSON body:
-        {
-          "id": 3,                              // omit/null to create a new group
-          "year": 2026,
-          "schools": ["Antipolo NHS", "Cupang ES"],
-          "schedule": "jul"                     // one of MONTH_KEYS, or null/omitted
-        }
-    """
-    data = request.get_json(silent=True) or {}
-    group_id = data.get("id")
-    year = data.get("year") or _current_year()
-    schedule = data.get("schedule") or None
-    school_names = data.get("schools")
-
-    if schedule is not None and schedule not in MONTH_KEYS:
-        return jsonify({"error": f"Invalid schedule: {schedule!r}"}), 400
-    if not isinstance(school_names, list):
-        return jsonify({"error": "'schools' must be a list"}), 400
-
-    if group_id:
-        group = IRC4Group.query.get(group_id)
-        if group is None:
-            return jsonify({"error": "Group not found"}), 404
-    else:
-        plan = _ensure_irc4_plan(year)
-        max_order = (
-            db.session.query(db.func.max(IRC4Group.sort_order))
-            .filter_by(plan_id=plan.id)
-            .scalar()
-        )
-        group = IRC4Group(plan_id=plan.id, sort_order=(max_order + 1) if max_order is not None else 0)
-        db.session.add(group)
-        db.session.flush()  # assigns group.id for the junction rows below
-
-    group.schedule_month_key = schedule
-
-    IRC4GroupSchool.query.filter_by(group_id=group.id).delete()
-
-    not_found = []
-    for i, name in enumerate(school_names):
-        school = School.query.filter_by(name=name).first()
-        if school is None:
-            not_found.append(name)
-            continue
-        db.session.add(IRC4GroupSchool(group_id=group.id, school_id=school.id, sort_order=i))
-
-    db.session.commit()
-
-    result = group.to_dict()
-    result["not_found"] = not_found
-    return jsonify(result), 200
-
-
-@app.route("/irc/irc4/group/<int:group_id>", methods=["DELETE"])
-def delete_irc4_group(group_id):
-    group = IRC4Group.query.get(group_id)
-    if group is None:
-        return jsonify({"error": "Group not found"}), 404
-    db.session.delete(group)  # cascades to its IRC4GroupSchool junction rows
-    db.session.commit()
-    return jsonify({"deleted": True, "id": group_id}), 200
-
-
-@app.route("/irc/irc4/school-ta-status", methods=["GET"])
-def get_irc4_school_ta_status():
-    """Per-school count of months marked 'provided' in IRC2b's TA
-    frequency grid, for the given year -- the source of IRC4's
-    TA-provided indicator in the Add/Edit Group modal (NOT IRC2a, which
-    only tracks current provided/unprovided status, not a count).
-    Year-scoped, matching how every other monthly table in this app
-    resets each year. Schools with a count of 0 are omitted entirely, so
-    the response only lists schools actually worth flagging.
-
-    Response: { "Antipolo NHS": 3, "Cupang ES": 1, ... }
-    """
-    year = request.args.get("year", type=int) or _current_year()
-    rows = (
-        db.session.query(School.name, db.func.count(IRC2BTAFrequency.id))
-        .join(IRC2BTAFrequency, IRC2BTAFrequency.school_id == School.id)
-        .filter(IRC2BTAFrequency.year == year, IRC2BTAFrequency.provided.is_(True))
-        .group_by(School.name)
-        .all()
-    )
-    return jsonify({name: count for name, count in rows if count > 0}), 200
-
-
-# ---------------------------------------------------------------------------
 # IRC5 -- Post Program Evaluation Results
 #
 # No PDF pipeline here (see models.py) -- these routes just persist
@@ -2136,6 +1925,276 @@ def save_irc8b_rating():
         "criterionIndex": criterion_index,
         "rating": rating,
     }), 200
+
+
+# ---------------------------------------------------------------------------
+# IRC8a -- Individual Performance Commitment and Review Form (IPCRF)
+#
+# No PDF pipeline here (per irc5/irc6/irc7/irc8b) -- these routes just
+# persist whatever the KRA / Objective / rubric-indicator modals in
+# irc8a.js submits. See the IRC8A* section of models.py for the full
+# rationale behind the KRA -> Objective -> Indicator shape.
+# ---------------------------------------------------------------------------
+def _validate_weight(raw):
+    """Returns (weight_or_None, error_message_or_None). Mirrors irc8a.js's
+    own "Weight must be a number between 0 and 100" client-side check."""
+    if raw in (None, ""):
+        return None, None
+    try:
+        weight = float(raw)
+    except (TypeError, ValueError):
+        return None, "Weight must be a number between 0 and 100."
+    if weight < 0 or weight > 100:
+        return None, "Weight must be a number between 0 and 100."
+    return weight, None
+
+
+@app.route("/irc/irc8a/data", methods=["GET"])
+def get_irc8a_data():
+    year = request.args.get("year", type=int) or _current_year()
+    kras = (
+        IRC8AKra.query.filter_by(year=year)
+        .order_by(IRC8AKra.sort_order.asc(), IRC8AKra.id.asc())
+        .all()
+    )
+    return jsonify({"year": year, "kras": [k.to_dict() for k in kras]}), 200
+
+
+@app.route("/irc/irc8a/kra", methods=["POST"])
+def save_irc8a_kra():
+    """Creates a new KRA (id omitted), or updates an existing one's text/
+    weight (id included) -- a KRA's `year` is fixed at creation and never
+    changes here, same treatment as IRC6's `kind`.
+
+    Expected JSON body:
+        { "id": 3, "year": 2026, "text": "...", "weight": 25 }
+    """
+    data = request.get_json(silent=True) or {}
+    kra_id = data.get("id")
+    text = (data.get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "Please describe the KRA."}), 400
+
+    weight, err = _validate_weight(data.get("weight"))
+    if err:
+        return jsonify({"error": err}), 400
+
+    if kra_id:
+        kra = IRC8AKra.query.get(kra_id)
+        if kra is None:
+            return jsonify({"error": "KRA not found"}), 404
+    else:
+        year = data.get("year") or _current_year()
+        max_order = db.session.query(db.func.max(IRC8AKra.sort_order)).filter_by(year=year).scalar() or 0
+        kra = IRC8AKra(year=year, sort_order=max_order + 1)
+        db.session.add(kra)
+
+    kra.text = text
+    kra.weight = weight
+    db.session.commit()
+    return jsonify(kra.to_dict()), 200
+
+
+@app.route("/irc/irc8a/kra/<int:kra_id>", methods=["DELETE"])
+def delete_irc8a_kra(kra_id):
+    kra = IRC8AKra.query.get(kra_id)
+    if kra is None:
+        return jsonify({"error": "KRA not found"}), 404
+    db.session.delete(kra)  # cascades to its objectives and their indicators
+    db.session.commit()
+    return jsonify({"deleted": True, "id": kra_id}), 200
+
+
+@app.route("/irc/irc8a/objective", methods=["POST"])
+def save_irc8a_objective():
+    """Creates a new Objective under `kraId` (id omitted), or updates an
+    existing one's text/weight (id included).
+
+    Expected JSON body:
+        { "id": 9, "kraId": 3, "text": "...", "weight": 40 }
+    """
+    data = request.get_json(silent=True) or {}
+    obj_id = data.get("id")
+    text = (data.get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "Please describe the objective."}), 400
+
+    weight, err = _validate_weight(data.get("weight"))
+    if err:
+        return jsonify({"error": err}), 400
+
+    if obj_id:
+        objective = IRC8AObjective.query.get(obj_id)
+        if objective is None:
+            return jsonify({"error": "Objective not found"}), 404
+    else:
+        kra_id = data.get("kraId")
+        kra = IRC8AKra.query.get(kra_id) if kra_id else None
+        if kra is None:
+            return jsonify({"error": "KRA not found"}), 404
+        max_order = (
+            db.session.query(db.func.max(IRC8AObjective.sort_order))
+            .filter_by(kra_id=kra.id).scalar() or 0
+        )
+        objective = IRC8AObjective(kra_id=kra.id, sort_order=max_order + 1)
+        db.session.add(objective)
+
+    objective.text = text
+    objective.weight = weight
+    db.session.commit()
+    return jsonify(objective.to_dict()), 200
+
+
+@app.route("/irc/irc8a/objective/<int:obj_id>", methods=["DELETE"])
+def delete_irc8a_objective(obj_id):
+    objective = IRC8AObjective.query.get(obj_id)
+    if objective is None:
+        return jsonify({"error": "Objective not found"}), 404
+    db.session.delete(objective)  # cascades to its rubric indicators
+    db.session.commit()
+    return jsonify({"deleted": True, "id": obj_id}), 200
+
+
+@app.route("/irc/irc8a/objective/<int:obj_id>/mov", methods=["POST"])
+def save_irc8a_objective_mov(obj_id):
+    """Expected JSON body: { "url": "https://..." }
+    An empty/omitted url clears the MOV link, matching irc8a.js's
+    delete-mov action."""
+    objective = IRC8AObjective.query.get(obj_id)
+    if objective is None:
+        return jsonify({"error": "Objective not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    url = (data.get("url") or "").strip()
+    objective.mov = url or None
+    db.session.commit()
+    return jsonify(objective.to_dict()), 200
+
+
+@app.route("/irc/irc8a/objective/<int:obj_id>/actual-results", methods=["POST"])
+def save_irc8a_objective_actual_results(obj_id):
+    """Expected JSON body: { "text": "..." }"""
+    objective = IRC8AObjective.query.get(obj_id)
+    if objective is None:
+        return jsonify({"error": "Objective not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    objective.actual_results = (data.get("text") or "").strip() or None
+    db.session.commit()
+    return jsonify(objective.to_dict()), 200
+
+
+@app.route("/irc/irc8a/objective/<int:obj_id>/timeline", methods=["POST"])
+def save_irc8a_objective_timeline(obj_id):
+    """Expected JSON body: { "text": "..." }"""
+    objective = IRC8AObjective.query.get(obj_id)
+    if objective is None:
+        return jsonify({"error": "Objective not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    objective.timeline = (data.get("text") or "").strip() or None
+    db.session.commit()
+    return jsonify(objective.to_dict()), 200
+
+
+@app.route("/irc/irc8a/objective/<int:obj_id>/rating", methods=["POST"])
+def save_irc8a_objective_rating(obj_id):
+    """Sets (or clears) one category's selected rating on an objective --
+    fired both by clicking a rubric indicator (select-indicator) and by
+    picking a value directly from that category's dropdown.
+
+    Expected JSON body: { "category": "quality", "rating": 4 }
+    'rating' may be null/omitted to clear it."""
+    objective = IRC8AObjective.query.get(obj_id)
+    if objective is None:
+        return jsonify({"error": "Objective not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    category = data.get("category")
+    rating = data.get("rating")
+
+    if category not in IRC8A_CATEGORIES:
+        return jsonify({"error": f"Invalid category: {category!r}"}), 400
+    if rating is not None and rating not in (1, 2, 3, 4, 5):
+        return jsonify({"error": f"Invalid rating: {rating!r}"}), 400
+
+    objective.set_rating(category, rating)
+    db.session.commit()
+    return jsonify(objective.to_dict()), 200
+
+
+@app.route("/irc/irc8a/indicator", methods=["POST"])
+def save_irc8a_indicator():
+    """Creates a new rubric indicator under `objectiveId` (id omitted), or
+    updates an existing one's rate/label (id included). A category is
+    fixed at creation and never changes here -- irc8a.js's edit-rubric
+    modal only ever lets you change the rate/description within the
+    category you opened it from.
+
+    Expected JSON body:
+        { "id": 5, "objectiveId": 9, "category": "quality", "rate": 3, "label": "..." }
+
+    Rejects a rate already used by another indicator in the same
+    (objective, category) -- matching populateRateOptions's "already
+    used" filtering on the frontend, enforced here at the DB level too.
+    """
+    data = request.get_json(silent=True) or {}
+    indicator_id = data.get("id")
+    label = (data.get("label") or "").strip()
+    rate = data.get("rate")
+
+    if not label:
+        return jsonify({"error": "Please describe what earns this rating level."}), 400
+    if rate not in (1, 2, 3, 4, 5):
+        return jsonify({"error": "Please select a rating level."}), 400
+
+    if indicator_id:
+        indicator = IRC8AIndicator.query.get(indicator_id)
+        if indicator is None:
+            return jsonify({"error": "Indicator not found"}), 404
+        objective_id = indicator.objective_id
+        category = indicator.category  # fixed at creation
+    else:
+        indicator = None
+        objective_id = data.get("objectiveId")
+        category = data.get("category")
+        if category not in IRC8A_CATEGORIES:
+            return jsonify({"error": f"Invalid category: {category!r}"}), 400
+        objective = IRC8AObjective.query.get(objective_id) if objective_id else None
+        if objective is None:
+            return jsonify({"error": "Objective not found"}), 404
+        if len(objective.indicators_for(category)) >= 5:
+            return jsonify({"error": "At most 5 indicators are allowed per category."}), 400
+
+    # Dupe check runs before the new row is added to the session (and
+    # before any field is set on an existing one), so autoflush never
+    # tries to insert/update a half-filled row while this query runs.
+    dupe_query = IRC8AIndicator.query.filter_by(
+        objective_id=objective_id, category=category, rate=rate
+    )
+    if indicator_id:
+        dupe_query = dupe_query.filter(IRC8AIndicator.id != indicator_id)
+    if dupe_query.first() is not None:
+        return jsonify({"error": f"Rating level {rate} is already used for this category."}), 400
+
+    if indicator is None:
+        indicator = IRC8AIndicator(objective_id=objective_id, category=category)
+        db.session.add(indicator)
+
+    indicator.rate = rate
+    indicator.label = label
+    db.session.commit()
+    return jsonify(indicator.to_dict()), 200
+
+
+@app.route("/irc/irc8a/indicator/<int:indicator_id>", methods=["DELETE"])
+def delete_irc8a_indicator(indicator_id):
+    indicator = IRC8AIndicator.query.get(indicator_id)
+    if indicator is None:
+        return jsonify({"error": "Indicator not found"}), 404
+    db.session.delete(indicator)
+    db.session.commit()
+    return jsonify({"deleted": True, "id": indicator_id}), 200
 
 
 def not_found(e):
