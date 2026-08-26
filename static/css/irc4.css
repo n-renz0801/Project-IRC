@@ -155,6 +155,53 @@
   font-size: 9px;
 }
 
+/* ---- TA-provided indicator (modal only) --------------------------------
+   Solid, fixed-width, full-height box sitting flush against the left edge
+   of a school row/suggestion item (see the .irc4-school-row /
+   .irc4-school-suggestion-item restructuring above, which strips the
+   row's own left padding so this box owns that edge outright). Always
+   shows the school's level color, even when TA hasn't been provided yet
+   -- it's just empty in that case, same width as every other box so the
+   column of boxes stays visually aligned down the list. Not used on the
+   main page's read-only group cards (.irc4-group-school-item) -- only
+   inside the Add/Edit Group modal, via irc4.js's buildTaIndicatorBox(). */
+.irc4-ta-indicator {
+  flex-shrink: 0;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #fff;
+  background: #9aa4b2; /* fallback if a level is somehow missing */
+}
+
+.irc4-ta-indicator[data-level="elementary"] {
+  background: var(--irc4-elementary);
+}
+
+.irc4-ta-indicator[data-level="secondary"] {
+  background: var(--irc4-secondary);
+}
+
+.irc4-ta-indicator-icon {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+.irc4-ta-indicator-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.05;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 /* ---- view/edit field pattern ------------------------------------------
    Every text input (Activity, each Objective, TA Receiver, MOV's) shows
    as plain, non-clickable text with a pencil "Edit" button by default.
@@ -737,21 +784,41 @@
   display: none;
 }
 
+/* Zero-padding, stretch-aligned outer container: the TA indicator box
+   (see .irc4-ta-indicator) is the first child and needs to sit flush
+   against the left edge at the row's full height, with nothing else
+   introducing padding/gap ahead of it. Everything else (name, DEDP
+   badge) lives inside .irc4-school-suggestion-content, which carries the
+   padding/layout this element used to have on its own. `overflow: hidden`
+   keeps the indicator box's square corners from poking past the item's
+   rounded ones. Month entries in the schedule combobox (no data-level,
+   no indicator box) use the same two-layer structure for consistency —
+   see irc4.js's renderScheduleSuggestions. */
 .irc4-school-suggestion-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: stretch;
+  gap: 0;
   text-align: left;
   background: none;
   border: 1px solid transparent;
   border-left: 3px solid transparent;
-  padding: 8px 10px;
+  padding: 0;
   border-radius: 6px;
+  overflow: hidden;
   font-size: 12.5px;
   font-family: inherit;
   color: #222;
   cursor: pointer;
+}
+
+.irc4-school-suggestion-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
 }
 
 .irc4-school-suggestion-name {
@@ -836,19 +903,36 @@
 }
 
 /* Base (unmatched/neutral) styling; level-specific colors below override
-   this once a school's level is known. */
+   this once a school's level is known. Zero-padding, stretch-aligned
+   outer container: the TA indicator box (see .irc4-ta-indicator) is the
+   first child and needs to sit flush against the left edge at the row's
+   full height. Everything else (name, DEDP badge, remove button) lives
+   inside .irc4-school-row-content, which carries the padding/layout this
+   element used to have on its own. `overflow: hidden` keeps the
+   indicator box's square corners from poking past the row's rounded
+   ones. */
 .irc4-school-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--irc4-field-border);
+  border-left: 3px solid var(--irc4-field-border);
+  border-radius: 6px;
+  padding: 0;
+  overflow: hidden;
+  background: #fafbfc;
+  color: #333;
+  counter-increment: irc4-school-index;
+}
+
+.irc4-school-row-content {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  border: 1px solid var(--irc4-field-border);
-  border-left: 3px solid var(--irc4-field-border);
-  border-radius: 6px;
-  padding: 7px 8px 7px 12px;
-  background: #fafbfc;
-  color: #333;
-  counter-increment: irc4-school-index;
+  padding: 7px 8px 7px 10px;
 }
 
 .irc4-school-row[data-level="elementary"] {

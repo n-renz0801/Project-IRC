@@ -5,10 +5,10 @@ SQLAlchemy models for IRC1a through IRC4, IRC5, IRC6, IRC7, and IRC8b, plus
 the central `UploadedFile` table that every PDF-extracted record links
 back to.
 
-IRC5, IRC6, IRC7, and IRC8b have no PDF extraction pipeline -- everything
-in those tables is entered by hand through their own tab's UI, so none of
-their models carry an `uploaded_file_id` column. See the section header
-above each one for its specific shape.
+IRC4, IRC5, IRC6, IRC7, and IRC8b have no PDF extraction pipeline --
+everything in those tables is entered by hand through their own tab's UI,
+so none of their models carry an `uploaded_file_id` column. See the
+section header above each one for its specific shape.
 
 Design notes
 ------------
@@ -32,11 +32,9 @@ Design notes
   already multi-year even though the current UI only shows one year at
   a time. Nothing here assumes a single year.
 
-* `IRC4Entry` is a deliberately generic placeholder -- no irc4.html/js
-  was provided yet, so its shape is unknown. It stores a JSON payload
-  so the rest of the pipeline (upload, cascade delete, file manager) is
-  already wired up; swap the `payload` column for real typed columns
-  once you share IRC4's structure.
+* IRC4 (`IRC4Plan` / `IRC4Objective` / `IRC4Group` / `IRC4GroupSchool`)
+  has no PDF pipeline -- like IRC5/IRC6, it's built entirely by hand from
+  IRC3's results, so none of its tables carry an `uploaded_file_id`.
 
 * `UploadedFile.irc_type` is nullable. A per-tab upload (irc1a.html,
   irc1b.html, irc2a.html uploading directly on their own tab) still
@@ -136,10 +134,6 @@ class UploadedFile(db.Model):
         "IRC3Status", backref="source_file",
         cascade="all, delete-orphan", passive_deletes=True,
     )
-    irc4_entries = db.relationship(
-        "IRC4Entry", backref="source_file",
-        cascade="all, delete-orphan", passive_deletes=True,
-    )
 
     def linked_irc_types(self):
         """Which section tables this file actually has rows in -- the
@@ -160,8 +154,6 @@ class UploadedFile(db.Model):
             types.append("irc2b")
         if self.irc3_statuses:
             types.append("irc3")
-        if self.irc4_entries:
-            types.append("irc4")
         return types
 
     def to_dict(self):
@@ -198,6 +190,7 @@ class School(db.Model):
 
     ta_statuses = db.relationship("IRC2ASchoolStatus", backref="school", cascade="all, delete-orphan")
     ta_frequencies = db.relationship("IRC2BTAFrequency", backref="school", cascade="all, delete-orphan")
+    irc4_group_links = db.relationship("IRC4GroupSchool", backref="school", cascade="all, delete-orphan")
 
     def to_dict(self):
         return {
@@ -318,24 +311,140 @@ class IRC3Status(db.Model):
 
 
 # ---------------------------------------------------------------------------
-# IRC4 -- placeholder (structure not yet provided)
+# IRC4 -- Technical Assistance (TA) Catch-up Plan
+#
+# One plan per year (IRC4Plan), with an ordered list of Objectives and an
+# ordered list of Groups. Each Group is a set of schools + a single
+# schedule month; a school can belong to more than one group (e.g. TA in
+# two different months), so Group<->School is modeled as a many-to-many
+# junction table (IRC4GroupSchool) rather than a column on either side --
+# same shape as IRC7's row/column EAV setup is many-to-many for a
+# different reason, but the principle (don't force a 1:1 that isn't
+# actually 1:1) is the same.
+#
+# No PDF pipeline here (built entirely from IRC3's results by hand, same
+# as IRC5/IRC6), so none of these carry an uploaded_file_id.
+#
+# IRC4GroupSchool.school_id points at the shared School table (see
+# storage.seed_schools()) instead of storing a raw name string, so a
+# school's identity/level/DEDP-priority flag stays consistent with every
+# other tab -- and so the TA-provided indicator (sourced from
+# IRC2BTAFrequency, also keyed by school_id) can be joined straight
+# through without a name-matching step.
 # ---------------------------------------------------------------------------
-class IRC4Entry(db.Model):
-    """Generic placeholder until irc4.html/js is shared. `payload` holds
-    whatever fields IRC4 turns out to need as JSON, so nothing about the
-    upload/cascade-delete/file-manager plumbing has to change later --
-    only this model (and its route) gets replaced with real columns."""
+class IRC4Plan(db.Model):
+    """One row per year. Activity / TA Receiver / MOV's are the plan's
+    three free-text fields (numbered 1, 5, 6 on the page); Objectives and
+    Groups are separate child tables below."""
 
-    __tablename__ = "irc4_entries"
+    __tablename__ = "irc4_plans"
+    __table_args__ = (
+        db.UniqueConstraint("year", name="uq_irc4_year"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
-    uploaded_file_id = db.Column(db.Integer, db.ForeignKey("uploaded_files.id", ondelete="CASCADE"), nullable=True)
 
     year = db.Column(db.Integer, nullable=False, index=True)
-    month_key = db.Column(db.String(3), nullable=True)
-    payload = db.Column(db.JSON, nullable=False, default=dict)
+    activity = db.Column(db.Text, nullable=True)
+    ta_receiver = db.Column(db.Text, nullable=True)
+    movs = db.Column(db.Text, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    objectives = db.relationship(
+        "IRC4Objective", backref="plan",
+        cascade="all, delete-orphan", passive_deletes=True,
+        order_by="IRC4Objective.sort_order",
+    )
+    groups = db.relationship(
+        "IRC4Group", backref="plan",
+        cascade="all, delete-orphan", passive_deletes=True,
+        order_by="IRC4Group.sort_order",
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "year": self.year,
+            "activity": self.activity or "",
+            "taReceiver": self.ta_receiver or "",
+            "movs": self.movs or "",
+            "objectives": [o.to_dict() for o in self.objectives],
+            "groups": [g.to_dict() for g in self.groups],
+        }
+
+
+class IRC4Objective(db.Model):
+    """One row per objective (numbered 'a.', 'b.', ... at render time by
+    position -- same lettering-by-position approach IRC6 uses for its
+    Output numbering -- so `sort_order` is the only ordering signal
+    stored, never a literal letter)."""
+
+    __tablename__ = "irc4_objectives"
+
+    id = db.Column(db.Integer, primary_key=True)
+    plan_id = db.Column(db.Integer, db.ForeignKey("irc4_plans.id", ondelete="CASCADE"), nullable=False)
+
+    text = db.Column(db.Text, nullable=True)
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
 
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {"id": self.id, "text": self.text or ""}
+
+
+class IRC4Group(db.Model):
+    """One row per group (numbered 3 & 4 on the page: 'School' + 'Schedule
+    of TA'). The schools themselves live in IRC4GroupSchool below --
+    `school_links` gives the ordered list of junction rows, and
+    `to_dict()` flattens that down to the plain school-name list irc4.js
+    already works with."""
+
+    __tablename__ = "irc4_groups"
+
+    id = db.Column(db.Integer, primary_key=True)
+    plan_id = db.Column(db.Integer, db.ForeignKey("irc4_plans.id", ondelete="CASCADE"), nullable=False)
+
+    schedule_month_key = db.Column(db.String(3), nullable=True)  # one of MONTH_KEYS, or NULL if unset
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    school_links = db.relationship(
+        "IRC4GroupSchool", backref="group",
+        cascade="all, delete-orphan", passive_deletes=True,
+        order_by="IRC4GroupSchool.sort_order",
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "schedule": self.schedule_month_key,
+            "schools": [link.school.name for link in self.school_links],
+        }
+
+
+class IRC4GroupSchool(db.Model):
+    """Junction table: many-to-many between IRC4Group and School. A school
+    may appear in more than one group (TA in two different months), and a
+    group holds more than one school -- hence a real junction table
+    rather than a column on either side. `sort_order` preserves the order
+    schools were added to the group, so the read-only page view and the
+    modal's chip list both render in a stable order."""
+
+    __tablename__ = "irc4_group_schools"
+    __table_args__ = (
+        db.UniqueConstraint("group_id", "school_id", name="uq_irc4_group_school"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    group_id = db.Column(db.Integer, db.ForeignKey("irc4_groups.id", ondelete="CASCADE"), nullable=False)
+    school_id = db.Column(db.Integer, db.ForeignKey("schools.id", ondelete="CASCADE"), nullable=False)
+
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
 
 
 # ---------------------------------------------------------------------------
