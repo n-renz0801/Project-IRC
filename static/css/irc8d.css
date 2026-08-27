@@ -1,0 +1,428 @@
+/* IRC8D - Summary of Ratings for Discussion (read-only, mirrors IRC8a) */
+
+.irc8d-panel {
+  padding: 24px 0;
+}
+
+.irc8d-header {
+  margin-bottom: 20px;
+}
+
+.irc8d-header h2 {
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  color: #1a1a1a;
+}
+
+.irc8d-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #8695a8;
+}
+
+/* ---------- MFO banner (same treatment as IRC8a's, minus Add KRA) ---------- */
+
+.irc8d-mfo-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, #1f2937, #131c28);
+  color: #f3f4f6;
+  padding: 26px 30px;
+  border-radius: 16px;
+  margin-bottom: 22px;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.22);
+}
+
+.irc8d-mfo-label {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 12.5px;
+  color: #7fa8e0;
+  flex-shrink: 0;
+}
+
+.irc8d-mfo-value {
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+/* ---------- Weight warning banner ---------- */
+/* Only ever rendered when total KRA weight != 100 -- irc8d.js toggles its
+   display rather than swapping an "ok" state, so there's nothing shown at
+   all once the weights are correct. */
+
+.irc8d-weight-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+  background: #fff8e6;
+  color: #8a5a00;
+  border: 1px solid #f2d896;
+}
+
+.irc8d-weight-warning svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ================================================================
+   KRA color palette — same hues as irc8a.css, duplicated here so
+   this page doesn't depend on irc8a.css also being loaded. Cycles
+   by list position (kraIndex % 4) via an irc8d-kra-palette-N class
+   added in JS. To retune a KRA's color, edit its variables below;
+   nothing else in this file or irc8d.js needs to change.
+   ================================================================ */
+
+:root {
+  --kra-1-light: #f5f3fe; /* Violet */
+  --kra-1-border: #a78bfa;
+  --kra-1-t1: #1e123a;
+  --kra-1-t2: #311f5c;
+
+  --kra-2-light: #e6fbf8; /* Teal */
+  --kra-2-border: #5eead4;
+  --kra-2-t1: #074541;
+  --kra-2-t2: #0e6c65;
+
+  --kra-3-light: #fdf1f8; /* Pink */
+  --kra-3-border: #f472b6;
+  --kra-3-t1: #450721;
+  --kra-3-t2: #6d0e35;
+
+  --kra-4-light: #fffaeb; /* Amber */
+  --kra-4-border: #fbbf24;
+  --kra-4-t1: #472206;
+  --kra-4-t2: #6f370c;
+}
+
+.irc8d-kra-palette-1 {
+  --kra-light: var(--kra-1-light);
+  --kra-border: var(--kra-1-border);
+  --kra-t1: var(--kra-1-t1);
+  --kra-t2: var(--kra-1-t2);
+}
+.irc8d-kra-palette-2 {
+  --kra-light: var(--kra-2-light);
+  --kra-border: var(--kra-2-border);
+  --kra-t1: var(--kra-2-t1);
+  --kra-t2: var(--kra-2-t2);
+}
+.irc8d-kra-palette-3 {
+  --kra-light: var(--kra-3-light);
+  --kra-border: var(--kra-3-border);
+  --kra-t1: var(--kra-3-t1);
+  --kra-t2: var(--kra-3-t2);
+}
+.irc8d-kra-palette-4 {
+  --kra-light: var(--kra-4-light);
+  --kra-border: var(--kra-4-border);
+  --kra-t1: var(--kra-4-t1);
+  --kra-t2: var(--kra-4-t2);
+}
+
+/* ---------- KRA cards ---------- */
+
+.irc8d-kra-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.irc8d-kra-card {
+  border: 1px solid #dde2e8;
+  border-left: 3px solid var(--kra-t1, #dde2e8);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.irc8d-kra-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: linear-gradient(
+    135deg,
+    var(--kra-t1, #1f2937),
+    var(--kra-t2, #29323f)
+  );
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+}
+
+.irc8d-kra-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.35;
+}
+
+.irc8d-kra-card-title .irc8d-muted--on-dark {
+  color: rgba(255, 255, 255, 0.55);
+  font-style: italic;
+}
+
+.irc8d-kra-card-weight {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--kra-t1, #1f4f8a);
+  white-space: nowrap;
+}
+
+/* ---------- Objectives table (nested inside each KRA card) ---------- */
+
+.irc8d-obj-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+/* Fixed column widths -- same eight widths on every KRA card's table, so
+   Objective/Timeline/Actual Results/Q/E/T/Avg/Score line up card to card
+   instead of each table sizing its columns to its own content. Adjust
+   these eight values (they total 100%) to retune proportions; nothing
+   else needs to change since table-layout: fixed makes cell content
+   wrap/clip to fit. */
+.irc8d-obj-table col.irc8d-col-objective {
+  width: 35%;
+}
+.irc8d-obj-table col.irc8d-col-timeline {
+  width: 10%;
+}
+.irc8d-obj-table col.irc8d-col-actual {
+  width: 30%;
+}
+.irc8d-obj-table col.irc8d-col-rate {
+  width: 3.33%;
+}
+.irc8d-obj-table col.irc8d-col-avg {
+  width: 5%;
+}
+.irc8d-obj-table col.irc8d-col-score {
+  width: 10%;
+}
+
+.irc8d-obj-table thead th {
+  text-align: left;
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #8695a8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.irc8d-obj-table thead th:first-child {
+  padding-left: 16px;
+}
+
+.irc8d-obj-table .irc8d-col-rate,
+.irc8d-obj-table .irc8d-col-avg,
+.irc8d-obj-table .irc8d-col-score {
+  text-align: center !important;
+  white-space: nowrap;
+}
+
+.irc8d-obj-table tbody td {
+  padding: 10px 12px;
+  border-top: 1px solid #eceff3;
+  vertical-align: top;
+}
+
+.irc8d-obj-table tbody td:first-child {
+  padding-left: 16px;
+}
+
+.irc8d-obj-table tbody td:last-child {
+  padding-right: 16px;
+}
+
+.irc8d-obj-text {
+  color: #1a1a1a;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.irc8d-timeline-cell,
+.irc8d-actual-cell {
+  color: #4b5563;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.irc8d-muted {
+  color: #b0b8c2;
+  font-style: italic;
+}
+
+.irc8d-rate-cell {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: #333;
+  white-space: nowrap;
+}
+
+.irc8d-avg-cell {
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #1a1a1a;
+}
+
+.irc8d-score-cell {
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #4a6fa5;
+}
+
+.irc8d-no-objectives {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #b0b8c2;
+  font-style: italic;
+}
+
+/* ---------- Empty state ---------- */
+
+.irc8d-empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: #9aa3af;
+  border: 1.5px dashed #dde2e8;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.irc8d-empty-state svg {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 10px;
+  color: #c2cad4;
+}
+
+.irc8d-empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ---------- Overall summary footer ---------- */
+
+.irc8d-summary {
+  margin-top: 20px;
+  padding: 18px 22px;
+  background: #1f2937;
+  border-radius: 12px;
+}
+
+.irc8d-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.irc8d-summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #9fb3d1;
+}
+
+.irc8d-summary-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.irc8d-summary-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.irc8d-summary-adjectival {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #d7e2f2;
+}
+
+.irc8d-summary-adjectival--outstanding {
+  background: rgba(111, 214, 138, 0.18);
+  color: #6fd68a;
+}
+
+.irc8d-summary-adjectival--very-satisfactory {
+  background: rgba(122, 184, 255, 0.18);
+  color: #7ab8ff;
+}
+
+.irc8d-summary-adjectival--satisfactory {
+  background: rgba(255, 176, 32, 0.18);
+  color: #ffb020;
+}
+
+.irc8d-summary-adjectival--unsatisfactory,
+.irc8d-summary-adjectival--poor {
+  background: rgba(224, 108, 100, 0.18);
+  color: #e06c64;
+}
+
+.irc8d-load-error {
+  text-align: center;
+  padding: 24px 20px;
+  color: #c0392b;
+  border: 1.5px dashed #f2b8b0;
+  border-radius: 12px;
+  background: #fdf3f2;
+  font-size: 13px;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+  .irc8d-mfo-banner {
+    padding: 18px 20px;
+  }
+  .irc8d-mfo-value {
+    font-size: 19px;
+  }
+  .irc8d-obj-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .irc8d-kra-card-header {
+    flex-wrap: wrap;
+  }
+  .irc8d-summary-value {
+    font-size: 22px;
+  }
+}

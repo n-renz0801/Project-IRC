@@ -340,6 +340,9 @@
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   border-bottom: 3px solid #4a6fa5;
   vertical-align: middle;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 .irc8c-dev-table thead th:last-child {
@@ -354,34 +357,38 @@
   margin-top: 2px;
 }
 
-/* Fixed column widths -- table-layout: fixed above means these six
-   widths (set on the header cells) govern every row, including ones
-   irc8c.js injects into tbody later, so columns never reflow/jiggle as
-   rows switch between the locked text view and the unlocked textarea
-   view. Strengths / Development Needs / Action Plan are targeted by
-   position since they don't need a dedicated class (they're never
-   referenced individually in irc8c.js); Timeline / Resources Needed /
-   Actions keep their existing named classes. */
-.irc8c-dev-table th:nth-child(1),
-.irc8c-dev-table td:nth-child(1) {
-  width: 19%; /* Strengths */
+/* Fixed column widths -- table-layout: fixed above means these widths
+   (set on the header cells) govern every row, including ones irc8c.js
+   injects into tbody later, so columns never reflow/jiggle as rows
+   switch between the locked text view and the unlocked
+   select/textarea view. Column order is: edit toggle, Strengths,
+   Development Needs, Action Plan, Timeline, Resources Needed -- the
+   five content columns are targeted by position (they don't need
+   dedicated classes, they're never referenced individually in
+   irc8c.js) and kept equal-width per design; the leading edit column
+   keeps its own narrow named class. */
+.irc8c-col-edit {
+  width: 32px;
 }
 .irc8c-dev-table th:nth-child(2),
 .irc8c-dev-table td:nth-child(2) {
-  width: 19%; /* Development Needs */
+  width: 19.3%; /* Strengths */
 }
 .irc8c-dev-table th:nth-child(3),
 .irc8c-dev-table td:nth-child(3) {
-  width: 20%; /* Action Plan */
+  width: 19.3%; /* Development Needs */
 }
-.irc8c-col-timeline {
-  width: 13%;
+.irc8c-dev-table th:nth-child(4),
+.irc8c-dev-table td:nth-child(4) {
+  width: 19.3%; /* Action Plan */
 }
-.irc8c-col-resources {
-  width: 16%;
+.irc8c-dev-table th:nth-child(5),
+.irc8c-dev-table td:nth-child(5) {
+  width: 19.3%; /* Timeline */
 }
-.irc8c-col-actions {
-  width: 80px;
+.irc8c-dev-table th:nth-child(6),
+.irc8c-dev-table td:nth-child(6) {
+  width: 19.3%; /* Resources Needed */
 }
 
 .irc8c-dev-table tbody tr {
@@ -402,10 +409,10 @@
 }
 
 .irc8c-dev-table tbody td {
-  padding: 10px 10px;
+  padding: 14px 16px 10px 16px;
   border-right: 1px solid #e8e8e8;
   text-align: left;
-  vertical-align: middle;
+  vertical-align: top;
   word-wrap: break-word;
 }
 
@@ -423,6 +430,28 @@
   color: #9ca3af;
 }
 
+/* Strength / Development Needs -- locked display. The dropdown (see
+   .irc8c-cell-select below) only exists while a row is unlocked; while
+   locked, the saved pick renders as plain read text instead so nothing
+   is clickable and nothing gets ellipsis-truncated the way a native
+   <select> would. Main achievement text leads; source item and score
+   sit together in one quiet line underneath. */
+.irc8c-ref-main {
+  display: block;
+  margin: 0 0 4px 0;
+  color: #374151;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.irc8c-ref-meta {
+  display: block;
+  margin: 0;
+  color: #9ca3af;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .irc8c-empty-row td {
   text-align: center;
   color: #9ca3af;
@@ -432,9 +461,21 @@
 
 /* Strength / Development Needs dropdowns -- populated by irc8c.js from
    IRC8a's/IRC8b's top-5 highest/lowest rated items, ranked fresh on
-   every load. */
-.irc8c-cell-select {
+   every load. Custom trigger + listbox (not a native <select>) so each
+   option can show the same two-line layout as the locked view: main
+   achievement text prominent, source + score as a quiet line below --
+   a native <select>'s <option> can't carry that formatting. */
+.irc8c-ref-dropdown {
+  position: relative;
   width: 100%;
+}
+
+.irc8c-ref-trigger {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
   border: 1.5px solid #d1d5db;
   border-radius: 6px;
   padding: 7px 8px;
@@ -443,19 +484,128 @@
   color: #1f2937;
   background: #fff;
   cursor: pointer;
+  text-align: left;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
 }
 
-.irc8c-cell-select:hover {
+.irc8c-ref-trigger:hover {
   border-color: var(--irc8c-dedp-light);
 }
 
-.irc8c-cell-select:focus {
-  outline: none;
-  border-color: var(--irc8c-dedp-light);
+.irc8c-ref-trigger[aria-expanded="true"] {
+  border-color: var(--irc8c-dedp);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.irc8c-ref-trigger-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.irc8c-ref-trigger-text {
+  flex: 1;
+}
+
+.irc8c-ref-trigger-text.irc8c-ref-placeholder {
+  color: #9ca3af;
+}
+
+.irc8c-ref-trigger-caret {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+.irc8c-ref-listbox {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.irc8c-ref-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 9px;
+  margin-bottom: 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.irc8c-ref-option:last-child {
+  margin-bottom: 0;
+}
+
+.irc8c-ref-option:hover {
+  background: #f0f5ff;
+  border-color: #c7d7f5;
+}
+
+.irc8c-ref-option.irc8c-ref-option-selected {
+  background: var(--irc8c-blue-bg);
+  border-color: var(--irc8c-blue-border);
+}
+
+.irc8c-ref-option.irc8c-ref-option-selected .irc8c-ref-main {
+  color: var(--irc8c-dedp-dark);
+}
+
+.irc8c-ref-option.irc8c-ref-option-placeholder .irc8c-ref-main {
+  color: #9ca3af;
+}
+
+.irc8c-ref-option-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Rank badge -- shows where a choice sits among the top candidates.
+   Green/positive for Strengths (highest-rated first), red/negative for
+   Development Needs (lowest-rated first), so the direction of "good"
+   reads at a glance without having to compare scores. Previously-saved
+   picks that fell out of the ranked candidates get a neutral dash
+   instead of a number. */
+.irc8c-ref-rank {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.irc8c-ref-rank-positive {
+  background: var(--irc8c-success-bg);
+  color: var(--irc8c-success-text);
+}
+
+.irc8c-ref-rank-negative {
+  background: var(--irc8c-red-bg);
+  color: var(--irc8c-red-text);
+}
+
+.irc8c-ref-rank-neutral {
+  background: #f3f4f6;
+  color: #9ca3af;
 }
 
 /* Action Plan / Timeline / Resources Needed -- shown as plain text
@@ -501,17 +651,17 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 
-.irc8c-actions-cell {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
+.irc8c-dev-table td.irc8c-col-edit {
+  text-align: center;
+  vertical-align: top;
+  padding: 14px 6px 10px 6px;
 }
 
 .irc8c-icon-btn {
   border: none;
   background: #f3f4f6;
   color: #4b5563;
-  width: 28px;
+  width: 100%;
   height: 28px;
   border-radius: 6px;
   cursor: pointer;
@@ -533,7 +683,8 @@
   cursor: not-allowed;
 }
 
-/* Edit/lock toggle -- the row's one Actions-column button. Blue while it
+/* Edit/lock toggle -- the row's one button, in the narrow leading
+   column. Blue while it
    shows the pencil (locked, click to edit); green once it shows the
    checkmark (unlocked, click to save & lock again) so the two states
    read at a glance without having to parse the icon. */

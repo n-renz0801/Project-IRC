@@ -211,11 +211,16 @@
     (irc8aData.kras || []).forEach((kra) => {
       (kra.objectives || []).forEach((obj) => {
         if (obj.average === null || obj.average === undefined) return;
-        const label =
-          kra.text && obj.text
-            ? `${kra.text} — ${obj.text}`
-            : obj.text || kra.text || "(untitled objective)";
-        items.push({ id: String(obj.id), label, average: obj.average });
+        const main = obj.text || "(untitled objective)";
+        const source = kra.text || "";
+        const label = source ? `${source} — ${main}` : main;
+        items.push({
+          id: String(obj.id),
+          label,
+          main,
+          source,
+          average: obj.average,
+        });
       });
     });
     return items;
@@ -231,6 +236,8 @@
       items.push({
         id: sub.key,
         label: `${sub.title} (${sub.section})`,
+        main: sub.title,
+        source: sub.section,
         average: avg,
       });
     });
@@ -295,37 +302,109 @@
     return source === "irc8a" ? state.irc8aItems : state.irc8bItems;
   }
 
-  function renderSelect(row, field, source) {
+  function renderRefDropdown(row, field, source) {
     const items = itemsForSource(source);
     const currentRef = row[field];
     const direction = field === "strengthRef" ? "highest" : "lowest";
     const candidates = topN(items, TOP_N, direction);
 
-    // Always keep the currently-saved pick visible, even if it's fallen
-    // out of the top 5 since it was chosen, or -- if the objective/
-    // subsection is gone entirely -- show it as no-longer-available
-    // rather than silently dropping the selection.
-    let extraOption = "";
+    // Always keep the currently-saved pick in the list, even if it's
+    // fallen out of the top 5 since it was chosen, or -- if the
+    // objective/subsection is gone entirely -- show it as
+    // no-longer-available rather than silently dropping the selection.
+    let extra = null;
     if (currentRef && !candidates.some((c) => c.id === currentRef)) {
       const match = items.find((c) => c.id === currentRef);
-      extraOption = match
-        ? `<option value="${escapeHtml(match.id)}" selected>${escapeHtml(match.label)}</option>`
-        : `<option value="${escapeHtml(currentRef)}" selected>(previously selected — no longer available)</option>`;
+      extra = match || {
+        id: currentRef,
+        main: "(previously selected — no longer available)",
+        source: "",
+        average: null,
+        unavailable: true,
+      };
     }
 
-    const options = candidates
-      .map(
-        (c) =>
-          `<option value="${escapeHtml(c.id)}"${c.id === currentRef ? " selected" : ""}>${escapeHtml(c.label)} (${c.average.toFixed(2)})</option>`,
-      )
+    const current = extra || items.find((c) => c.id === currentRef);
+    const rankedCandidates = candidates.map((c, i) => ({ ...c, rank: i + 1 }));
+    const allOptions = extra
+      ? [{ ...extra, rank: null }, ...rankedCandidates]
+      : rankedCandidates;
+
+    const triggerInner = current
+      ? `
+        <span class="irc8c-ref-trigger-content">
+          <span class="irc8c-ref-main">${escapeHtml(current.main)}</span>
+          ${
+            current.unavailable
+              ? ""
+              : `<span class="irc8c-ref-meta">${escapeHtml(current.source)}${current.source ? " &middot; " : ""}${current.average.toFixed(2)}</span>`
+          }
+        </span>
+      `
+      : `<span class="irc8c-ref-trigger-text irc8c-ref-placeholder">— Select —</span>`;
+
+    const rankClass =
+      field === "strengthRef"
+        ? "irc8c-ref-rank-positive"
+        : "irc8c-ref-rank-negative";
+
+    const optionsHtml = allOptions
+      .map((c) => {
+        const isSelected = c.id === currentRef;
+        const metaHtml = c.unavailable
+          ? ""
+          : `<p class="irc8c-ref-meta">${escapeHtml(c.source)}${c.source ? " &middot; " : ""}${c.average.toFixed(2)}</p>`;
+        const rankHtml = c.rank
+          ? `<span class="irc8c-ref-rank ${rankClass}">${c.rank}</span>`
+          : `<span class="irc8c-ref-rank irc8c-ref-rank-neutral">&ndash;</span>`;
+        return `
+          <li role="option" class="irc8c-ref-option${isSelected ? " irc8c-ref-option-selected" : ""}" data-value="${escapeHtml(c.id)}" aria-selected="${isSelected}">
+            ${rankHtml}
+            <span class="irc8c-ref-option-text">
+              <p class="irc8c-ref-main">${escapeHtml(c.main)}</p>
+              ${metaHtml}
+            </span>
+          </li>
+        `;
+      })
       .join("");
 
     return `
-      <select class="irc8c-cell-select" data-field="${field}" data-slot="${row.slot}">
-        <option value=""${currentRef ? "" : " selected"}>— Select —</option>
-        ${extraOption}
-        ${options}
-      </select>
+      <div class="irc8c-ref-dropdown" data-field="${field}" data-slot="${row.slot}">
+        <button type="button" class="irc8c-ref-trigger" aria-haspopup="listbox" aria-expanded="false">
+          ${triggerInner}
+          <span class="irc8c-ref-trigger-caret">&#9662;</span>
+        </button>
+        <ul class="irc8c-ref-listbox" role="listbox" hidden>
+          <li role="option" class="irc8c-ref-option irc8c-ref-option-placeholder" data-value="" aria-selected="${!currentRef}">
+            <p class="irc8c-ref-main">— Select —</p>
+          </li>
+          ${optionsHtml}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Locked view for Strengths / Development Needs: plain read text, no
+  // dropdown present at all, so nothing is clickable and nothing is
+  // ellipsis-truncated the way a native <select> would be. The
+  // dropdown only exists while the row is unlocked (see
+  // renderRefDropdown).
+  function renderLockedRefCell(row, field, source, placeholderLabel) {
+    const currentRef = row[field];
+    if (!currentRef) {
+      return `<td class="irc8c-cell-text"><span class="irc8c-cell-empty">${escapeHtml(placeholderLabel)}</span></td>`;
+    }
+    const items = itemsForSource(source);
+    const match = items.find((c) => c.id === currentRef);
+    if (!match) {
+      return `<td class="irc8c-cell-text"><span class="irc8c-cell-empty">(previously selected — no longer available)</span></td>`;
+    }
+    return `
+      <td>
+        <p class="irc8c-ref-main">${escapeHtml(match.main)}</p>
+        <p class="irc8c-ref-meta">${escapeHtml(match.source)}${match.source ? " &middot; " : ""}${match.average.toFixed(2)}</p>
+      </td>
     `;
   }
 
@@ -344,20 +423,24 @@
   function renderDevTable() {
     devTableBody.innerHTML = SLOTS.map(({ slot, source }) => {
       const row = state.rows[slot] || { slot, isLocked: true };
+      const strengthCell = row.isLocked
+        ? renderLockedRefCell(row, "strengthRef", source, "N/A")
+        : `<td>${renderRefDropdown(row, "strengthRef", source)}</td>`;
+      const devNeedsCell = row.isLocked
+        ? renderLockedRefCell(row, "devNeedsRef", source, "N/A")
+        : `<td>${renderRefDropdown(row, "devNeedsRef", source)}</td>`;
       return `
         <tr data-slot="${slot}">
-          <td>${renderSelect(row, "strengthRef", source)}</td>
-          <td>${renderSelect(row, "devNeedsRef", source)}</td>
+          <td class="irc8c-col-edit">
+            <button type="button" class="irc8c-icon-btn irc8c-toggle-lock-btn" data-slot="${slot}" title="${row.isLocked ? "Edit this row" : "Save & lock"}">
+              ${row.isLocked ? "&#9998;" : "&#10003;"}
+            </button>
+          </td>
+          ${strengthCell}
+          ${devNeedsCell}
           ${renderTextCell(row, "actionPlan", "N/A")}
           ${renderTextCell(row, "timeline", "N/A")}
           ${renderTextCell(row, "resourcesNeeded", "N/A")}
-          <td>
-            <div class="irc8c-actions-cell">
-              <button type="button" class="irc8c-icon-btn irc8c-toggle-lock-btn" data-slot="${slot}" title="${row.isLocked ? "Edit Action Plan, Timeline & Resources Needed" : "Save & lock"}">
-                ${row.isLocked ? "&#9998;" : "&#10003;"}
-              </button>
-            </div>
-          </td>
         </tr>
       `;
     }).join("");
@@ -366,21 +449,54 @@
   // ------------------------------------------------------------------
   // Events
   // ------------------------------------------------------------------
-  devTableBody.addEventListener("change", async (e) => {
-    const select = e.target.closest(".irc8c-cell-select");
-    if (!select) return;
+  function closeAllDropdowns(exceptListbox) {
+    devTableBody.querySelectorAll(".irc8c-ref-listbox").forEach((listbox) => {
+      if (listbox === exceptListbox) return;
+      listbox.hidden = true;
+      const trigger = listbox.previousElementSibling;
+      if (trigger) trigger.setAttribute("aria-expanded", "false");
+    });
+  }
 
-    const slot = select.dataset.slot;
-    const field = select.dataset.field;
-    const value = select.value;
-
-    try {
-      await saveRow(slot, { [field]: value });
-      renderDevTable();
-    } catch (err) {
-      alert(err.message);
-      renderDevTable(); // revert to last-saved value
+  devTableBody.addEventListener("click", async (e) => {
+    const trigger = e.target.closest(".irc8c-ref-trigger");
+    if (trigger) {
+      const listbox = trigger.nextElementSibling;
+      const wasOpen = !listbox.hidden;
+      closeAllDropdowns();
+      listbox.hidden = wasOpen;
+      trigger.setAttribute("aria-expanded", String(!wasOpen));
+      return;
     }
+
+    const option = e.target.closest(".irc8c-ref-option");
+    if (option) {
+      const dropdown = option.closest(".irc8c-ref-dropdown");
+      const slot = dropdown.dataset.slot;
+      const field = dropdown.dataset.field;
+      const value = option.dataset.value;
+      closeAllDropdowns();
+      try {
+        await saveRow(slot, { [field]: value });
+        renderDevTable();
+      } catch (err) {
+        alert(err.message);
+        renderDevTable(); // revert to last-saved value
+      }
+      return;
+    }
+
+    if (!e.target.closest(".irc8c-ref-listbox")) {
+      closeAllDropdowns();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!devTableBody.contains(e.target)) closeAllDropdowns();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAllDropdowns();
   });
 
   devTableBody.addEventListener("click", async (e) => {
