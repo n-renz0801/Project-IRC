@@ -1,11 +1,12 @@
 /* IRC8c - Summary of Ratings for Discussion - CSS Stylesheet */
 
-/* Theme colors live at :root (not on .irc8c-panel) on purpose: the
-   Add/Edit modal and the delete-confirmation dialog are siblings of
-   <section class="irc8c-panel">, not descendants of it. CSS custom
-   properties only inherit down the DOM tree, so scoping them to
-   .irc8c-panel would make them invisible inside the modal (see IRC6's
-   note on the same issue). */
+/* Theme colors live at :root (not on .irc8c-panel) on purpose: kept this
+   way even though the Add/Edit and delete-confirmation modals that
+   originally motivated it are gone now (IRC8c's Development Plans table
+   is a fixed 4-row table sourced from IRC8a/IRC8b, no add/delete/modal
+   any more) -- :root keeps these variables available to any future
+   sibling markup the same way, so there's no reason to narrow it back
+   down to .irc8c-panel. */
 :root {
   --irc8c-dedp: rgb(29, 78, 216);
   --irc8c-dedp-light: rgb(59, 130, 246);
@@ -104,8 +105,13 @@
   font-weight: 600;
 }
 
-/* Text input used instead of type="number" specifically so no
-   increment/decrement spinner ever appears - pure typing only. */
+/* Read-only: carried over automatically from IRC8a's Overall Rating (see
+   irc8c.js). Text input rather than type="number" so no increment/
+   decrement spinner ever appears, and the value is still selectable/
+   copyable -- just not typeable. */
+.irc8c-metric-input[readonly] {
+  cursor: default;
+}
 
 .irc8c-metric-card-badge {
   background: #f3f4f6;
@@ -313,38 +319,6 @@
    Development Plans table
 ------------------------------------------------------------------ */
 
-.irc8c-add-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  background: var(--irc8c-dedp);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    transform 0.1s ease;
-}
-
-.irc8c-add-btn:hover {
-  background: var(--irc8c-dedp-light);
-}
-
-.irc8c-add-btn:active {
-  transform: scale(0.97);
-}
-
-.irc8c-add-icon {
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1;
-}
-
 .irc8c-table-wrapper {
   overflow-x: auto;
 }
@@ -380,6 +354,26 @@
   margin-top: 2px;
 }
 
+/* Fixed column widths -- table-layout: fixed above means these six
+   widths (set on the header cells) govern every row, including ones
+   irc8c.js injects into tbody later, so columns never reflow/jiggle as
+   rows switch between the locked text view and the unlocked textarea
+   view. Strengths / Development Needs / Action Plan are targeted by
+   position since they don't need a dedicated class (they're never
+   referenced individually in irc8c.js); Timeline / Resources Needed /
+   Actions keep their existing named classes. */
+.irc8c-dev-table th:nth-child(1),
+.irc8c-dev-table td:nth-child(1) {
+  width: 19%; /* Strengths */
+}
+.irc8c-dev-table th:nth-child(2),
+.irc8c-dev-table td:nth-child(2) {
+  width: 19%; /* Development Needs */
+}
+.irc8c-dev-table th:nth-child(3),
+.irc8c-dev-table td:nth-child(3) {
+  width: 20%; /* Action Plan */
+}
 .irc8c-col-timeline {
   width: 13%;
 }
@@ -436,6 +430,77 @@
   padding: 22px 10px;
 }
 
+/* Strength / Development Needs dropdowns -- populated by irc8c.js from
+   IRC8a's/IRC8b's top-5 highest/lowest rated items, ranked fresh on
+   every load. */
+.irc8c-cell-select {
+  width: 100%;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  padding: 7px 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: #1f2937;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.irc8c-cell-select:hover {
+  border-color: var(--irc8c-dedp-light);
+}
+
+.irc8c-cell-select:focus {
+  outline: none;
+  border-color: var(--irc8c-dedp-light);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Action Plan / Timeline / Resources Needed -- shown as plain text
+   (.irc8c-cell-text above) while a row is locked; irc8c.js swaps the
+   cell to this textarea when the row's edit-toggle is unlocked.
+   Deliberately NOT a plain fixed-height + scroll box, and NOT
+   drag-resizable either:
+     - resize: none removes the manual drag handle entirely -- height
+       is never something the user can pull with the mouse.
+     - field-sizing: content (Chrome/Edge 123+) makes the box grow
+       taller only as wrapped/typed lines actually need the room, and
+       shrink back down if text is removed, so there's no dead space
+       and no fighting a scrollbar while typing a longer paragraph.
+     - min-height keeps it from starting shorter than one line;
+       max-height caps runaway growth for a very long entry, past which
+       it scrolls instead of continuing to grow.
+     - In browsers without field-sizing support yet, this simply falls
+       back to a normal fixed-height (min-height) box that scrolls once
+       full -- still never resizable, just not auto-growing. */
+.irc8c-cell-edit {
+  width: 100%;
+  min-height: 34px;
+  max-height: 160px;
+  padding: 7px 8px;
+  border: 1.5px solid var(--irc8c-dedp-light);
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: inherit;
+  line-height: 1.5;
+  color: #1f2937;
+  background: #fff;
+  resize: none;
+  field-sizing: content;
+  overflow-y: auto;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.irc8c-cell-edit:focus {
+  outline: none;
+  border-color: var(--irc8c-dedp);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
 .irc8c-actions-cell {
   display: flex;
   gap: 6px;
@@ -463,230 +528,34 @@
   background: #e5e7eb;
 }
 
-.irc8c-icon-btn.irc8c-delete-btn:hover {
-  background: #fee2e2;
-  color: #dc2626;
+.irc8c-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-/* ------------------------------------------------------------------
-   Modal
------------------------------------------------------------------- */
-
-.irc8c-modal-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 24, 39, 0.55);
-  z-index: 1000;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 40px 16px;
-  overflow-y: auto;
+/* Edit/lock toggle -- the row's one Actions-column button. Blue while it
+   shows the pencil (locked, click to edit); green once it shows the
+   checkmark (unlocked, click to save & lock again) so the two states
+   read at a glance without having to parse the icon. */
+.irc8c-toggle-lock-btn {
+  background: var(--irc8c-blue-bg);
+  color: var(--irc8c-dedp);
 }
 
-.irc8c-modal-overlay.visible {
-  display: flex;
+.irc8c-toggle-lock-btn:hover {
+  background: var(--irc8c-blue-border);
 }
 
-.irc8c-modal {
-  display: flex;
-  flex-direction: column;
-  max-height: min(90vh, 900px);
-  background: #fff;
-  border-radius: 14px;
-  width: 100%;
-  max-width: 600px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
+.irc8c-dev-table tbody tr:has(textarea.irc8c-cell-edit) .irc8c-toggle-lock-btn {
+  background: var(--irc8c-success-bg);
+  color: var(--irc8c-success-text);
 }
 
-.irc8c-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 22px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
-  flex-shrink: 0;
-}
-
-.irc8c-modal-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.irc8c-modal-close {
-  border: none;
-  background: transparent;
-  font-size: 22px;
-  line-height: 1;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
-.irc8c-modal-close:hover {
-  background: #e5e7eb;
-  color: #1f2937;
-}
-
-.irc8c-modal-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  padding: 22px;
-  overflow-y: auto;
-}
-
-.irc8c-form-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.irc8c-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.irc8c-field label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.irc8c-field-sub {
-  font-weight: 400;
-  color: #6b7280;
-  font-size: 11.5px;
-}
-
-.irc8c-field textarea {
-  border: 1.5px solid #d1d5db;
-  border-radius: 8px;
-  padding: 9px 10px;
-  font-size: 13.5px;
-  color: #1f2937;
-  font-family: inherit;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.irc8c-field textarea:focus {
-  outline: none;
-  border-color: var(--irc8c-dedp-light);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-
-/* Fixed-height, non-resizable textareas by design: development-plan
-   entries are meant to stay concise, so unlike IRC6 these do NOT
-   autosize or allow manual drag-resize. */
-.irc8c-field textarea {
-  resize: none;
-  overflow-y: auto;
-  height: 78px;
-}
-
-.irc8c-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  flex-shrink: 0;
-  padding: 16px 22px;
-  border-top: 1px solid #e5e7eb;
-  background: #fff;
-  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
-}
-
-.irc8c-btn-secondary,
-.irc8c-btn-primary,
-.irc8c-btn-danger {
-  border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.irc8c-btn-secondary {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.irc8c-btn-secondary:hover {
-  background: #e5e7eb;
-}
-
-.irc8c-btn-primary {
-  background: var(--irc8c-dedp);
-  color: #fff;
-}
-
-.irc8c-btn-primary:hover {
-  background: var(--irc8c-dedp-light);
-}
-
-.irc8c-btn-danger {
-  background: #dc2626;
-  color: #fff;
-}
-
-.irc8c-btn-danger:hover {
-  background: #b91c1c;
-}
-
-/* ------------------------------------------------------------------
-   Delete confirmation modal
------------------------------------------------------------------- */
-
-.irc8c-confirm-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 24, 39, 0.6);
-  z-index: 1100;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-
-.irc8c-confirm-overlay.visible {
-  display: flex;
-}
-
-.irc8c-confirm-box {
-  background: #fff;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 380px;
-  padding: 22px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-  text-align: center;
-}
-
-.irc8c-confirm-box h4 {
-  margin: 0 0 10px 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
-.irc8c-confirm-box p {
-  margin: 0 0 20px 0;
-  font-size: 13.5px;
-  color: #555;
-  line-height: 1.5;
-}
-
-.irc8c-confirm-actions {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
+.irc8c-dev-table
+  tbody
+  tr:has(textarea.irc8c-cell-edit)
+  .irc8c-toggle-lock-btn:hover {
+  background: var(--irc8c-success-border);
 }
 
 /* Responsive */

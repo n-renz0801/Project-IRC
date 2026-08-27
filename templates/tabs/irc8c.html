@@ -11,9 +11,9 @@ block content %}
     <div class="irc8c-header-text">
       <h2>IRC8c &mdash; Summary of Ratings for Discussion</h2>
       <p class="irc8c-subtitle">
-        Review the <strong>Final Performance Results Rating</strong> and its
-        equivalent adjectival rating, then document the
-        <strong>Development Plans</strong> arising from the discussion.
+        The <strong>Final Performance Results Rating</strong> is carried over
+        automatically from IRC8a. Document the
+        <strong>Development Plans</strong> arising from the discussion below.
       </p>
     </div>
   </div>
@@ -28,7 +28,9 @@ block content %}
         autocomplete="off"
         id="irc8c-final-rating"
         class="irc8c-metric-input"
-        placeholder="e.g. 4.625"
+        placeholder="&mdash;"
+        readonly
+        title="Carried over automatically from IRC8a's Overall Rating"
       />
     </div>
     <div
@@ -60,13 +62,12 @@ block content %}
       <div>
         <h3>Development Plans</h3>
         <p class="irc8c-card-subtitle">
-          Capture strengths, development needs, and the corresponding action
-          plans agreed upon during the discussion.
+          Strengths and Development Needs are picked from IRC8a's
+          highest/lowest-rated objectives (first two rows) and IRC8b's
+          highest/lowest-rated competencies (last two rows). Click the pencil to
+          edit the Action Plan, Timeline, and Resources Needed for a row.
         </p>
       </div>
-      <button type="button" id="irc8c-add-btn" class="irc8c-add-btn">
-        <span class="irc8c-add-icon">+</span> Add Entry
-      </button>
     </div>
 
     <div class="irc8c-table-wrapper">
@@ -92,95 +93,6 @@ block content %}
     </div>
   </div>
 </section>
-
-<!-- ================= ADD / EDIT ENTRY MODAL ================= -->
-<div id="irc8c-modal-overlay" class="irc8c-modal-overlay">
-  <div class="irc8c-modal">
-    <div class="irc8c-modal-header">
-      <h3 id="irc8c-modal-title">Add Development Plan Entry</h3>
-      <button type="button" id="irc8c-modal-close" class="irc8c-modal-close">
-        &times;
-      </button>
-    </div>
-
-    <form id="irc8c-form" class="irc8c-modal-body">
-      <div class="irc8c-form-stack">
-        <div class="irc8c-field">
-          <label for="irc8c-f-strengths">Strengths</label>
-          <textarea
-            id="irc8c-f-strengths"
-            rows="3"
-            placeholder="N/A"
-          ></textarea>
-        </div>
-
-        <div class="irc8c-field">
-          <label for="irc8c-f-devneeds">Development Needs</label>
-          <textarea id="irc8c-f-devneeds" rows="3" placeholder="N/A"></textarea>
-        </div>
-
-        <div class="irc8c-field">
-          <label for="irc8c-f-actionplan"
-            >Action Plan
-            <span class="irc8c-field-sub"
-              >(Recommended Developmental Intervention)</span
-            ></label
-          >
-          <textarea
-            id="irc8c-f-actionplan"
-            rows="3"
-            placeholder="N/A"
-          ></textarea>
-        </div>
-
-        <div class="irc8c-field">
-          <label for="irc8c-f-timeline">Timeline</label>
-          <textarea id="irc8c-f-timeline" rows="2" placeholder="N/A"></textarea>
-        </div>
-
-        <div class="irc8c-field">
-          <label for="irc8c-f-resources">Resources Needed</label>
-          <textarea
-            id="irc8c-f-resources"
-            rows="2"
-            placeholder="N/A"
-          ></textarea>
-        </div>
-      </div>
-    </form>
-
-    <div class="irc8c-modal-footer">
-      <button type="button" id="irc8c-cancel-btn" class="irc8c-btn-secondary">
-        Cancel
-      </button>
-      <button type="submit" form="irc8c-form" class="irc8c-btn-primary">
-        Save Entry
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= DELETE CONFIRMATION MODAL ================= -->
-<div id="irc8c-confirm-overlay" class="irc8c-confirm-overlay">
-  <div class="irc8c-confirm-box">
-    <h4>Delete this entry?</h4>
-    <p>
-      This action cannot be undone. Are you sure you want to delete this entry?
-    </p>
-    <div class="irc8c-confirm-actions">
-      <button
-        type="button"
-        id="irc8c-confirm-cancel"
-        class="irc8c-btn-secondary"
-      >
-        Cancel
-      </button>
-      <button type="button" id="irc8c-confirm-delete" class="irc8c-btn-danger">
-        Delete
-      </button>
-    </div>
-  </div>
-</div>
 
 <script src="{{ url_for('static', filename='js/irc8c.js') }}"></script>
 

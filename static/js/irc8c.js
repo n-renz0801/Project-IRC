@@ -13,12 +13,6 @@
     { num: 5, label: "Outstanding", range: "4.500 – 5.000", min: 4.5 },
   ];
 
-  // Matches optional leading digits, an optional single decimal point,
-  // and more digits - i.e. free-form typing of a decimal number.
-  // Used to keep the final-rating field "pure typing" (no native
-  // number spinner, no auto-formatting while the user is mid-type).
-  const PARTIAL_DECIMAL_RE = /^\d*\.?\d*$/;
-
   function getRatingBand(value) {
     if (typeof value !== "number" || Number.isNaN(value)) return null;
     if (value < 1 || value > 5) return null;
@@ -29,15 +23,78 @@
   }
 
   // ------------------------------------------------------------------
-  // In-memory store of Development Plan entries. Swap this out for a
-  // fetch()/POST to Flask once a persistence layer exists for IRC8c.
-  //
-  // Each entry: { id, strengths, devNeeds, actionPlan, timeline, resources }
+  // IRC8b's subsection titles, duplicated here in trimmed form (key +
+  // title + parent section only -- no criteria text, irc8c doesn't need
+  // it). Kept in sync by hand with the DATA constant in irc8b.js, same
+  // as irc8b.js's own DATA is the one place its criteria text lives.
   // ------------------------------------------------------------------
-  let entries = [];
-  let editingId = null; // id of entry currently being edited, or null for "add"
-  let nextId = 1;
-  let pendingDeleteId = null;
+  const IRC8B_SUBSECTIONS = [
+    {
+      key: "self_management",
+      title: "Self Management",
+      section: "Core Behavioral Competencies",
+    },
+    {
+      key: "teamwork",
+      title: "Teamwork",
+      section: "Core Behavioral Competencies",
+    },
+    {
+      key: "professionalism_ethics",
+      title: "Professionalism and Ethics",
+      section: "Core Behavioral Competencies",
+    },
+    {
+      key: "service_orientation",
+      title: "Service Orientation",
+      section: "Core Behavioral Competencies",
+    },
+    {
+      key: "result_focus",
+      title: "Result Focus",
+      section: "Core Behavioral Competencies",
+    },
+    {
+      key: "innovation",
+      title: "Innovation",
+      section: "Core Behavioral Competencies",
+    },
+    { key: "achievement", title: "Achievement", section: "Core Skills" },
+    {
+      key: "managing_diversity",
+      title: "Managing Diversity",
+      section: "Core Skills",
+    },
+    { key: "accountability", title: "Accountability", section: "Core Skills" },
+  ];
+
+  // The four fixed Development Plan rows, in display order. "_1"/"_2" give
+  // each source (irc8a/irc8b) two independent picks rather than forcing
+  // everything into a single row -- see models.py's IRC8CRow docstring.
+  const SLOTS = [
+    { slot: "irc8a_1", source: "irc8a" },
+    { slot: "irc8a_2", source: "irc8a" },
+    { slot: "irc8b_1", source: "irc8b" },
+    { slot: "irc8b_2", source: "irc8b" },
+  ];
+  const TOP_N = 5;
+
+  // ------------------------------------------------------------------
+  // State
+  // ------------------------------------------------------------------
+  // rows: { [slot]: { slot, strengthRef, devNeedsRef, actionPlan,
+  //                    timeline, resourcesNeeded, isLocked } }
+  // irc8aItems / irc8bItems: flattened, ranked candidate lists, rebuilt
+  // fresh from IRC8a/IRC8b on every load (see rankIrc8aObjectives /
+  // rankIrc8bSubsections below) -- "top 5" is a live computation, not
+  // something IRC8c stores or owns.
+  const state = {
+    year: null,
+    finalRating: null,
+    rows: {},
+    irc8aItems: [], // [{ id, label, average }]
+    irc8bItems: [], // [{ id, label, average }]  -- id === subsection key
+  };
 
   // ------------------------------------------------------------------
   // DOM refs
@@ -46,25 +103,7 @@
   const adjectivalCard = document.getElementById("irc8c-adjectival-card");
   const ratingBadge = document.getElementById("irc8c-rating-badge");
   const criteriaStrip = document.getElementById("irc8c-criteria-strip");
-
   const devTableBody = document.getElementById("irc8c-dev-table-body");
-
-  const addBtn = document.getElementById("irc8c-add-btn");
-  const modalOverlay = document.getElementById("irc8c-modal-overlay");
-  const modalTitle = document.getElementById("irc8c-modal-title");
-  const modalClose = document.getElementById("irc8c-modal-close");
-  const cancelBtn = document.getElementById("irc8c-cancel-btn");
-  const form = document.getElementById("irc8c-form");
-
-  const fStrengths = document.getElementById("irc8c-f-strengths");
-  const fDevNeeds = document.getElementById("irc8c-f-devneeds");
-  const fActionPlan = document.getElementById("irc8c-f-actionplan");
-  const fTimeline = document.getElementById("irc8c-f-timeline");
-  const fResources = document.getElementById("irc8c-f-resources");
-
-  const confirmOverlay = document.getElementById("irc8c-confirm-overlay");
-  const confirmCancelBtn = document.getElementById("irc8c-confirm-cancel");
-  const confirmDeleteBtn = document.getElementById("irc8c-confirm-delete");
 
   // ------------------------------------------------------------------
   // Helpers
@@ -75,25 +114,45 @@
     return div.innerHTML;
   }
 
-  // ------------------------------------------------------------------
-  // Final Rating input: plain text field, digits + one decimal point
-  // only. No native number spinner, no keystroke reformatting.
-  // ------------------------------------------------------------------
-  finalRatingInput.addEventListener("beforeinput", (e) => {
-    if (e.data == null) return; // deletions, paste-clear, etc. are fine
-    const prospective =
-      finalRatingInput.value.slice(0, finalRatingInput.selectionStart) +
-      e.data +
-      finalRatingInput.value.slice(finalRatingInput.selectionEnd);
-    if (!PARTIAL_DECIMAL_RE.test(prospective)) {
-      e.preventDefault();
+  async function apiCall(method, url, body) {
+    const opts = { method, headers: {} };
+    if (body !== undefined) {
+      opts.headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(body);
     }
-  });
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch (e) {
+      throw new Error(
+        "Network error — please check your connection and try again.",
+      );
+    }
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (e) {
+      // no/invalid JSON body
+    }
+    if (!res.ok) {
+      throw new Error(
+        (data && data.error) || "Something went wrong. Please try again.",
+      );
+    }
+    return data;
+  }
 
-  finalRatingInput.addEventListener("input", updateRatingDisplay);
+  function average(values) {
+    const rated = values.filter(
+      (v) => v !== null && v !== undefined && !isNaN(v),
+    );
+    if (rated.length === 0) return null;
+    return rated.reduce((sum, v) => sum + Number(v), 0) / rated.length;
+  }
 
   // ------------------------------------------------------------------
-  // Criteria strip + Adjectival badge
+  // Final Rating + Adjectival badge (value comes from state.finalRating,
+  // not user input -- the field is readonly)
   // ------------------------------------------------------------------
   function renderCriteriaStrip(activeNum) {
     criteriaStrip.innerHTML = RATING_CRITERIA.map((band) => {
@@ -109,9 +168,7 @@
   }
 
   function updateRatingDisplay() {
-    const raw = finalRatingInput.value.trim();
-    const value = raw === "" ? NaN : parseFloat(raw);
-    const band = getRatingBand(value);
+    const value = state.finalRating;
 
     adjectivalCard.classList.remove(
       "irc8c-badge-1",
@@ -122,14 +179,18 @@
       "irc8c-badge-invalid",
     );
 
-    if (raw === "") {
+    if (value === null || value === undefined || isNaN(value)) {
+      finalRatingInput.value = "";
       ratingBadge.textContent = "\u2014";
       renderCriteriaStrip(null);
       return;
     }
 
+    finalRatingInput.value = (Math.round(value * 1000) / 1000).toString();
+
+    const band = getRatingBand(value);
     if (!band) {
-      ratingBadge.textContent = "Invalid rating";
+      ratingBadge.textContent = "Out of range";
       adjectivalCard.classList.add("irc8c-badge-invalid");
       renderCriteriaStrip(null);
       return;
@@ -141,156 +202,221 @@
   }
 
   // ------------------------------------------------------------------
-  // Modal open / close (Development Plan entries)
+  // Ranking: rebuilt fresh from IRC8a/IRC8b data on every load. Both
+  // produce the same shape ({ id, label, average }) so the dropdown
+  // renderer below doesn't need to know which source it's looking at.
   // ------------------------------------------------------------------
-  function resetForm() {
-    form.reset();
+  function rankIrc8aObjectives(irc8aData) {
+    const items = [];
+    (irc8aData.kras || []).forEach((kra) => {
+      (kra.objectives || []).forEach((obj) => {
+        if (obj.average === null || obj.average === undefined) return;
+        const label =
+          kra.text && obj.text
+            ? `${kra.text} — ${obj.text}`
+            : obj.text || kra.text || "(untitled objective)";
+        items.push({ id: String(obj.id), label, average: obj.average });
+      });
+    });
+    return items;
   }
 
-  function openModalForAdd() {
-    editingId = null;
-    modalTitle.textContent = "Add Development Plan Entry";
-    resetForm();
-    modalOverlay.classList.add("visible");
-    fStrengths.focus();
+  function rankIrc8bSubsections(irc8bData) {
+    const ratings = irc8bData.ratings || {};
+    const items = [];
+    IRC8B_SUBSECTIONS.forEach((sub) => {
+      const values = Object.values(ratings[sub.key] || {});
+      const avg = average(values);
+      if (avg === null) return;
+      items.push({
+        id: sub.key,
+        label: `${sub.title} (${sub.section})`,
+        average: avg,
+      });
+    });
+    return items;
   }
 
-  function openModalForEdit(entry) {
-    editingId = entry.id;
-    modalTitle.textContent = "Edit Development Plan Entry";
-    resetForm();
-
-    fStrengths.value = entry.strengths;
-    fDevNeeds.value = entry.devNeeds;
-    fActionPlan.value = entry.actionPlan;
-    fTimeline.value = entry.timeline;
-    fResources.value = entry.resources;
-
-    modalOverlay.classList.add("visible");
+  function topN(items, n, direction) {
+    const sorted = items
+      .slice()
+      .sort((a, b) =>
+        direction === "highest" ? b.average - a.average : a.average - b.average,
+      );
+    return sorted.slice(0, n);
   }
-
-  function closeModal() {
-    modalOverlay.classList.remove("visible");
-    editingId = null;
-  }
-
-  addBtn.addEventListener("click", openModalForAdd);
-  modalClose.addEventListener("click", closeModal);
-  cancelBtn.addEventListener("click", closeModal);
-  modalOverlay.addEventListener("click", (e) => {
-    if (e.target === modalOverlay) closeModal();
-  });
 
   // ------------------------------------------------------------------
-  // Delete confirmation modal
+  // Loading
   // ------------------------------------------------------------------
-  function openDeleteConfirm(id) {
-    pendingDeleteId = id;
-    confirmOverlay.classList.add("visible");
-  }
+  async function loadAll() {
+    try {
+      const irc8c = await apiCall("GET", "/irc/irc8c/data");
+      state.year = irc8c.year;
+      state.finalRating = irc8c.finalRating;
+      state.rows = {};
+      irc8c.rows.forEach((r) => (state.rows[r.slot] = r));
 
-  function closeDeleteConfirm() {
-    pendingDeleteId = null;
-    confirmOverlay.classList.remove("visible");
-  }
+      const [irc8a, irc8b] = await Promise.all([
+        apiCall("GET", `/irc/irc8a/data?year=${state.year}`),
+        apiCall("GET", `/irc/irc8b/data?year=${state.year}`),
+      ]);
+      state.irc8aItems = rankIrc8aObjectives(irc8a);
+      state.irc8bItems = rankIrc8bSubsections(irc8b);
 
-  confirmCancelBtn.addEventListener("click", closeDeleteConfirm);
-  confirmOverlay.addEventListener("click", (e) => {
-    if (e.target === confirmOverlay) closeDeleteConfirm();
-  });
-
-  confirmDeleteBtn.addEventListener("click", () => {
-    if (pendingDeleteId !== null) {
-      entries = entries.filter((en) => en.id !== pendingDeleteId);
-      renderDevTable();
+      render();
+    } catch (err) {
+      devTableBody.innerHTML = `<tr class="irc8c-empty-row"><td colspan="6">Couldn't load this page: ${escapeHtml(err.message)}</td></tr>`;
     }
-    closeDeleteConfirm();
-  });
+  }
 
   // ------------------------------------------------------------------
-  // Development Plan table rendering (no "No." column - rows are
-  // identified only by their action buttons' data-id)
+  // Row persistence
   // ------------------------------------------------------------------
-  function cell(value) {
-    const text = value ? escapeHtml(value) : "";
-    return `<td class="irc8c-cell-text">${
-      text || '<span class="irc8c-cell-empty">N/A</span>'
-    }</td>`;
+  async function saveRow(slot, patch) {
+    const updated = await apiCall("POST", "/irc/irc8c/row", {
+      year: state.year,
+      slot,
+      ...patch,
+    });
+    state.rows[slot] = updated;
+    return updated;
+  }
+
+  // ------------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------------
+  function render() {
+    updateRatingDisplay();
+    renderDevTable();
+  }
+
+  function itemsForSource(source) {
+    return source === "irc8a" ? state.irc8aItems : state.irc8bItems;
+  }
+
+  function renderSelect(row, field, source) {
+    const items = itemsForSource(source);
+    const currentRef = row[field];
+    const direction = field === "strengthRef" ? "highest" : "lowest";
+    const candidates = topN(items, TOP_N, direction);
+
+    // Always keep the currently-saved pick visible, even if it's fallen
+    // out of the top 5 since it was chosen, or -- if the objective/
+    // subsection is gone entirely -- show it as no-longer-available
+    // rather than silently dropping the selection.
+    let extraOption = "";
+    if (currentRef && !candidates.some((c) => c.id === currentRef)) {
+      const match = items.find((c) => c.id === currentRef);
+      extraOption = match
+        ? `<option value="${escapeHtml(match.id)}" selected>${escapeHtml(match.label)}</option>`
+        : `<option value="${escapeHtml(currentRef)}" selected>(previously selected — no longer available)</option>`;
+    }
+
+    const options = candidates
+      .map(
+        (c) =>
+          `<option value="${escapeHtml(c.id)}"${c.id === currentRef ? " selected" : ""}>${escapeHtml(c.label)} (${c.average.toFixed(2)})</option>`,
+      )
+      .join("");
+
+    return `
+      <select class="irc8c-cell-select" data-field="${field}" data-slot="${row.slot}">
+        <option value=""${currentRef ? "" : " selected"}>— Select —</option>
+        ${extraOption}
+        ${options}
+      </select>
+    `;
+  }
+
+  function renderTextCell(row, field, placeholderLabel) {
+    const value = row[field] || "";
+    if (row.isLocked) {
+      return `<td class="irc8c-cell-text">${
+        value
+          ? escapeHtml(value)
+          : `<span class="irc8c-cell-empty">${escapeHtml(placeholderLabel)}</span>`
+      }</td>`;
+    }
+    return `<td><textarea class="irc8c-cell-edit" data-field="${field}" data-slot="${row.slot}" rows="2" placeholder="${escapeHtml(placeholderLabel)}">${escapeHtml(value)}</textarea></td>`;
   }
 
   function renderDevTable() {
-    if (entries.length === 0) {
-      devTableBody.innerHTML = `
-        <tr class="irc8c-empty-row">
-          <td colspan="6">No development plan entries yet. Click &ldquo;Add Entry&rdquo; to get started.</td>
+    devTableBody.innerHTML = SLOTS.map(({ slot, source }) => {
+      const row = state.rows[slot] || { slot, isLocked: true };
+      return `
+        <tr data-slot="${slot}">
+          <td>${renderSelect(row, "strengthRef", source)}</td>
+          <td>${renderSelect(row, "devNeedsRef", source)}</td>
+          ${renderTextCell(row, "actionPlan", "N/A")}
+          ${renderTextCell(row, "timeline", "N/A")}
+          ${renderTextCell(row, "resourcesNeeded", "N/A")}
+          <td>
+            <div class="irc8c-actions-cell">
+              <button type="button" class="irc8c-icon-btn irc8c-toggle-lock-btn" data-slot="${slot}" title="${row.isLocked ? "Edit Action Plan, Timeline & Resources Needed" : "Save & lock"}">
+                ${row.isLocked ? "&#9998;" : "&#10003;"}
+              </button>
+            </div>
+          </td>
         </tr>
       `;
-      return;
-    }
-
-    devTableBody.innerHTML = entries
-      .map(
-        (entry) => `
-      <tr>
-        ${cell(entry.strengths)}
-        ${cell(entry.devNeeds)}
-        ${cell(entry.actionPlan)}
-        ${cell(entry.timeline)}
-        ${cell(entry.resources)}
-        <td>
-          <div class="irc8c-actions-cell">
-            <button type="button" class="irc8c-icon-btn irc8c-edit-btn" data-id="${entry.id}" title="Edit">&#9998;</button>
-            <button type="button" class="irc8c-icon-btn irc8c-delete-btn" data-id="${entry.id}" title="Delete">&#128465;</button>
-          </div>
-        </td>
-      </tr>
-    `,
-      )
-      .join("");
+    }).join("");
   }
 
-  devTableBody.addEventListener("click", (e) => {
-    const editBtn = e.target.closest(".irc8c-edit-btn");
-    const deleteBtn = e.target.closest(".irc8c-delete-btn");
+  // ------------------------------------------------------------------
+  // Events
+  // ------------------------------------------------------------------
+  devTableBody.addEventListener("change", async (e) => {
+    const select = e.target.closest(".irc8c-cell-select");
+    if (!select) return;
 
-    if (editBtn) {
-      const entry = entries.find((en) => en.id === Number(editBtn.dataset.id));
-      if (entry) openModalForEdit(entry);
+    const slot = select.dataset.slot;
+    const field = select.dataset.field;
+    const value = select.value;
+
+    try {
+      await saveRow(slot, { [field]: value });
+      renderDevTable();
+    } catch (err) {
+      alert(err.message);
+      renderDevTable(); // revert to last-saved value
     }
+  });
 
-    if (deleteBtn) {
-      openDeleteConfirm(Number(deleteBtn.dataset.id));
+  devTableBody.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".irc8c-toggle-lock-btn");
+    if (!btn) return;
+
+    const slot = btn.dataset.slot;
+    const row = state.rows[slot];
+    if (!row) return;
+
+    btn.disabled = true;
+    try {
+      if (row.isLocked) {
+        // Unlock: just open the cells for editing, no data changes yet.
+        await saveRow(slot, { isLocked: false });
+      } else {
+        // Lock: commit whatever's currently typed, then lock.
+        const tr = btn.closest("tr");
+        const patch = { isLocked: true };
+        ["actionPlan", "timeline", "resourcesNeeded"].forEach((field) => {
+          const textarea = tr.querySelector(`textarea[data-field="${field}"]`);
+          if (textarea) patch[field] = textarea.value;
+        });
+        await saveRow(slot, patch);
+      }
+      renderDevTable();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      btn.disabled = false;
     }
   });
 
   // ------------------------------------------------------------------
-  // Form submit
-  // ------------------------------------------------------------------
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-
-    const entryData = {
-      strengths: fStrengths.value.trim(),
-      devNeeds: fDevNeeds.value.trim(),
-      actionPlan: fActionPlan.value.trim(),
-      timeline: fTimeline.value.trim(),
-      resources: fResources.value.trim(),
-    };
-
-    if (editingId !== null) {
-      const idx = entries.findIndex((en) => en.id === editingId);
-      if (idx !== -1) entries[idx] = { ...entries[idx], ...entryData };
-    } else {
-      entries.push({ id: nextId++, ...entryData });
-    }
-
-    renderDevTable();
-    closeModal();
-  });
-
-  // ------------------------------------------------------------------
-  // Initial render
+  // Initial load
   // ------------------------------------------------------------------
   renderCriteriaStrip(null);
-  renderDevTable();
+  loadAll();
 })();
