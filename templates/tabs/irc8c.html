@@ -65,7 +65,8 @@ block content %}
           Strengths and Development Needs are picked from IRC8a's
           highest/lowest-rated objectives (first two rows) and IRC8b's
           highest/lowest-rated competencies (last two rows). Click the pencil to
-          edit the Action Plan, Timeline, and Resources Needed for a row.
+          unlock a row for editing; while locked, the picks and text below are
+          read-only.
         </p>
       </div>
     </div>
@@ -74,6 +75,7 @@ block content %}
       <table id="irc8c-dev-table" class="irc8c-dev-table">
         <thead>
           <tr>
+            <th class="irc8c-col-edit"></th>
             <th>Strengths</th>
             <th>Development Needs</th>
             <th>
@@ -81,9 +83,8 @@ block content %}
                 >(Recommended Developmental Intervention)</span
               >
             </th>
-            <th class="irc8c-col-timeline">Timeline</th>
-            <th class="irc8c-col-resources">Resources Needed</th>
-            <th class="irc8c-col-actions">Actions</th>
+            <th>Timeline</th>
+            <th>Resources Needed</th>
           </tr>
         </thead>
         <tbody id="irc8c-dev-table-body">
