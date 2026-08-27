@@ -24,6 +24,8 @@ from models import (
     IRC8AObjective,
     IRC8AIndicator,
     IRC8A_CATEGORIES,
+    IRC8CRow,
+    IRC8C_SLOTS,
     MONTH_KEYS,
     TA_STATUS_PROVIDED,
     TA_STATUS_UNPROVIDED,
@@ -2195,6 +2197,94 @@ def delete_irc8a_indicator(indicator_id):
     db.session.delete(indicator)
     db.session.commit()
     return jsonify({"deleted": True, "id": indicator_id}), 200
+
+
+# ---------------------------------------------------------------------------
+# IRC8c -- Summary of Ratings for Discussion
+#
+# Just two routes: one to read the (always-exactly-four) Development Plan
+# rows plus the live Final Rating, one to patch a single row. There's no
+# create/delete here -- see models.py's IRC8CRow docstring for why the four
+# rows are permanent slots rather than a user-managed list, and why
+# "top 5" ranking/label resolution is left to irc8c.js instead of computed
+# here (short version: IRC8b's subsection titles and per-subsection
+# criteria only exist in irc8b.js, so IRC8c's route can't resolve an
+# irc8b_* ref into a label without duplicating that list here too).
+# ---------------------------------------------------------------------------
+@app.route("/irc/irc8c/data", methods=["GET"])
+def get_irc8c_data():
+    year = request.args.get("year", type=int) or _current_year()
+
+    existing = {r.slot: r for r in IRC8CRow.query.filter_by(year=year).all()}
+    added = False
+    for slot in IRC8C_SLOTS:
+        if slot not in existing:
+            row = IRC8CRow(year=year, slot=slot, is_locked=True)
+            db.session.add(row)
+            existing[slot] = row
+            added = True
+    if added:
+        db.session.commit()
+
+    rows = [existing[slot].to_dict() for slot in IRC8C_SLOTS]
+
+    # Final Performance Results Rating = sum of every objective's Score
+    # (Average x Weight) for the year -- the same arithmetic irc8a.js's
+    # summary footer uses, just computed here via IRC8AObjective.score()
+    # so IRC8c never has to re-derive it (or store a stale copy).
+    objectives = (
+        IRC8AObjective.query.join(IRC8AKra, IRC8AObjective.kra_id == IRC8AKra.id)
+        .filter(IRC8AKra.year == year)
+        .all()
+    )
+    scores = [s for s in (o.score() for o in objectives) if s is not None]
+    final_rating = sum(scores) if scores else None
+
+    return jsonify({"year": year, "finalRating": final_rating, "rows": rows}), 200
+
+
+@app.route("/irc/irc8c/row", methods=["POST"])
+def save_irc8c_row():
+    """Partial update of one fixed Development Plan row. Every field is
+    optional -- only keys present in the body are changed, so the dropdown
+    picks, the text cells, and the lock toggle can each be saved
+    independently without clobbering the others.
+
+    Expected JSON body (all fields but 'slot' optional):
+        {
+          "year": 2026, "slot": "irc8a_1",
+          "strengthRef": "17", "devNeedsRef": "42",
+          "actionPlan": "...", "timeline": "...", "resourcesNeeded": "...",
+          "isLocked": true
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    year = data.get("year") or _current_year()
+    slot = data.get("slot")
+
+    if slot not in IRC8C_SLOTS:
+        return jsonify({"error": f"Invalid slot: {slot!r}"}), 400
+
+    row = IRC8CRow.query.filter_by(year=year, slot=slot).first()
+    if row is None:
+        row = IRC8CRow(year=year, slot=slot, is_locked=True)
+        db.session.add(row)
+
+    if "strengthRef" in data:
+        row.strength_ref = str(data["strengthRef"]) if data["strengthRef"] not in (None, "") else None
+    if "devNeedsRef" in data:
+        row.dev_needs_ref = str(data["devNeedsRef"]) if data["devNeedsRef"] not in (None, "") else None
+    if "actionPlan" in data:
+        row.action_plan = (data.get("actionPlan") or "").strip() or None
+    if "timeline" in data:
+        row.timeline = (data.get("timeline") or "").strip() or None
+    if "resourcesNeeded" in data:
+        row.resources_needed = (data.get("resourcesNeeded") or "").strip() or None
+    if "isLocked" in data:
+        row.is_locked = bool(data["isLocked"])
+
+    db.session.commit()
+    return jsonify(row.to_dict()), 200
 
 
 def not_found(e):

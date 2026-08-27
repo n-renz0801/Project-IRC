@@ -83,6 +83,18 @@ IRC8A_CATEGORY_EFFICIENCY = "efficiency"
 IRC8A_CATEGORY_TIMELINESS = "timeliness"
 IRC8A_CATEGORIES = (IRC8A_CATEGORY_QUALITY, IRC8A_CATEGORY_EFFICIENCY, IRC8A_CATEGORY_TIMELINESS)
 
+# The Development Plans table on IRC8c has exactly four fixed rows -- two
+# fed by IRC8a (Key Result Areas/Objectives) and two fed by IRC8b (Core
+# Behavioral Competencies/Core Skills subsections) -- rather than a
+# user-managed add/delete list. "_1"/"_2" gives each source two
+# independent picks (e.g. two different strong objectives) rather than
+# forcing everything into one row per source.
+IRC8C_SLOT_IRC8A_1 = "irc8a_1"
+IRC8C_SLOT_IRC8A_2 = "irc8a_2"
+IRC8C_SLOT_IRC8B_1 = "irc8b_1"
+IRC8C_SLOT_IRC8B_2 = "irc8b_2"
+IRC8C_SLOTS = (IRC8C_SLOT_IRC8A_1, IRC8C_SLOT_IRC8A_2, IRC8C_SLOT_IRC8B_1, IRC8C_SLOT_IRC8B_2)
+
 
 # ---------------------------------------------------------------------------
 # Central file registry
@@ -821,4 +833,79 @@ class IRC8AIndicator(db.Model):
             "category": self.category,
             "rate": self.rate,
             "label": self.label,
+        }
+
+
+# ---------------------------------------------------------------------------
+# IRC8c -- Summary of Ratings for Discussion
+#
+# One row per fixed slot (see IRC8C_SLOTS above) -- there's no add/delete
+# here, just four permanent Development Plan entries the ratee and rater
+# fill in together. "Strength" and "Development Need" aren't freehand text:
+# they're a *pointer* to something already rated elsewhere --
+#   - irc8a_1 / irc8a_2  -> strength_ref/dev_needs_ref hold the id of an
+#     IRC8AObjective (as a string, so this column can hold either kind of
+#     ref without a polymorphic FK)
+#   - irc8b_1 / irc8b_2  -> they hold an IRC8b subsection key (e.g.
+#     "self_management") -- IRC8b has no per-subsection DB row of its own
+#     (subsection titles are hardcoded in irc8b.js, same as irc8a's rubric
+#     categories are hardcoded in irc8a.js), so the key is all there is to
+#     reference.
+#
+# Deliberately NOT resolved/validated here: which objectives or subsections
+# currently rank in the "top 5" is a moving target that changes every time
+# an IRC8a/IRC8b rating changes, and IRC8b's subsection averages need
+# irc8b.js's own criteria list to compute besides. Recomputing "top 5"
+# and resolving a ref into a display label are both left to irc8c.js,
+# which already fetches /irc/irc8a/data and /irc/irc8b/data directly --
+# this table only remembers *which* ref the user picked.
+#
+# The Final Performance Results Rating shown on IRC8c is likewise not
+# stored -- it's the live sum of every IRC8AObjective.score() for the
+# year, computed fresh in the /irc/irc8c/data route below.
+# ---------------------------------------------------------------------------
+class IRC8CRow(db.Model):
+    __tablename__ = "irc8c_rows"
+    __table_args__ = (
+        db.UniqueConstraint("year", "slot", name="uq_irc8c_year_slot"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    year = db.Column(db.Integer, nullable=False, index=True)
+    slot = db.Column(db.String(16), nullable=False)  # IRC8C_SLOTS
+
+    # Ref into IRC8AObjective.id (irc8a_* slots) or an IRC8b subsection key
+    # (irc8b_* slots) -- see class docstring. Left unvalidated against the
+    # referenced table/list on purpose: the referenced objective/subsection
+    # can outlive or outrank its way out of the top-5, and the UI just
+    # shows "no longer available" rather than silently clearing the pick.
+    strength_ref = db.Column(db.String(64), nullable=True)
+    dev_needs_ref = db.Column(db.String(64), nullable=True)
+
+    action_plan = db.Column(db.Text, nullable=True)
+    timeline = db.Column(db.Text, nullable=True)
+    resources_needed = db.Column(db.Text, nullable=True)
+
+    # Action Plan / Timeline / Resources Needed all share one lock: the
+    # single edit-toggle button in the row's Actions column unlocks (and
+    # re-locks + saves) all three together, rather than each cell having
+    # its own toggle.
+    is_locked = db.Column(db.Boolean, nullable=False, default=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "year": self.year,
+            "slot": self.slot,
+            "source": "irc8a" if self.slot.startswith("irc8a") else "irc8b",
+            "strengthRef": self.strength_ref,
+            "devNeedsRef": self.dev_needs_ref,
+            "actionPlan": self.action_plan,
+            "timeline": self.timeline,
+            "resourcesNeeded": self.resources_needed,
+            "isLocked": self.is_locked,
         }
