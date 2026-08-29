@@ -32,11 +32,11 @@ Design notes
   already multi-year even though the current UI only shows one year at
   a time. Nothing here assumes a single year.
 
-* `IRC4Entry` is a deliberately generic placeholder -- no irc4.html/js
-  was provided yet, so its shape is unknown. It stores a JSON payload
-  so the rest of the pipeline (upload, cascade delete, file manager) is
-  already wired up; swap the `payload` column for real typed columns
-  once you share IRC4's structure.
+* IRC4 ("TA Catch-up Plan") has no PDF pipeline -- like IRC5/IRC6/IRC7/
+  IRC8b, everything is entered by hand through its own tab's UI, so none
+  of `IRC4Plan` / `IRC4Objective` / `IRC4Group` / `IRC4GroupSchool` carry
+  an `uploaded_file_id` column. See the IRC4 section header below for
+  the full shape.
 
 * `UploadedFile.irc_type` is nullable. A per-tab upload (irc1a.html,
   irc1b.html, irc2a.html uploading directly on their own tab) still
@@ -153,10 +153,6 @@ class UploadedFile(db.Model):
         "IRC3Status", backref="source_file",
         cascade="all, delete-orphan", passive_deletes=True,
     )
-    irc4_entries = db.relationship(
-        "IRC4Entry", backref="source_file",
-        cascade="all, delete-orphan", passive_deletes=True,
-    )
     irc9_entries = db.relationship(
         "IRC9Entry", backref="source_file",
         cascade="all, delete-orphan", passive_deletes=True,
@@ -181,8 +177,6 @@ class UploadedFile(db.Model):
             types.append("irc2b")
         if self.irc3_statuses:
             types.append("irc3")
-        if self.irc4_entries:
-            types.append("irc4")
         if self.irc9_entries:
             types.append("irc9")
         return types
@@ -341,24 +335,138 @@ class IRC3Status(db.Model):
 
 
 # ---------------------------------------------------------------------------
-# IRC4 -- placeholder (structure not yet provided)
+# IRC4 -- Technical Assistance (TA) Catch-up Plan
+#
+# One plan per year (IRC4Plan), built from IRC3's results. No PDF pipeline
+# here -- entered entirely by hand through irc4.js, same treatment as
+# IRC5/IRC6/IRC7/IRC8b, so nothing below carries an `uploaded_file_id`.
+#
+#   IRC4Plan          -- the single-per-year Activity / TA Receiver / MOV's
+#                         text blocks.
+#   IRC4Objective     -- ordered list of objectives under the plan.
+#   IRC4Group         -- one schedule "batch": a set of schools + one
+#                         target month. A school can appear in more than
+#                         one group (e.g. TA in two different months), so
+#                         schools are NOT stored as a column here -- see
+#                         IRC4GroupSchool below.
+#   IRC4GroupSchool   -- junction table (many-to-many between groups and
+#                         schools). Links to the shared `School` table
+#                         (same one IRC2a/IRC2b already use) rather than
+#                         storing school names as raw strings, so IRC4
+#                         stays in sync with the rest of the app by
+#                         construction instead of via a copy-pasted roster.
+#
+# The "has this school already been given TA" indicator shown in irc4.js's
+# Add/Edit Group modal is NOT stored here -- it's computed live from
+# IRC2BTAFrequency (see the /irc/irc4/school-ta-status route in app.py),
+# since IRC2b's records are the actual source of truth for that count.
 # ---------------------------------------------------------------------------
-class IRC4Entry(db.Model):
-    """Generic placeholder until irc4.html/js is shared. `payload` holds
-    whatever fields IRC4 turns out to need as JSON, so nothing about the
-    upload/cascade-delete/file-manager plumbing has to change later --
-    only this model (and its route) gets replaced with real columns."""
-
-    __tablename__ = "irc4_entries"
+class IRC4Plan(db.Model):
+    __tablename__ = "irc4_plans"
+    __table_args__ = (
+        db.UniqueConstraint("year", name="uq_irc4_plan_year"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
-    uploaded_file_id = db.Column(db.Integer, db.ForeignKey("uploaded_files.id", ondelete="CASCADE"), nullable=True)
 
     year = db.Column(db.Integer, nullable=False, index=True)
-    month_key = db.Column(db.String(3), nullable=True)
-    payload = db.Column(db.JSON, nullable=False, default=dict)
 
+    activity = db.Column(db.Text, nullable=True)
+    ta_receiver = db.Column(db.Text, nullable=True)
+    movs = db.Column(db.Text, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    objectives = db.relationship(
+        "IRC4Objective", backref="plan", order_by="IRC4Objective.sort_order, IRC4Objective.id",
+        cascade="all, delete-orphan",
+    )
+    groups = db.relationship(
+        "IRC4Group", backref="plan", order_by="IRC4Group.sort_order, IRC4Group.id",
+        cascade="all, delete-orphan",
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "year": self.year,
+            "activity": self.activity or "",
+            "taReceiver": self.ta_receiver or "",
+            "movs": self.movs or "",
+            "objectives": [o.to_dict() for o in self.objectives],
+            "groups": [g.to_dict() for g in self.groups],
+        }
+
+
+class IRC4Objective(db.Model):
+    __tablename__ = "irc4_objectives"
+
+    id = db.Column(db.Integer, primary_key=True)
+    plan_id = db.Column(db.Integer, db.ForeignKey("irc4_plans.id", ondelete="CASCADE"), nullable=False)
+
+    text = db.Column(db.Text, nullable=True, default="")
+
+    # Preserves manual ordering (letterLabel(a, b, c, ...) in irc4.js is
+    # derived from this position, never stored as a literal "a."/"b."
+    # value -- same convention as IRC6Entry's output rows).
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "text": self.text or "",
+        }
+
+
+class IRC4Group(db.Model):
+    __tablename__ = "irc4_groups"
+
+    id = db.Column(db.Integer, primary_key=True)
+    plan_id = db.Column(db.Integer, db.ForeignKey("irc4_plans.id", ondelete="CASCADE"), nullable=False)
+
+    # One of irc4.js's own month codes ("Jan".."Dec", capitalized -- see
+    # that file's MONTH_LABELS), NOT this app's usual lowercase MONTH_KEYS.
+    # NULL if not yet picked.
+    schedule_month_key = db.Column(db.String(3), nullable=True)
+
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    group_schools = db.relationship(
+        "IRC4GroupSchool", backref="group", order_by="IRC4GroupSchool.id",
+        cascade="all, delete-orphan",
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "schedule": self.schedule_month_key,
+            "schools": [gs.school.name for gs in self.group_schools if gs.school],
+        }
+
+
+class IRC4GroupSchool(db.Model):
+    """Junction row: one school inside one group. A school can sit in
+    more than one group (different months), so there's deliberately no
+    unique constraint on `school_id` alone -- only on the (group, school)
+    pair, so the same school can't be added twice to the same group."""
+
+    __tablename__ = "irc4_group_schools"
+    __table_args__ = (
+        db.UniqueConstraint("group_id", "school_id", name="uq_irc4_group_school"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    group_id = db.Column(db.Integer, db.ForeignKey("irc4_groups.id", ondelete="CASCADE"), nullable=False)
+    school_id = db.Column(db.Integer, db.ForeignKey("schools.id", ondelete="CASCADE"), nullable=False)
+
+    school = db.relationship("School")
 
 
 # ---------------------------------------------------------------------------
