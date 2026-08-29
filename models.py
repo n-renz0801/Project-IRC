@@ -157,6 +157,10 @@ class UploadedFile(db.Model):
         "IRC4Entry", backref="source_file",
         cascade="all, delete-orphan", passive_deletes=True,
     )
+    irc9_entries = db.relationship(
+        "IRC9Entry", backref="source_file",
+        cascade="all, delete-orphan", passive_deletes=True,
+    )
 
     def linked_irc_types(self):
         """Which section tables this file actually has rows in -- the
@@ -179,6 +183,8 @@ class UploadedFile(db.Model):
             types.append("irc3")
         if self.irc4_entries:
             types.append("irc4")
+        if self.irc9_entries:
+            types.append("irc9")
         return types
 
     def to_dict(self):
@@ -908,4 +914,59 @@ class IRC8CRow(db.Model):
             "timeline": self.timeline,
             "resourcesNeeded": self.resources_needed,
             "isLocked": self.is_locked,
+        }
+
+
+# ---------------------------------------------------------------------------
+# IRC9 -- Performance Monitoring & Coaching Form (PMCF)
+#
+# One row per critical-incident entry. Entries are added two ways:
+#   1. By hand, through irc9.js's Add/Edit Entry modal -- these leave
+#      `uploaded_file_id` NULL, same convention as IRC5Entry/IRC6Entry.
+#   2. In bulk via PDF import (see _extract_irc9_entries / the
+#      /irc/irc9/extract + /irc/irc9/import route pair in app.py) --
+#      these get `uploaded_file_id` set, so they cascade away if that
+#      upload is later removed from the file manager, same as
+#      IRC1a/IRC1b/IRC2a's extract/import split.
+#
+# `year` groups entries into a report period the same way every other
+# table in this app does, independent of each entry's own `date` (the
+# date of the observed incident itself, which need not fall in the
+# "current" year the way a monthly indicator would).
+# ---------------------------------------------------------------------------
+class IRC9Entry(db.Model):
+    __tablename__ = "irc9_entries"
+
+    id = db.Column(db.Integer, primary_key=True)
+    uploaded_file_id = db.Column(db.Integer, db.ForeignKey("uploaded_files.id", ondelete="CASCADE"), nullable=True)
+
+    year = db.Column(db.Integer, nullable=False, index=True)
+
+    # ISO "YYYY-MM-DD" string, matching the <input type="date"> value.
+    # Kept as a plain string (not db.Date) since a PDF-extracted date can
+    # fail to parse and is then left blank for the user to fill in by
+    # hand -- see app.py's _parse_date_to_iso / the dateWarning shown in
+    # the import-preview modal.
+    date = db.Column(db.String(10), nullable=True)
+
+    incident = db.Column(db.Text, nullable=True)
+    output = db.Column(db.Text, nullable=True)
+    impact = db.Column(db.Text, nullable=True)
+
+    # Preserves manual ordering / import order. Not derived from `date`
+    # since a user may add or import an older incident after a newer one
+    # is already on the list.
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "year": self.year,
+            "date": self.date,
+            "incident": self.incident,
+            "output": self.output,
+            "impact": self.impact,
         }
