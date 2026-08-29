@@ -2,23 +2,30 @@
   const tab = document.getElementById("irc9-tab");
   if (!tab) return;
 
-  // In-memory store of entries. Swap this out for a fetch()/POST to
-  // Flask once a persistence layer exists for IRC9.
+  // Entries are persisted server-side (see /irc/irc9/data,
+  // /irc/irc9/entry, /irc/irc9/import) -- this array is just the local
+  // cache of the last-loaded/saved state, kept in sync after each call.
   //
-  // Each entry: { id, date, incident, output, impact }
+  // Each entry: { id, year, date, incident, output, impact }
   // Paragraph breaks within incident/output/impact are represented as
   // "\n\n" (matching what the backend sends back from PDF extraction,
   // and what a user typing blank lines in a <textarea> naturally
   // produces).
   let entries = [];
   let editingId = null; // id of entry currently being edited, or null for "add"
-  let nextId = 1;
   let pendingDeleteId = null;
+
+  const YEAR = new Date().getFullYear();
 
   // Entries staged from a PDF import, awaiting user review/confirmation.
   // Each item: { date, incident, output, impact } (no id yet — assigned
   // on actual import).
   let pendingImportEntries = [];
+
+  // uploaded_files.id of the PDF currently staged for import (set by
+  // /irc/irc9/extract, sent back to /irc/irc9/import on confirm), so
+  // imported entries link back to the file they came from.
+  let currentImportFileId = null;
 
   // ------------------------------------------------------------------
   // DOM refs
@@ -33,6 +40,7 @@
   const modalClose = document.getElementById("irc9-modal-close");
   const cancelBtn = document.getElementById("irc9-cancel-btn");
   const form = document.getElementById("irc9-form");
+  const saveBtn = document.querySelector('button[form="irc9-form"]');
 
   const fDate = document.getElementById("irc9-f-date");
   const fIncident = document.getElementById("irc9-f-incident");
@@ -57,6 +65,34 @@
   // ------------------------------------------------------------------
   // Helpers
   // ------------------------------------------------------------------
+  async function apiCall(method, url, body) {
+    const opts = { method, headers: {} };
+    if (body !== undefined) {
+      opts.headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(body);
+    }
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch (e) {
+      throw new Error(
+        "Network error — please check your connection and try again.",
+      );
+    }
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (e) {
+      // no/invalid JSON body
+    }
+    if (!res.ok) {
+      throw new Error(
+        (data && data.error) || "Something went wrong. Please try again.",
+      );
+    }
+    return data;
+  }
+
   function escapeHtml(str) {
     const div = document.createElement("div");
     div.textContent = str == null ? "" : str;
@@ -134,10 +170,18 @@
     if (e.target === confirmOverlay) closeDeleteConfirm();
   });
 
-  confirmDeleteBtn.addEventListener("click", () => {
+  confirmDeleteBtn.addEventListener("click", async () => {
     if (pendingDeleteId !== null) {
-      entries = entries.filter((en) => en.id !== pendingDeleteId);
-      renderTable();
+      confirmDeleteBtn.disabled = true;
+      try {
+        await apiCall("DELETE", `/irc/irc9/entry/${pendingDeleteId}`);
+        entries = entries.filter((en) => en.id !== pendingDeleteId);
+        renderTable();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        confirmDeleteBtn.disabled = false;
+      }
     }
     closeDeleteConfirm();
   });
@@ -222,25 +266,31 @@
   // ------------------------------------------------------------------
   // Form submit (manual add/edit)
   // ------------------------------------------------------------------
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const entryData = {
+      year: YEAR,
       date: fDate.value,
       incident: fIncident.value.trim(),
       output: fOutput.value.trim(),
       impact: fImpact.value.trim(),
     };
+    if (editingId !== null) entryData.id = editingId;
 
-    if (editingId !== null) {
-      const idx = entries.findIndex((en) => en.id === editingId);
-      if (idx !== -1) entries[idx] = { ...entries[idx], ...entryData };
-    } else {
-      entries.push({ id: nextId++, ...entryData });
+    if (saveBtn) saveBtn.disabled = true;
+    try {
+      const saved = await apiCall("POST", "/irc/irc9/entry", entryData);
+      const idx = entries.findIndex((en) => en.id === saved.id);
+      if (idx !== -1) entries[idx] = saved;
+      else entries.push(saved);
+      renderTable();
+      closeModal();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      if (saveBtn) saveBtn.disabled = false;
     }
-
-    renderTable();
-    closeModal();
   });
 
   // ------------------------------------------------------------------
@@ -286,6 +336,7 @@
         // date_iso/date_raw/incident/output/impact come from the backend
         // with paragraph breaks preserved as "\n\n" — passed straight
         // through into the preview textareas, which render "\n" natively.
+        currentImportFileId = data.file_id || null;
         pendingImportEntries = data.entries.map((e) => ({
           date: e.date_iso || "",
           dateRaw: e.date_raw || "",
@@ -390,6 +441,7 @@
   function closeImportModal() {
     importModalOverlay.classList.remove("visible");
     pendingImportEntries = [];
+    currentImportFileId = null;
     importList.innerHTML = "";
   }
 
@@ -399,28 +451,49 @@
     if (e.target === importModalOverlay) closeImportModal();
   });
 
-  importConfirmBtn.addEventListener("click", () => {
+  importConfirmBtn.addEventListener("click", async () => {
     if (pendingImportEntries.length === 0) {
       closeImportModal();
       return;
     }
 
-    pendingImportEntries.forEach((entry) => {
-      entries.push({
-        id: nextId++,
+    const payload = {
+      year: YEAR,
+      fileId: currentImportFileId,
+      entries: pendingImportEntries.map((entry) => ({
         date: entry.date,
         incident: entry.incident.trim(),
         output: entry.output.trim(),
         impact: entry.impact.trim(),
-      });
-    });
+      })),
+    };
 
-    renderTable();
-    closeImportModal();
+    importConfirmBtn.disabled = true;
+    try {
+      const data = await apiCall("POST", "/irc/irc9/import", payload);
+      entries = entries.concat(data.entries || []);
+      renderTable();
+      closeImportModal();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      importConfirmBtn.disabled = false;
+    }
   });
 
   // ------------------------------------------------------------------
-  // Initial render
+  // Initial load
   // ------------------------------------------------------------------
-  renderTable();
+  async function loadEntries() {
+    try {
+      const data = await apiCall("GET", `/irc/irc9/data?year=${YEAR}`);
+      entries = data.entries || [];
+    } catch (err) {
+      tableBody.innerHTML = `<tr><td colspan="5">Couldn't load entries: ${escapeHtml(err.message)}</td></tr>`;
+      return;
+    }
+    renderTable();
+  }
+
+  loadEntries();
 })();

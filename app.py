@@ -26,6 +26,7 @@ from models import (
     IRC8A_CATEGORIES,
     IRC8CRow,
     IRC8C_SLOTS,
+    IRC9Entry,
     MONTH_KEYS,
     TA_STATUS_PROVIDED,
     TA_STATUS_UNPROVIDED,
@@ -1525,10 +1526,160 @@ def extract_irc9_pdf():
                          "Please ensure the PDF has the correct format."
             }), 400
 
-        return jsonify({"entries": entries}), 200
+        # --- Persist: save the PDF and register its UploadedFile row now
+        # (so file_id is available for the preview modal and a later
+        # delete still cleans up the file). We deliberately do NOT write
+        # IRC9Entry rows here -- the frontend shows a preview modal first
+        # and lets the user edit/remove any entry before committing, so
+        # the actual writes happen in /irc/irc9/import once confirmed.
+        # This mirrors IRC1a/IRC2a's extract/import split. No month_key:
+        # a PMCF file isn't tied to a single month the way IRC1a's is. ---
+        year = _current_year()
+        file_fields = storage.save_uploaded_pdf(
+            file, app.config["UPLOAD_ROOT"], irc_type="irc9", year=year
+        )
+        uploaded_file = UploadedFile(**file_fields)
+        db.session.add(uploaded_file)
+        db.session.commit()
+
+        return jsonify({
+            "entries": entries,
+            "file_id": uploaded_file.id,
+            "year": year,
+        }), 200
 
     except Exception as e:
         return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
+
+
+# ---------------------------------------------------------------------------
+# IRC9 -- Performance Monitoring & Coaching Form (PMCF)
+#
+# Manually-added entries persist with uploaded_file_id = NULL; entries
+# confirmed from the PDF-import preview above are saved via
+# /irc/irc9/import, which links them back to the UploadedFile row already
+# created in /irc/irc9/extract -- same two-step extract-then-import flow
+# as IRC1a/IRC1b/IRC2a.
+# ---------------------------------------------------------------------------
+@app.route("/irc/irc9/data", methods=["GET"])
+def get_irc9_data():
+    year = request.args.get("year", type=int) or _current_year()
+    rows = (
+        IRC9Entry.query.filter_by(year=year)
+        .order_by(IRC9Entry.sort_order.asc(), IRC9Entry.id.asc())
+        .all()
+    )
+    return jsonify({"year": year, "entries": [r.to_dict() for r in rows]}), 200
+
+
+@app.route("/irc/irc9/entry", methods=["POST"])
+def save_irc9_entry():
+    """Creates a new entry, or updates an existing one if 'id' is included.
+
+    Expected JSON body:
+        {
+          "id": 7,              // omit/null to create a new entry
+          "year": 2026,
+          "date": "2026-07-01",
+          "incident": "...", "output": "...", "impact": "..."
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    entry_id = data.get("id")
+    year = data.get("year") or _current_year()
+    incident = (data.get("incident") or "").strip()
+
+    if not incident:
+        return jsonify({"error": "'incident' is required"}), 400
+
+    if entry_id:
+        entry = IRC9Entry.query.get(entry_id)
+        if entry is None:
+            return jsonify({"error": "Entry not found"}), 404
+    else:
+        max_order = (
+            db.session.query(db.func.max(IRC9Entry.sort_order))
+            .filter_by(year=year)
+            .scalar()
+        )
+        entry = IRC9Entry(year=year, sort_order=(max_order or 0) + 1)
+        db.session.add(entry)
+
+    entry.year = year
+    entry.date = data.get("date") or None
+    entry.incident = incident
+    entry.output = (data.get("output") or "").strip() or None
+    entry.impact = (data.get("impact") or "").strip() or None
+
+    db.session.commit()
+    return jsonify(entry.to_dict()), 200
+
+
+@app.route("/irc/irc9/entry/<int:entry_id>", methods=["DELETE"])
+def delete_irc9_entry(entry_id):
+    entry = IRC9Entry.query.get(entry_id)
+    if entry is None:
+        return jsonify({"error": "Entry not found"}), 404
+    db.session.delete(entry)
+    db.session.commit()
+    return jsonify({"deleted": True, "id": entry_id}), 200
+
+
+@app.route("/irc/irc9/import", methods=["POST"])
+def import_irc9_entries():
+    """Commits the user-confirmed (and possibly edited) entries from the
+    PDF-import preview modal, linking them back to the UploadedFile row
+    /irc/irc9/extract already created.
+
+    Expected JSON body:
+        {
+          "fileId": 42,          // from /irc/irc9/extract's response
+          "year": 2026,          // optional, defaults to current year
+          "entries": [
+            {"date": "2026-07-01", "incident": "...", "output": "...", "impact": "..."},
+            ...
+          ]
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    year = data.get("year") or _current_year()
+    file_id = data.get("fileId")
+    entries_data = data.get("entries")
+
+    if not isinstance(entries_data, list) or not entries_data:
+        return jsonify({"error": "'entries' must be a non-empty list"}), 400
+
+    uploaded_file = UploadedFile.query.get(file_id) if file_id else None
+
+    max_order = (
+        db.session.query(db.func.max(IRC9Entry.sort_order))
+        .filter_by(year=year)
+        .scalar()
+        or 0
+    )
+
+    created = []
+    for i, e in enumerate(entries_data):
+        incident = (e.get("incident") or "").strip()
+        if not incident:
+            continue  # skip a blank/removed-in-preview entry rather than failing the whole batch
+        entry = IRC9Entry(
+            year=year,
+            uploaded_file_id=uploaded_file.id if uploaded_file else None,
+            date=e.get("date") or None,
+            incident=incident,
+            output=(e.get("output") or "").strip() or None,
+            impact=(e.get("impact") or "").strip() or None,
+            sort_order=max_order + i + 1,
+        )
+        db.session.add(entry)
+        created.append(entry)
+
+    if not created:
+        return jsonify({"error": "No valid entries to import"}), 400
+
+    db.session.commit()
+    return jsonify({"entries": [e.to_dict() for e in created]}), 200
 
 
 # ---------------------------------------------------------------------------
