@@ -13,7 +13,10 @@ from models import (
     IRC2ASchoolStatus,
     IRC2BTAFrequency,
     IRC3Status,
-    IRC4Entry,
+    IRC4Plan,
+    IRC4Objective,
+    IRC4Group,
+    IRC4GroupSchool,
     IRC5Entry,
     IRC6Entry,
     IRC7Row,
@@ -753,6 +756,17 @@ def get_irc1b_data():
     rows = IRC1BCustomerCount.query.filter_by(year=year).all()
     counts = {row.month_key: row.customer_count for row in rows}
     return jsonify({"year": year, "counts": counts}), 200
+
+
+@app.route("/irc/schools", methods=["GET"])
+def get_schools():
+    """Master school list (id, name, level, is_dedp_priority), sourced
+    from the shared `School` table -- the same one IRC2a/IRC2b already
+    read from. irc4.js fetches this once on init instead of hardcoding
+    its own SCHOOLS/DEDP_PRIORITY roster, so it can never drift out of
+    sync with the rest of the app."""
+    rows = School.query.order_by(School.name.asc()).all()
+    return jsonify({"schools": [s.to_dict() for s in rows]}), 200
 
 
 @app.route("/irc/irc2a/data", methods=["GET"])
@@ -1497,6 +1511,214 @@ def save_irc3_status():
         "nondedp_ta_count": row.nondedp_ta_count,
         "nondedp_target": row.nondedp_target,
     }), 200
+
+
+# ---------------------------------------------------------------------------
+# IRC4 -- Technical Assistance (TA) Catch-up Plan
+#
+# No PDF pipeline here (see models.py) -- these routes just persist
+# whatever irc4.js's fields/modal submit, same treatment as IRC5/IRC6.
+# One plan per year; `_ensure_irc4_plan` also guarantees at least three
+# blank objectives exist for a brand-new year, mirroring _ensure_irc6_seed
+# (irc4.js's init() comment relies on this: "the server guarantees at
+# least three blank objectives exist" instead of seeding them client-side).
+# ---------------------------------------------------------------------------
+IRC4_MIN_OBJECTIVES = 3
+
+# Matches irc4.js's own MONTH_LABELS keys exactly (capitalized 3-letter
+# codes) -- irc4.js is the source of truth for this format, not this
+# app's usual lowercase MONTH_KEYS (see save_irc4_group's note below).
+IRC4_SCHEDULE_MONTHS = (
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+)
+
+IRC4_PLAN_FIELD_MAP = {
+    "activity": "activity",
+    "taReceiver": "ta_receiver",
+    "movs": "movs",
+}
+
+
+def _ensure_irc4_plan(year):
+    plan = IRC4Plan.query.filter_by(year=year).first()
+    if plan is None:
+        plan = IRC4Plan(year=year)
+        db.session.add(plan)
+        db.session.flush()  # assigns plan.id before objectives reference it
+
+    existing_count = IRC4Objective.query.filter_by(plan_id=plan.id).count()
+    for i in range(existing_count, IRC4_MIN_OBJECTIVES):
+        db.session.add(IRC4Objective(plan_id=plan.id, text="", sort_order=i))
+
+    db.session.commit()
+    return plan
+
+
+@app.route("/irc/irc4/data", methods=["GET"])
+def get_irc4_data():
+    year = request.args.get("year", type=int) or _current_year()
+    plan = _ensure_irc4_plan(year)
+    return jsonify(plan.to_dict()), 200
+
+
+@app.route("/irc/irc4/plan", methods=["POST"])
+def save_irc4_plan():
+    """Persists a single field of the plan (Activity, TA Receiver, or
+    MOV's) -- irc4.js debounces and saves one field at a time, mirroring
+    IRC2b's per-checkbox save.
+
+    Expected JSON body (one of):
+        { "activity": "..." }
+        { "taReceiver": "..." }
+        { "movs": "..." }
+    """
+    data = request.get_json(silent=True) or {}
+    year = data.get("year") or _current_year()
+    plan = _ensure_irc4_plan(year)
+
+    for json_key, col_name in IRC4_PLAN_FIELD_MAP.items():
+        if json_key in data:
+            setattr(plan, col_name, data[json_key])
+
+    db.session.commit()
+    return jsonify(plan.to_dict()), 200
+
+
+@app.route("/irc/irc4/objective", methods=["POST"])
+def save_irc4_objective():
+    """Creates a new objective (id omitted), or updates an existing one's
+    text (id included).
+
+    Expected JSON body:
+        { "id": 7, "text": "..." }   // omit/null id to create
+    """
+    data = request.get_json(silent=True) or {}
+    obj_id = data.get("id")
+    year = data.get("year") or _current_year()
+
+    if obj_id:
+        obj = IRC4Objective.query.get(obj_id)
+        if obj is None:
+            return jsonify({"error": "Objective not found"}), 404
+        obj.text = data.get("text", obj.text)
+    else:
+        plan = _ensure_irc4_plan(year)
+        max_order = (
+            db.session.query(db.func.max(IRC4Objective.sort_order))
+            .filter_by(plan_id=plan.id)
+            .scalar()
+            or 0
+        )
+        obj = IRC4Objective(plan_id=plan.id, text=data.get("text", ""), sort_order=max_order + 1)
+        db.session.add(obj)
+
+    db.session.commit()
+    return jsonify(obj.to_dict()), 200
+
+
+@app.route("/irc/irc4/objective/<int:objective_id>", methods=["DELETE"])
+def delete_irc4_objective(objective_id):
+    obj = IRC4Objective.query.get(objective_id)
+    if obj is None:
+        return jsonify({"error": "Objective not found"}), 404
+    db.session.delete(obj)
+    db.session.commit()
+    return jsonify({"deleted": True, "id": objective_id}), 200
+
+
+@app.route("/irc/irc4/group", methods=["POST"])
+def save_irc4_group():
+    """Creates a new group (id omitted), or updates an existing one's
+    schools + schedule (id included). The full `schools` list is always
+    sent by irc4.js's modal (the whole draft, not a delta), so this
+    replaces the group's school set wholesale rather than diffing it.
+
+    Expected JSON body:
+        {
+          "id": 7,                      // omit/null to create a new group
+          "schools": ["Antipolo NHS", ...],
+          "schedule": "Jul"              // one of IRC4_SCHEDULE_MONTHS, or null
+        }
+    """
+    data = request.get_json(silent=True) or {}
+    group_id = data.get("id")
+    year = data.get("year") or _current_year()
+
+    # NOTE: irc4.js's own MONTH_LABELS keys ("Jan".."Dec", capitalized) are
+    # the codes it actually sends and expects back -- NOT the lowercase
+    # "jan".."dec" MONTH_KEYS the rest of this app uses for monthly grids.
+    # Validating against the wrong casing here silently discarded every
+    # schedule pick (always fell through to None), which is why groups
+    # showed "No month selected" on the main page even after a month was
+    # chosen in the modal. See IRC4_SCHEDULE_MONTHS below.
+    schedule = data.get("schedule")
+    if schedule not in IRC4_SCHEDULE_MONTHS:
+        schedule = None
+
+    school_names = data.get("schools") or []
+
+    if group_id:
+        group = IRC4Group.query.get(group_id)
+        if group is None:
+            return jsonify({"error": "Group not found"}), 404
+    else:
+        plan = _ensure_irc4_plan(year)
+        max_order = (
+            db.session.query(db.func.max(IRC4Group.sort_order))
+            .filter_by(plan_id=plan.id)
+            .scalar()
+            or 0
+        )
+        group = IRC4Group(plan_id=plan.id, sort_order=max_order + 1)
+        db.session.add(group)
+        db.session.flush()  # assigns group.id before IRC4GroupSchool rows reference it
+
+    group.schedule_month_key = schedule
+
+    # Replace the school set wholesale. Unknown names (no matching School
+    # row) are skipped silently, same convention as _upsert_irc2b_from_names.
+    IRC4GroupSchool.query.filter_by(group_id=group.id).delete()
+    seen_ids = set()
+    for name in school_names:
+        school = School.query.filter_by(name=name).first()
+        if school is None or school.id in seen_ids:
+            continue
+        seen_ids.add(school.id)
+        db.session.add(IRC4GroupSchool(group_id=group.id, school_id=school.id))
+
+    db.session.commit()
+    return jsonify(group.to_dict()), 200
+
+
+@app.route("/irc/irc4/group/<int:group_id>", methods=["DELETE"])
+def delete_irc4_group(group_id):
+    group = IRC4Group.query.get(group_id)
+    if group is None:
+        return jsonify({"error": "Group not found"}), 404
+    db.session.delete(group)
+    db.session.commit()
+    return jsonify({"deleted": True, "id": group_id}), 200
+
+
+@app.route("/irc/irc4/school-ta-status", methods=["GET"])
+def get_irc4_school_ta_status():
+    """{ school_name: count } of IRC2b months marked 'provided' this
+    year -- the source for irc4.js's TA-provided indicator box. Schools
+    with a count of 0 are omitted entirely (per the modal's spec: no
+    entry means 'not yet provided'). Resets every year, same as every
+    other year-scoped table in this app -- a school's count here is
+    IRC2b's `provided` rows for THIS year only, not a running total."""
+    year = request.args.get("year", type=int) or _current_year()
+
+    rows = (
+        db.session.query(School.name, db.func.count(IRC2BTAFrequency.id))
+        .join(IRC2BTAFrequency, IRC2BTAFrequency.school_id == School.id)
+        .filter(IRC2BTAFrequency.year == year, IRC2BTAFrequency.provided.is_(True))
+        .group_by(School.name)
+        .all()
+    )
+    return jsonify({name: count for name, count in rows if count > 0}), 200
 
 
 @app.route("/irc/irc9/extract", methods=["POST"])

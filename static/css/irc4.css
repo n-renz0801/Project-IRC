@@ -164,10 +164,21 @@
    -- it's just empty in that case, same width as every other box so the
    column of boxes stays visually aligned down the list. Not used on the
    main page's read-only group cards (.irc4-group-school-item) -- only
-   inside the Add/Edit Group modal, via irc4.js's buildTaIndicatorBox(). */
-.irc4-ta-indicator {
+   inside the Add/Edit Group modal, via irc4.js's buildTaIndicatorBox().
+
+   Everything below is scoped under #irc4GroupModal (rather than just the
+   bare class) so its specificity beats any same-specificity rule a
+   shared/global stylesheet elsewhere in the app might declare later in
+   the cascade -- these boxes need to render identically no matter what
+   else is loaded on the page. `box-sizing`/min-height/explicit svg size
+   are all belt-and-suspenders against exactly that kind of collision. */
+#irc4GroupModal .irc4-ta-indicator {
+  box-sizing: border-box;
   flex-shrink: 0;
+  align-self: stretch;
   width: 40px;
+  min-width: 40px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -176,21 +187,24 @@
   background: #9aa4b2; /* fallback if a level is somehow missing */
 }
 
-.irc4-ta-indicator[data-level="elementary"] {
+#irc4GroupModal .irc4-ta-indicator[data-level="elementary"] {
   background: var(--irc4-elementary);
 }
 
-.irc4-ta-indicator[data-level="secondary"] {
+#irc4GroupModal .irc4-ta-indicator[data-level="secondary"] {
   background: var(--irc4-secondary);
 }
 
-.irc4-ta-indicator-icon {
-  width: 11px;
-  height: 11px;
+#irc4GroupModal .irc4-ta-indicator-icon {
+  box-sizing: border-box;
+  width: 11px !important;
+  height: 11px !important;
   flex-shrink: 0;
+  display: block;
 }
 
-.irc4-ta-indicator-label {
+#irc4GroupModal .irc4-ta-indicator-label {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -756,11 +770,18 @@
   box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
 }
 
-.irc4-school-suggestions {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
+/* ---- Suggestion dropdown (school search + schedule combobox) ----------
+   Everything here is scoped under #irc4GroupModal, and every interactive
+   row uses `all: unset` before re-declaring the handful of properties it
+   actually needs. Both are deliberate hardening against a shared/global
+   stylesheet elsewhere in the app applying its own `button` defaults (or
+   a same-specificity `.irc4-school-suggestion-item` rule loaded later in
+   the cascade) and silently shrinking these rows down to a sliver --
+   `all: unset` + an explicit min-height means there is nothing left for
+   an outside rule to partially override. */
+#irc4GroupModal .irc4-school-suggestions {
+  box-sizing: border-box;
+  position: fixed; /* irc4.js sets the real left/top/width/max-height once open */
   max-height: 190px;
   overflow-y: auto;
   scrollbar-gutter: stable;
@@ -768,11 +789,15 @@
   border: 1px solid var(--irc4-field-border);
   border-radius: 8px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
-  z-index: 20;
+  z-index: 2000; /* above .irc4-modal's own z-index: 1000 */
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 4px;
+}
+
+#irc4GroupModal .irc4-school-suggestions * {
+  box-sizing: border-box;
 }
 
 /* Forces the panel closed when [hidden] is set. Without this,
@@ -780,8 +805,8 @@
    specificity tie against the browser's built-in [hidden] rule, so the
    panel would stay visibly open even while the `hidden` attribute is
    present on the element. */
-.irc4-school-suggestions[hidden] {
-  display: none;
+#irc4GroupModal .irc4-school-suggestions[hidden] {
+  display: none !important;
 }
 
 /* Zero-padding, stretch-aligned outer container: the TA indicator box
@@ -793,16 +818,21 @@
    keeps the indicator box's square corners from poking past the item's
    rounded ones. Month entries in the schedule combobox (no data-level,
    no indicator box) use the same two-layer structure for consistency —
-   see irc4.js's renderScheduleSuggestions. */
-.irc4-school-suggestion-item {
+   see irc4.js's renderScheduleSuggestions. `all: unset` strips whatever
+   a browser (or an outside stylesheet targeting `button`) would
+   otherwise impose, so only the properties re-declared below apply. */
+#irc4GroupModal .irc4-school-suggestion-item {
+  all: unset;
+  box-sizing: border-box;
   display: flex;
   align-items: stretch;
+  width: 100%;
+  min-height: 40px;
   gap: 0;
   text-align: left;
   background: none;
   border: 1px solid transparent;
   border-left: 3px solid transparent;
-  padding: 0;
   border-radius: 6px;
   overflow: hidden;
   font-size: 12.5px;
@@ -811,7 +841,7 @@
   cursor: pointer;
 }
 
-.irc4-school-suggestion-content {
+#irc4GroupModal .irc4-school-suggestion-content {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
@@ -821,7 +851,7 @@
   padding: 8px 10px;
 }
 
-.irc4-school-suggestion-name {
+#irc4GroupModal .irc4-school-suggestion-name {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -831,8 +861,8 @@
 
 /* Plain items (e.g. months in the schedule combobox, which have no
    level) keep the original neutral hover. */
-.irc4-school-suggestion-item:not([data-level]):hover,
-.irc4-school-suggestion-item:not([data-level]):focus {
+#irc4GroupModal .irc4-school-suggestion-item:not([data-level]):hover,
+#irc4GroupModal .irc4-school-suggestion-item:not([data-level]):focus {
   background: #eef4fb;
   color: var(--irc4-accent-dark);
   outline: none;
@@ -840,36 +870,40 @@
 
 /* School items are color-coded by level, same as the selected-school
    rows and IRC2a. */
-.irc4-school-suggestion-item[data-level="elementary"] {
+#irc4GroupModal .irc4-school-suggestion-item[data-level="elementary"] {
   background: var(--irc4-elementary-tint);
   border-left-color: var(--irc4-elementary);
   color: #7a3c05;
 }
 
-.irc4-school-suggestion-item[data-level="secondary"] {
+#irc4GroupModal .irc4-school-suggestion-item[data-level="secondary"] {
   background: var(--irc4-secondary-tint);
   border-left-color: var(--irc4-secondary);
   color: #036045;
 }
 
-.irc4-school-suggestion-item[data-level="elementary"]:hover,
-.irc4-school-suggestion-item[data-level="elementary"]:focus {
+#irc4GroupModal .irc4-school-suggestion-item[data-level="elementary"]:hover,
+#irc4GroupModal .irc4-school-suggestion-item[data-level="elementary"]:focus {
   background: rgba(180, 83, 9, 0.2);
   outline: none;
 }
 
-.irc4-school-suggestion-item[data-level="secondary"]:hover,
-.irc4-school-suggestion-item[data-level="secondary"]:focus {
+#irc4GroupModal .irc4-school-suggestion-item[data-level="secondary"]:hover,
+#irc4GroupModal .irc4-school-suggestion-item[data-level="secondary"]:focus {
   background: rgba(4, 120, 87, 0.2);
   outline: none;
 }
 
-.irc4-school-suggestion-item[data-level="elementary"] .irc4-badge--dedp {
+#irc4GroupModal
+  .irc4-school-suggestion-item[data-level="elementary"]
+  .irc4-badge--dedp {
   background: var(--irc4-elementary);
   color: #fff;
 }
 
-.irc4-school-suggestion-item[data-level="secondary"] .irc4-badge--dedp {
+#irc4GroupModal
+  .irc4-school-suggestion-item[data-level="secondary"]
+  .irc4-badge--dedp {
   background: var(--irc4-secondary);
   color: #fff;
 }
