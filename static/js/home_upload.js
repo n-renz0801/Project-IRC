@@ -14,7 +14,109 @@
 
   const monthGrid = document.getElementById("homeMonthGrid");
 
+  const hamburgerBtn = document.getElementById("homeUploadHamburgerBtn");
+  const hamburgerPanel = document.getElementById("homeUploadHamburgerPanel");
+  const navEl = document.querySelector("nav");
+
+  // No-op by default; replaced below if the hamburger elements exist.
+  // Called after a successful import so the user can see the freshly
+  // imported file in the monthly grid without having to re-hover.
+  let pinHamburgerOpen = function () {};
+
   if (!dropzone || !fileInput || !uploadBtn) return; // not on the home page
+
+  // --- Hamburger menu: the toggle button lives in the navbar while the
+  // panel lives here in the page, so they're positioned independently.
+  //
+  // Normally it opens on hover or click and closes shortly after the
+  // pointer leaves both the button and the panel (the short delay is
+  // what lets the pointer travel from the navbar button down into the
+  // panel without the gap between them closing it first).
+  //
+  // It can also be "pinned" open (see pinHamburgerOpen below), which is
+  // used right after a successful import: hovering out no longer closes
+  // it, so the user can see the newly-imported file land in the monthly
+  // grid. Pinned mode ends, and the panel closes, only when the user
+  // clicks anywhere outside the button/panel. ---
+  if (hamburgerBtn && hamburgerPanel) {
+    let closeTimer = null;
+    let repositionHandler = null;
+    let pinned = false;
+
+    function positionPanel() {
+      if (!navEl) return;
+      const rect = navEl.getBoundingClientRect();
+      hamburgerPanel.style.top = Math.max(rect.bottom, 0) + "px";
+    }
+
+    function openHamburger() {
+      clearTimeout(closeTimer);
+      hamburgerPanel.classList.add("home-upload-hamburger-panel--open");
+      hamburgerBtn.setAttribute("aria-expanded", "true");
+      positionPanel();
+      if (!repositionHandler) {
+        repositionHandler = positionPanel;
+        window.addEventListener("scroll", repositionHandler, {
+          passive: true,
+        });
+        window.addEventListener("resize", repositionHandler);
+      }
+    }
+
+    // `force` bypasses the pinned state — used for an explicit click on
+    // the toggle button or a click outside the panel, both of which
+    // should always close it regardless of how it was opened.
+    function closeHamburger(force) {
+      if (pinned && !force) return;
+      pinned = false;
+      document.removeEventListener("mousedown", handleOutsideClick, true);
+      hamburgerPanel.classList.remove("home-upload-hamburger-panel--open");
+      hamburgerBtn.setAttribute("aria-expanded", "false");
+      if (repositionHandler) {
+        window.removeEventListener("scroll", repositionHandler);
+        window.removeEventListener("resize", repositionHandler);
+        repositionHandler = null;
+      }
+    }
+
+    function scheduleClose() {
+      clearTimeout(closeTimer);
+      closeTimer = setTimeout(() => closeHamburger(false), 150);
+    }
+
+    function handleOutsideClick(e) {
+      if (
+        hamburgerPanel.contains(e.target) ||
+        hamburgerBtn.contains(e.target)
+      ) {
+        return;
+      }
+      closeHamburger(true);
+    }
+
+    pinHamburgerOpen = function () {
+      pinned = true;
+      openHamburger();
+      document.addEventListener("mousedown", handleOutsideClick, true);
+    };
+
+    hamburgerBtn.addEventListener("click", () => {
+      if (
+        hamburgerPanel.classList.contains("home-upload-hamburger-panel--open")
+      ) {
+        closeHamburger(true);
+      } else {
+        openHamburger();
+      }
+    });
+
+    hamburgerBtn.addEventListener("mouseenter", openHamburger);
+    hamburgerBtn.addEventListener("mouseleave", scheduleClose);
+    hamburgerPanel.addEventListener("mouseenter", () =>
+      clearTimeout(closeTimer),
+    );
+    hamburgerPanel.addEventListener("mouseleave", scheduleClose);
+  }
 
   const MONTH_ORDER = [
     "jan",
@@ -125,16 +227,16 @@
 
   dropzone.addEventListener("dragover", (e) => {
     e.preventDefault();
-    dropzone.classList.add("home-upload-compact--drag");
+    dropzone.classList.add("home-upload-dropzone--drag");
   });
 
   dropzone.addEventListener("dragleave", () => {
-    dropzone.classList.remove("home-upload-compact--drag");
+    dropzone.classList.remove("home-upload-dropzone--drag");
   });
 
   dropzone.addEventListener("drop", (e) => {
     e.preventDefault();
-    dropzone.classList.remove("home-upload-compact--drag");
+    dropzone.classList.remove("home-upload-dropzone--drag");
     const files = e.dataTransfer.files;
     if (files.length > 0) handleUpload(files[0]);
   });
@@ -431,6 +533,7 @@
           "success",
         );
         refreshMonthGrid();
+        pinHamburgerOpen();
       })
       .catch((err) => {
         confirmBtn.disabled = false;
