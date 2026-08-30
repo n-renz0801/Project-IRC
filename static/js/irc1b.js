@@ -157,7 +157,15 @@
   );
 
   function saveManualCount(input) {
-    if (input.value === "") return;
+    // Cleared cell: delete the saved value instead of leaving it in the
+    // DB. Previously this just returned here, so an emptied cell had no
+    // way to reach the server and the old value came right back on the
+    // next page load/refresh.
+    if (input.value === "") {
+      deleteManualCount(input.dataset.month);
+      return;
+    }
+
     const customers = parseInt(input.value, 10);
     if (Number.isNaN(customers) || customers < 0) return;
 
@@ -170,6 +178,14 @@
       }),
     }).catch(() => {
       /* Best-effort: a failed save shouldn't interrupt typing. */
+    });
+  }
+
+  function deleteManualCount(monthKey) {
+    fetch(`/irc/irc1b/count/${monthKey}`, {
+      method: "DELETE",
+    }).catch(() => {
+      /* Best-effort, same as saveManualCount's save path. */
     });
   }
 

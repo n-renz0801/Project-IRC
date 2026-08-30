@@ -914,6 +914,9 @@
    trailing below an empty area. */
 .irc4-school-list-wrap {
   position: relative;
+  flex-shrink: 0; /* same reasoning as .irc4-school-row below: never let
+                      the fixed-height list itself get squeezed if the
+                      modal body ever runs short on space */
   margin-bottom: 6px;
 }
 
@@ -928,6 +931,7 @@
 .irc4-school-list {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   gap: 6px;
   height: 240px;
   overflow-y: auto;
@@ -948,6 +952,10 @@
 .irc4-school-row {
   display: flex;
   align-items: stretch;
+  flex-shrink: 0; /* keeps every row at its natural height as more schools
+                      are added, instead of the flex column squeezing rows
+                      shorter to fit them all -- the list scrolls instead
+                      (see .irc4-school-list's fixed height above) */
   gap: 0;
   border: 1px solid var(--irc4-field-border);
   border-left: 3px solid var(--irc4-field-border);

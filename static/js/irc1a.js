@@ -420,10 +420,20 @@
 
   function saveManualRating(input) {
     const row = input.closest("tr[data-indicator]");
-    if (!row || input.value === "") return;
+    if (!row) return;
 
     const indicatorId = row.dataset.indicator;
     const monthKey = input.dataset.month;
+
+    // Cleared cell: delete the saved value instead of leaving it in the
+    // DB. Previously this just returned here, so an emptied cell had no
+    // way to reach the server and the old value came right back on the
+    // next page load/refresh.
+    if (input.value === "") {
+      deleteManualRating(indicatorId, monthKey);
+      return;
+    }
+
     const value = parseFloat(input.value);
     if (Number.isNaN(value)) return;
 
@@ -438,6 +448,16 @@
       /* Best-effort: a failed save here shouldn't interrupt typing. The
          next successful edit (or a page reload once connectivity is back)
          will resend the current value anyway. */
+    });
+  }
+
+  function deleteManualRating(indicatorId, monthKey) {
+    fetch(`/irc/irc1a/rating/${monthKey}/${indicatorId}`, {
+      method: "DELETE",
+    }).catch(() => {
+      /* Best-effort, same as saveManualRating's save path -- a failed
+         delete just means the old value comes back on next reload, which
+         the user can retry by clearing the cell again. */
     });
   }
 
