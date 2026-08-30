@@ -41,6 +41,18 @@
 
     <!-- ===== NAVIGATION BAR ===== -->
     <nav>
+      {% if active_tab is none %}
+      <button
+        type="button"
+        class="home-upload-hamburger-btn"
+        id="homeUploadHamburgerBtn"
+        aria-expanded="false"
+        aria-controls="homeUploadHamburgerPanel"
+      >
+        <i class="ti ti-menu-2" aria-hidden="true"></i>
+        <span>Uploads</span>
+      </button>
+      {% endif %}
       <ul>
         <li>
           <!-- prettier-ignore -->

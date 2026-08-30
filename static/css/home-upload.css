@@ -2,82 +2,100 @@
    HOME PAGE — CENTRALIZED UPLOAD SECTION
 ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ---------- Hamburger toggle (lives in the navbar, see base.html) ---------- */
+.home-upload-hamburger-btn {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gold);
+  color: var(--navy-deep);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: background 0.15s ease;
+}
+
+.home-upload-hamburger-btn:hover,
+.home-upload-hamburger-btn[aria-expanded="true"] {
+  background: var(--gold-dark);
+}
+
+.home-upload-hamburger-btn i {
+  font-size: 1.05rem;
+}
+
+/* ---------- Slide-in panel (drawer from the left edge of the screen) ---------- */
+/* Fixed rather than nested under the button, since the toggle now lives
+   in the navbar while this panel lives in the page content. `top` is
+   set from JS to whatever the navbar's current bottom edge is (it
+   accounts for the navbar's sticky position automatically). */
+.home-upload-hamburger-panel {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 150;
+  width: min(420px, 88vw);
+  background: var(--white);
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.18);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+}
+
+.home-upload-hamburger-panel--open {
+  transform: translateX(0);
+}
+
+.home-upload-hamburger-panel .home-uploads-card {
+  margin-top: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .home-uploads-card {
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 24px;
+  padding: 18px 20px;
   box-shadow: 0 6px 18px var(--shadow);
   margin-top: 20px;
 }
 
-/* Full-width now that the upload card is a compact strip above it. */
+/* Full-width within the drawer panel. */
 .home-uploads-card--full {
   width: 100%;
 }
 
-/* ---------- Compact upload strip ---------- */
-.home-upload-compact {
+/* ---------- Card header: title + Upload PDF button side by side ---------- */
+.home-uploads-card-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 20px;
-  box-shadow: 0 6px 18px var(--shadow);
-  margin-top: 24px;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
 }
 
-.home-upload-compact--drag {
+.home-uploads-card-header-action {
+  flex: 0 0 auto;
+}
+
+/* The card itself doubles as the drag-and-drop target now that the old
+   compact upload strip is gone. */
+.home-upload-dropzone--drag {
   border-color: var(--navy);
   background: var(--shadow);
-}
-
-.home-upload-icon-badge {
-  flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--gold);
-  color: var(--navy-deep);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-}
-
-.home-upload-compact-text {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.home-upload-compact-text h2 {
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin: 0 0 2px;
-  color: var(--navy-deep);
-}
-
-.home-upload-subtitle {
-  font-size: 0.78rem;
-  color: var(--text-light);
-  margin: 0;
-  line-height: 1.4;
-}
-
-.home-upload-compact-action {
-  flex: 0 0 auto;
-  text-align: center;
-}
-
-.home-upload-hint {
-  margin: 6px 0 0;
-  font-size: 0.72rem;
-  color: var(--text-light);
 }
 
 .home-upload-btn {
@@ -344,7 +362,7 @@
 
 /* ---------- Monthly file manager (fixed 12-row grid) ---------- */
 .home-uploads-card h3 {
-  margin: 0 0 14px;
+  margin: 0;
   font-size: 1rem;
   font-weight: 600;
   color: var(--navy-deep);
@@ -358,18 +376,28 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 10px;
+  /* minmax(0, 1fr) instead of a bare 1fr — grid items default to
+     min-width: auto, so a long filename's intrinsic min-content width
+     can force the track (and the row) wider than the card, pushing it
+     past the card's edge. Capping the track's minimum at 0 lets the
+     ellipsis truncation on .home-month-row-filename actually kick in. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .home-month-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
   background: var(--off-white);
   border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 8px;
+  padding: 5px 10px;
   transition: border-color 0.15s ease;
 }
 
@@ -384,8 +412,8 @@
 
 .home-month-row-label {
   flex: 0 0 auto;
-  width: 34px;
-  font-size: 0.78rem;
+  width: 30px;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--navy);
   text-transform: uppercase;
@@ -394,7 +422,7 @@
 .home-month-row-filename {
   flex: 1;
   min-width: 0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
@@ -404,7 +432,7 @@
 
 .home-month-row-empty {
   flex: 1;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   color: var(--text-light);
   font-style: italic;
 }
@@ -414,12 +442,12 @@
   border: none;
   background: transparent;
   color: #c0392b;
-  padding: 6px;
+  padding: 3px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.9rem;
   line-height: 1;
 }
 
@@ -428,13 +456,28 @@
 }
 
 /* ---------- Responsive ---------- */
+@media (max-width: 860px) {
+  .home-upload-hamburger-btn {
+    left: 10px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+
+  .home-upload-hamburger-btn span {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
-  .home-upload-compact {
+  .home-upload-hamburger-panel {
+    width: 92vw;
+  }
+
+  .home-uploads-card-header {
     flex-wrap: wrap;
   }
 
-  .home-upload-compact-action {
+  .home-uploads-card-header-action {
     flex: 1 1 100%;
-    text-align: left;
   }
 }
