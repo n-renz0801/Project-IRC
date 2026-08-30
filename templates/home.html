@@ -9,68 +9,77 @@ block extra_css %}
   href="{{ url_for('static', filename='css/home-upload.css') }}"
 />
 {% endblock %} {% block content %}
-<div class="page-hero">
-  <h1>Welcome to SGOD PMES!</h1>
-</div>
+<div class="dashboard-header">
+  <!-- Row 1: Org masthead -->
+  <div class="header-admin-bar">
+    <div class="masthead-org">
+      <span class="org-name">Schools Division Office of Antipolo City</span>
+      <span class="org-sgod"
+        >School Governance and Operations Division (SGOD)</span
+      >
+    </div>
+  </div>
 
-<hr class="page-divider" />
+  <!-- Row 2: Title row -->
+  <div class="header-title-bar">
+    <div class="masthead-divider"></div>
+    <div class="masthead-title">
+      <h1 class="dashboard-title">Project IRC</h1>
+      <p class="dashboard-subtitle">
+        <span class="irc-letter">I</span>ndividual
+        <span class="irc-cdot">·</span>
+        <span class="irc-letter">R</span>eport
+        <span class="irc-cdot">·</span>
+        <span class="irc-letter">C</span>ard
+      </p>
+    </div>
+  </div>
+</div>
 
 <p class="page-instruction">
   Select a report card below or from the navigation bar above to get started.
 </p>
 
 <div class="content__body">
-  <div class="carousel">
-    <button
-      type="button"
-      class="carousel__arrow carousel__arrow--left"
-      id="carouselLeft"
-      aria-label="Scroll left"
-    >
-      &#8249;
-    </button>
-
-    <div class="carousel__track" id="carouselTrack">
-      {% for group in groups %}
-      <div class="carousel-card">
-        <span class="carousel-card__icon-badge">
-          <i class="ti ti-file-report" aria-hidden="true"></i>
-        </span>
+  <div class="irc-cards-grid">
+    {% set card_colors = ['navy', 'gold', 'teal', 'violet'] %} {% for group in
+    groups %}
+    <div class="carousel-card card-color-{{ card_colors[loop.index0 % 4] }}">
+      <div class="carousel-card-body">
         <p class="carousel-card__code">{{ group.code }}</p>
-        <p class="carousel-card__label">{{ group.label }}</p>
-
-        {% if group.tabs|length == 1 %} {# Single-report group: whole card is
-        one link #}
-        <a
-          href="{{ url_for('view_tab', tab_id=group.tabs[0].id) }}"
-          class="carousel-card__link"
-        ></a>
-        {% else %} {# Multi-part group: one full-width row per sub-report #}
-        <div class="carousel-card__rows">
-          {% for tab in group.tabs %}
-          <a
-            href="{{ url_for('view_tab', tab_id=tab.id) }}"
-            class="carousel-card__row"
-            title="{{ tab.name }}"
-          >
-            <span>{{ tab.short }}</span>
-            <i class="ti ti-chevron-right" aria-hidden="true"></i>
-          </a>
-          {% endfor %}
-        </div>
-        {% endif %}
+        {# Single-report groups map 1:1 to one IRC, so the label can name that
+        specific report. Multi-report groups (1, 2, 8) cover more than one IRC
+        at once, so the generic group label stays here and each row below
+        carries its own specific description instead. #}
+        <p class="carousel-card__label">
+          {% if group.tabs|length == 1 %}{{ group.tabs[0].desc }}{% else %}{{
+          group.label }}{% endif %}
+        </p>
       </div>
-      {% endfor %}
-    </div>
 
-    <button
-      type="button"
-      class="carousel__arrow carousel__arrow--right"
-      id="carouselRight"
-      aria-label="Scroll right"
-    >
-      &#8250;
-    </button>
+      {% if group.tabs|length == 1 %} {# Single-report group: whole card is one
+      link #}
+      <a
+        href="{{ url_for('view_tab', tab_id=group.tabs[0].id) }}"
+        class="carousel-card__link"
+      ></a>
+      <i class="ti ti-arrow-right carousel-card__arrow" aria-hidden="true"></i>
+      {% else %} {# Multi-part group: one full-width row per sub-report #}
+      <div class="carousel-card__rows">
+        {% for tab in group.tabs %}
+        <a
+          href="{{ url_for('view_tab', tab_id=tab.id) }}"
+          class="carousel-card__row"
+          title="{{ tab.desc }}"
+        >
+          <span>{{ tab.short }}</span>
+          <i class="ti ti-chevron-right" aria-hidden="true"></i>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
   </div>
 </div>
 
