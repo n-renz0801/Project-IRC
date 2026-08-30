@@ -5,7 +5,7 @@
 /* ---------- Hamburger toggle (lives in the navbar, see base.html) ---------- */
 .home-upload-hamburger-btn {
   position: absolute;
-  left: 24px;
+  right: 24px;
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
@@ -30,25 +30,25 @@
   font-size: 1.05rem;
 }
 
-/* ---------- Slide-in panel (drawer from the left edge of the screen) ---------- */
+/* ---------- Slide-in panel (drawer from the right edge of the screen) ---------- */
 /* Fixed rather than nested under the button, since the toggle now lives
    in the navbar while this panel lives in the page content. `top` is
    set from JS to whatever the navbar's current bottom edge is (it
    accounts for the navbar's sticky position automatically). */
 .home-upload-hamburger-panel {
   position: fixed;
-  left: 0;
+  right: 0;
   top: 0;
   bottom: 0;
   z-index: 150;
   width: min(420px, 88vw);
   background: var(--white);
-  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.18);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
   padding: 22px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transform: translateX(-100%);
+  transform: translateX(100%);
   transition: transform 0.25s ease;
 }
 
@@ -458,7 +458,7 @@
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
   .home-upload-hamburger-btn {
-    left: 10px;
+    right: 10px;
     padding: 8px 10px;
     font-size: 0.78rem;
   }

@@ -117,14 +117,14 @@ TEMPLATE_MAP = {tab["id"]: f"tabs/{tab['id']}.html" for tab in TABS}
 # tiles. Each group's "tabs" list holds the actual tab dicts from TABS above.
 # ---------------------------------------------------------------------------
 GROUPS = [
-    {"code": "IRC1", "label": "Individual Report Card No. 1", "tabs": [TAB_LOOKUP["irc1a"], TAB_LOOKUP["irc1b"]]},
-    {"code": "IRC2", "label": "Individual Report Card No. 2", "tabs": [TAB_LOOKUP["irc2a"], TAB_LOOKUP["irc2b"]]},
+    {"code": "IRC1", "label": "Monthly Customers Feedback Rating & Number of Customers Served", "tabs": [TAB_LOOKUP["irc1a"], TAB_LOOKUP["irc1b"]]},
+    {"code": "IRC2", "label": "Number of Schools Provided with TA & Frequency of TA Provided to DEDP Priority Schools", "tabs": [TAB_LOOKUP["irc2a"], TAB_LOOKUP["irc2b"]]},
     {"code": "IRC3", "label": "Individual Report Card No. 3", "tabs": [TAB_LOOKUP["irc3"]]},
     {"code": "IRC4", "label": "Individual Report Card No. 4", "tabs": [TAB_LOOKUP["irc4"]]},
     {"code": "IRC5", "label": "Individual Report Card No. 5", "tabs": [TAB_LOOKUP["irc5"]]},
     {"code": "IRC6", "label": "Individual Report Card No. 6", "tabs": [TAB_LOOKUP["irc6"]]},
     {"code": "IRC7", "label": "Individual Report Card No. 7", "tabs": [TAB_LOOKUP["irc7"]]},
-    {"code": "IRC8", "label": "Individual Report Card No. 8", "tabs": [
+    {"code": "IRC8", "label": "Individual Performance Commitment and Review Form (IPCRF)", "tabs": [
         TAB_LOOKUP["irc8a"], TAB_LOOKUP["irc8b"], TAB_LOOKUP["irc8c"], TAB_LOOKUP["irc8d"],
     ]},
     {"code": "IRC9", "label": "Individual Report Card No. 9", "tabs": [TAB_LOOKUP["irc9"]]},
