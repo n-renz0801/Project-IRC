@@ -88,20 +88,20 @@ def init_db_command():
 # and this list will not grow, so it's kept simple as a constant here.
 # ---------------------------------------------------------------------------
 TABS = [
-    {"id": "irc1a", "short": "IRC1a", "name": "Individual Report Card No. 1a"},
-    {"id": "irc1b", "short": "IRC1b", "name": "Individual Report Card No. 1b"},
-    {"id": "irc2a", "short": "IRC2a", "name": "Individual Report Card No. 2a"},
-    {"id": "irc2b", "short": "IRC2b", "name": "Individual Report Card No. 2b"},
-    {"id": "irc3",  "short": "IRC3",  "name": "Individual Report Card No. 3"},
-    {"id": "irc4",  "short": "IRC4",  "name": "Individual Report Card No. 4"},
-    {"id": "irc5",  "short": "IRC5",  "name": "Individual Report Card No. 5"},
-    {"id": "irc6",  "short": "IRC6",  "name": "Individual Report Card No. 6"},
-    {"id": "irc7",  "short": "IRC7",  "name": "Individual Report Card No. 7"},
-    {"id": "irc8a", "short": "IRC8a", "name": "Individual Report Card No. 8a"},
-    {"id": "irc8b", "short": "IRC8b", "name": "Individual Report Card No. 8b"},
-    {"id": "irc8c", "short": "IRC8c", "name": "Individual Report Card No. 8c"},
-    {"id": "irc8d", "short": "IRC8d", "name": "Individual Report Card No. 8d"},
-    {"id": "irc9",  "short": "IRC9",  "name": "Individual Report Card No. 9"},
+    {"id": "irc1a", "short": "IRC1a", "name": "Individual Report Card No. 1a", "desc": "Monthly Customers Feedback Rating"},
+    {"id": "irc1b", "short": "IRC1b", "name": "Individual Report Card No. 1b", "desc": "Number of Customers Served"},
+    {"id": "irc2a", "short": "IRC2a", "name": "Individual Report Card No. 2a", "desc": "Number of Schools Provided with TA"},
+    {"id": "irc2b", "short": "IRC2b", "name": "Individual Report Card No. 2b", "desc": "Frequency of TA Provided to DEDP Priority Schools"},
+    {"id": "irc3",  "short": "IRC3",  "name": "Individual Report Card No. 3",  "desc": "Status of TA Provision to Schools"},
+    {"id": "irc4",  "short": "IRC4",  "name": "Individual Report Card No. 4",  "desc": "Technical Assistance (TA) Catch-up Plan"},
+    {"id": "irc5",  "short": "IRC5",  "name": "Individual Report Card No. 5",  "desc": "Post Program Evaluation Results"},
+    {"id": "irc6",  "short": "IRC6",  "name": "Individual Report Card No. 6",  "desc": "Monitoring & Evaluation Plan"},
+    {"id": "irc7",  "short": "IRC7",  "name": "Individual Report Card No. 7",  "desc": "SGOD Dashboard Data"},
+    {"id": "irc8a", "short": "IRC8a", "name": "Individual Report Card No. 8a", "desc": "Individual Performance Commitment and Review Form (IPCRF)"},
+    {"id": "irc8b", "short": "IRC8b", "name": "Individual Report Card No. 8b", "desc": "Core Behavioral Competencies and Core Skills"},
+    {"id": "irc8c", "short": "IRC8c", "name": "Individual Report Card No. 8c", "desc": "Summary of Ratings for Discussion"},
+    {"id": "irc8d", "short": "IRC8d", "name": "Individual Report Card No. 8d", "desc": "Summary of Ratings for Discussion"},
+    {"id": "irc9",  "short": "IRC9",  "name": "Individual Report Card No. 9",  "desc": "Performance Monitoring & Coaching Form (PMCF)"},
 ]
 
 # Quick lookup by id, e.g. TAB_LOOKUP["irc1a"]

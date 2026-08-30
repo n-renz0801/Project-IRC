@@ -1,13 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-  var toggleBtn = document.getElementById("navToggle");
-  var navbar = document.getElementById("navbar");
-
-  if (toggleBtn && navbar) {
-    toggleBtn.addEventListener("click", function () {
-      navbar.classList.toggle("navbar--open");
-    });
-  }
-
   // ---------- Home page card carousel ----------
   var track = document.getElementById("carouselTrack");
   var leftBtn = document.getElementById("carouselLeft");

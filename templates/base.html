@@ -17,42 +17,52 @@
     {% block extra_css %}{% endblock %}
   </head>
   <body>
-    <header class="app-header">
-      <div class="app-header__top">
-        <a href="{{ url_for('home') }}" class="app-header__title">
-          <span class="app-header__acronym">SGOD PMES</span>
-          <span class="app-header__full"
-            >SGOD Performance Monitoring and Evaluation System</span
-          >
-        </a>
-        <button
-          class="nav-toggle"
-          id="navToggle"
-          aria-label="Toggle navigation"
-        >
-          &#9776;
-        </button>
+    <!-- ===== HEADER: Logos ===== -->
+    <header>
+      <div id="logo-bar">
+        <img
+          src="{{ url_for('static', filename='images/deped.png') }}"
+          alt="DepEd Logo"
+        />
+        <img
+          src="{{ url_for('static', filename='images/antipolo_division.png') }}"
+          alt="City Schools Division Office of Antipolo Logo"
+        />
+        <img
+          src="{{ url_for('static', filename='images/i_love_sgod.png') }}"
+          alt="I Love SGOD Logo"
+        />
+        <img
+          src="{{ url_for('static', filename='images/project_irc.png') }}"
+          alt="Project IRC Logo"
+        />
       </div>
-
-      <nav class="navbar" id="navbar">
-        <a
-          href="{{ url_for('home') }}"
-          class="navbar__link {% if active_tab is none %}navbar__link--active{% endif %}"
-        >
-          Home
-        </a>
-        {% for tab in tabs %}
-        <a
-          href="{{ url_for('view_tab', tab_id=tab.id) }}"
-          class="navbar__link {% if active_tab and active_tab.id == tab.id %}navbar__link--active{% endif %}"
-          title="{{ tab.name }}"
-        >
-          {{ tab.short }}
-        </a>
-        {% endfor %}
-      </nav>
     </header>
 
+    <!-- ===== NAVIGATION BAR ===== -->
+    <nav>
+      <ul>
+        <li>
+          <!-- prettier-ignore -->
+          <a href="{{ url_for('home') }}"
+                   {% if active_tab is none %}class="active"{% endif %}>
+                    Home
+                </a>
+        </li>
+        {% for tab in tabs %}
+        <li>
+          <!-- prettier-ignore -->
+          <a href="{{ url_for('view_tab', tab_id=tab.id) }}"
+                   title="{{ tab.name }}"
+                   {% if active_tab and active_tab.id == tab.id %}class="active"{% endif %}>
+                    {{ tab.short }}
+                </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+
+    <!-- ===== PAGE CONTENT ===== -->
     <main class="content">{% block content %}{% endblock %}</main>
 
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
