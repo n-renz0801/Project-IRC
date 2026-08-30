@@ -1211,6 +1211,45 @@ def import_irc1a_ratings():
     }), 200
 
 
+@app.route("/irc/irc1a/rating/<month_key>/<int:indicator_id>", methods=["DELETE"])
+def delete_irc1a_rating(month_key, indicator_id):
+    """Deletes a single manually-cleared IRC1a rating cell (year/month/
+    indicator). This is the counterpart to /irc/irc1a/import's upsert --
+    without it, clearing a cell in the table had nowhere to send that
+    change, so the old value silently came back on the next page load.
+
+    Only the rating row itself is removed. If it happened to be populated
+    by a PDF import, that PDF and its UploadedFile row are left untouched
+    -- deleting the PDF from the home page's month grid (delete_file) is
+    still the only way to remove that. This lets the user clear/edit a
+    cell without being forced to also remove the source PDF, and vice
+    versa.
+
+    Idempotent: returns 200 whether or not a row existed, since "delete"
+    here really means "make sure this cell has no saved value."
+    """
+    year = request.args.get("year", type=int) or _current_year()
+
+    if month_key not in MONTH_KEYS:
+        return jsonify({"error": f"Invalid month_key: {month_key!r}"}), 400
+    if not (1 <= indicator_id <= 10):
+        return jsonify({"error": f"Invalid indicator_id: {indicator_id!r}"}), 400
+
+    row = IRC1ARating.query.filter_by(
+        year=year, month_key=month_key, indicator_id=indicator_id
+    ).first()
+    if row is not None:
+        db.session.delete(row)
+        db.session.commit()
+
+    return jsonify({
+        "deleted": True,
+        "year": year,
+        "month_key": month_key,
+        "indicator_id": indicator_id,
+    }), 200
+
+
 @app.route("/irc/irc1b/extract", methods=["POST"])
 def extract_irc1b_pdf():
     """Extract the number of customers served from a monthly PDF.
@@ -1311,6 +1350,24 @@ def import_irc1b_customer_count():
         "month_key": month_key,
         "customers": customers,
     }), 200
+
+
+@app.route("/irc/irc1b/count/<month_key>", methods=["DELETE"])
+def delete_irc1b_count(month_key):
+    """Deletes a single manually-cleared IRC1b customer count (year/
+    month). Same rationale and same "PDF stays put" behavior as
+    delete_irc1a_rating above -- see its docstring."""
+    year = request.args.get("year", type=int) or _current_year()
+
+    if month_key not in MONTH_KEYS:
+        return jsonify({"error": f"Invalid month_key: {month_key!r}"}), 400
+
+    row = IRC1BCustomerCount.query.filter_by(year=year, month_key=month_key).first()
+    if row is not None:
+        db.session.delete(row)
+        db.session.commit()
+
+    return jsonify({"deleted": True, "year": year, "month_key": month_key}), 200
 
 
 @app.route("/irc/irc2a/extract", methods=["POST"])

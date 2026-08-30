@@ -151,7 +151,10 @@
     }));
   }
 
-  let activeDropdown = null; // { inputEl, dropdownEl } | null
+  // `activeDropdown` tracks whichever ONE of the two dropdowns (school
+  // search or schedule combobox) is currently open, so scroll/resize can
+  // reposition it and a click outside of it can close it.
+  let activeDropdown = null; // { inputEl, dropdownEl, onOutsideClick } | null
 
   function positionFixedDropdown(inputEl, dropdownEl) {
     const rect = inputEl.getBoundingClientRect();
@@ -167,8 +170,13 @@
     dropdownEl.style.maxHeight = `${maxHeight}px`;
   }
 
-  function trackDropdown(inputEl, dropdownEl) {
-    activeDropdown = { inputEl, dropdownEl };
+  // `onOutsideClick` is whichever "hide" function (hideSuggestions /
+  // hideScheduleSuggestions, or a small wrapper around one of those) is
+  // right for the given dropdown — it's what actually gets called when
+  // the person clicks somewhere outside the input + panel. See the
+  // document-level "mousedown" listener below.
+  function trackDropdown(inputEl, dropdownEl, onOutsideClick) {
+    activeDropdown = { inputEl, dropdownEl, onOutsideClick };
     positionFixedDropdown(inputEl, dropdownEl);
   }
 
@@ -187,6 +195,30 @@
   // not just the window itself.
   window.addEventListener("scroll", repositionActiveDropdown, true);
   window.addEventListener("resize", repositionActiveDropdown);
+
+  // Closes whichever dropdown is open when the person clicks/mousedowns
+  // anywhere outside of its input + panel.
+  //
+  // This REPLACES the old blur+setTimeout approach on purpose: a plain
+  // `blur` listener on the input fires any time the input loses focus for
+  // ANY reason — including the browser window itself losing focus, which
+  // is exactly what happens when opening devtools (via right-click
+  // "Inspect" or a keyboard shortcut) to look at the dropdown. That made
+  // the panel disappear the instant someone tried to inspect it. A real
+  // click/mousedown somewhere else on the page is the only thing that
+  // should close it, so that's the only thing listened for here.
+  //
+  // A suggestion item's own "mousedown" handler (see
+  // buildSchoolSuggestionItem / renderScheduleSuggestions) runs first —
+  // DOM events reach the actual click target before bubbling up to
+  // document — so selecting an item already hides its dropdown (clearing
+  // activeDropdown) before this listener ever has to act.
+  document.addEventListener("mousedown", (e) => {
+    if (!activeDropdown) return;
+    const { inputEl, dropdownEl, onOutsideClick } = activeDropdown;
+    if (inputEl.contains(e.target) || dropdownEl.contains(e.target)) return;
+    onOutsideClick();
+  });
 
   function cacheEls() {
     els.root = document.getElementById("irc4-tab");
@@ -561,8 +593,12 @@
 
     const count = taStatusMap[name] || 0;
     if (count > 0) {
+      // Explicit width/height attributes (not just the CSS class) so the
+      // icon can't be resized by some unrelated global "svg { ... }" rule
+      // elsewhere in the app — same belt-and-suspenders reasoning as the
+      // #irc4GroupModal-scoped CSS this box relies on (see irc4.css).
       box.innerHTML =
-        '<svg class="irc4-ta-indicator-icon" viewBox="0 0 24 24" fill="none" ' +
+        '<svg class="irc4-ta-indicator-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" ' +
         'stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
         '<polyline points="20 6 9 17 4 12"></polyline></svg>' +
         `<span class="irc4-ta-indicator-label">TA<br>${count}X</span>`;
@@ -593,10 +629,24 @@
         // sibling next to the name and remove button), spread apart via
         // justify-content: space-between on .irc4-school-row-content — not
         // grouped into a wrapper next to the remove button.
+        //
+        // IMPORTANT: the remove button lives inside .irc4-school-row-content
+        // (a grandchild of `row`, not a direct child — see the
+        // #irc4-chip-template markup in irc4.html), so insertBefore has to
+        // be called ON that content element, not on `row` itself. Calling
+        // row.insertBefore(badge, <a node two levels deep>) throws
+        // "the node before which the new node is to be inserted is not a
+        // child of this node" — which, thrown from inside this forEach,
+        // silently aborted rendering of this row AND every school after it
+        // in the list the moment a DEDP school was reached. That's why only
+        // the schools added before the first DEDP one ever showed up in the
+        // modal, even though every school (DEDP or not) was still being
+        // saved correctly to modalDraft.schools and sent to the server.
+        const content = row.querySelector(".irc4-school-row-content");
         const badge = document.createElement("span");
         badge.className = "irc4-badge irc4-badge--dedp";
         badge.textContent = "DEDP";
-        row.insertBefore(badge, row.querySelector(".irc4-chip-remove"));
+        content.insertBefore(badge, content.querySelector(".irc4-chip-remove"));
       }
 
       els.modalSchoolChips.appendChild(row);
@@ -672,7 +722,11 @@
       els.modalSchoolSuggestions.appendChild(buildSchoolSuggestionItem(s));
     });
     els.modalSchoolSuggestions.hidden = false;
-    trackDropdown(els.modalSchoolSearch, els.modalSchoolSuggestions);
+    trackDropdown(
+      els.modalSchoolSearch,
+      els.modalSchoolSuggestions,
+      hideSuggestions,
+    );
   }
 
   function addSchoolToDraft(name) {
@@ -735,12 +789,6 @@
     renderSuggestions("");
   }
 
-  function onModalSchoolSearchBlur() {
-    // Small delay so a mousedown-triggered suggestion click (which already
-    // prevents default) still has time to run before we hide the list.
-    setTimeout(hideSuggestions, 100);
-  }
-
   // ---- modal: schedule combobox ---------------------------------------
   //
   // Same interaction pattern as the school search above: clicking/focusing
@@ -749,7 +797,8 @@
   // code) so it can be reached from the keyboard too. It also uses the
   // same fixed-position tracking (trackDropdown/untrackDropdown) as the
   // school search, so it escapes the modal's clipped bounds in exactly
-  // the same way.
+  // the same way, and closes the same way too (click outside — see the
+  // document-level "mousedown" listener above).
 
   function hideScheduleSuggestions() {
     els.modalScheduleSuggestions.hidden = true;
@@ -792,7 +841,19 @@
       els.modalScheduleSuggestions.appendChild(item);
     });
     els.modalScheduleSuggestions.hidden = false;
-    trackDropdown(els.modalScheduleInput, els.modalScheduleSuggestions);
+    trackDropdown(
+      els.modalScheduleInput,
+      els.modalScheduleSuggestions,
+      // Unlike the school search, closing this one also needs to
+      // reconcile whatever's sitting in the text input with a real month
+      // (see resolveScheduleInput) — clicking a suggestion item already
+      // does that via selectScheduleMonth, but clicking away without
+      // picking one needs the same fallback the old blur handler had.
+      () => {
+        resolveScheduleInput();
+        hideScheduleSuggestions();
+      },
+    );
   }
 
   function selectScheduleMonth(code) {
@@ -853,17 +914,9 @@
         hideScheduleSuggestions();
       }
     } else if (e.key === "Escape") {
-      hideScheduleSuggestions();
-    }
-  }
-
-  function onModalScheduleBlur() {
-    // Same delay trick as the school search: let a mousedown-triggered
-    // suggestion click land before the dropdown disappears.
-    setTimeout(() => {
       resolveScheduleInput();
       hideScheduleSuggestions();
-    }, 100);
+    }
   }
 
   // ---- modal: open / close / save -------------------------------------
@@ -1015,13 +1068,13 @@
     // again fires no 'focus' event, so without this the dropdown would
     // stay closed until the person started typing.
     els.modalSchoolSearch.addEventListener("click", onModalSchoolSearchOpen);
-    els.modalSchoolSearch.addEventListener("blur", onModalSchoolSearchBlur);
+    // No blur listener here on purpose — see the document-level
+    // "mousedown" click-outside handler set up near trackDropdown() above.
 
     els.modalScheduleInput.addEventListener("input", onModalScheduleInput);
     els.modalScheduleInput.addEventListener("keydown", onModalScheduleKeydown);
     els.modalScheduleInput.addEventListener("focus", onModalScheduleOpen);
     els.modalScheduleInput.addEventListener("click", onModalScheduleOpen);
-    els.modalScheduleInput.addEventListener("blur", onModalScheduleBlur);
 
     // Objectives/groups were already loaded by loadPlan() above (the
     // server guarantees at least three blank objectives exist) — render
