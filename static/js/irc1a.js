@@ -1,19 +1,4 @@
 (function () {
-  // --- File upload & extraction ---
-  const fileInput = document.getElementById("fileInput");
-  const uploadBtn = document.getElementById("uploadBtn");
-  const uploadArea = document.getElementById("uploadArea");
-  const previewModal = document.getElementById("previewModal");
-  const modalOverlay = document.getElementById("modalOverlay");
-  const modalClose = document.getElementById("modalClose");
-  const modalCancel = document.getElementById("modalCancel");
-  const modalImport = document.getElementById("modalImport");
-  const previewTableContainer = document.getElementById(
-    "previewTableContainer",
-  );
-
-  let extractedData = null;
-
   // Format a rating input's value to exactly 3 decimal places (e.g. "4" -> "4.000")
   function formatToThreeDecimals(input) {
     if (!input || input.value === "") return;
@@ -21,203 +6,6 @@
     if (Number.isNaN(num)) return;
     input.value = num.toFixed(3);
   }
-
-  uploadBtn.addEventListener("click", () => fileInput.click());
-
-  uploadArea.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    uploadArea.style.background = "var(--gold)";
-  });
-
-  uploadArea.addEventListener("dragleave", () => {
-    uploadArea.style.background = "";
-  });
-
-  uploadArea.addEventListener("drop", (e) => {
-    e.preventDefault();
-    uploadArea.style.background = "";
-    const files = e.dataTransfer.files;
-    if (files.length > 0) handleFileUpload(files[0]);
-  });
-
-  fileInput.addEventListener("change", (e) => {
-    if (e.target.files.length > 0) handleFileUpload(e.target.files[0]);
-  });
-
-  function handleFileUpload(file) {
-    if (!file.type.includes("pdf")) {
-      alert("Please upload a PDF file.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    uploadBtn.textContent = "Uploading...";
-    uploadBtn.disabled = true;
-
-    fetch("/irc/irc1a/extract", {
-      method: "POST",
-      body: formData,
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        uploadBtn.textContent = "📄 Choose PDF File";
-        uploadBtn.disabled = false;
-
-        if (data.error) {
-          alert("Error: " + data.error);
-          return;
-        }
-
-        // Store the extracted data including month info. Note: the PDF's
-        // ratings are NOT saved to the database yet at this point -- the
-        // server only registered the uploaded file. Nothing is persisted
-        // until the user reviews/edits the preview modal and clicks Import.
-        extractedData = {
-          fileId: data.file_id,
-          year: data.year,
-          month: data.month,
-          month_key: data.month_key,
-          extracted_ratings: data.extracted_ratings,
-        };
-        showPreviewModal();
-      })
-      .catch((err) => {
-        uploadBtn.textContent = "📄 Choose PDF File";
-        uploadBtn.disabled = false;
-        alert("Upload failed: " + err.message);
-      });
-  }
-
-  function showPreviewModal() {
-    // extractedData contains: { month_key: "jul", month_name: "July", extracted_ratings: { "1": {jul: 4.0}, ... } }
-    const month = extractedData.month || "Unknown";
-    const monthKey = extractedData.month_key || "unknown";
-    const ratings = extractedData.extracted_ratings || {};
-
-    const indicatorLabels = {
-      1: "Observes the schedule.",
-      2: "Establishes the objectives of the Technical Assistance.",
-      3: "Uses necessary tools/process/procedure for the conduct of TA.",
-      4: "Provide relevant, timely and appropriate Technical Assistance.",
-      5: "Understand the situation of schools in case may be, their needs, aspirations, plans, strength and weaknesses.",
-      6: "Recommends/suggests points for improvement.",
-      7: "Provides constructive feedback and establishes a cordial atmosphere in giving of feedback.",
-      8: "Skills and competencies of the TA provider.",
-      9: "Processes the results of the Technical Assistance.",
-      10: "General view of the provision of the Technical Assistance.",
-    };
-
-    let html = `<div class="irc1a-preview-month-info"><strong>Month:</strong> ${month.toUpperCase()}</div>`;
-    html +=
-      '<table class="irc1a-preview-table"><thead><tr><th>TA Indicator</th><th>' +
-      month.toUpperCase() +
-      "</th></tr></thead><tbody>";
-
-    for (let i = 1; i <= 10; i++) {
-      const rawVal =
-        ratings[i] && ratings[i][monthKey] ? ratings[i][monthKey] : "";
-      const val =
-        rawVal !== "" && !Number.isNaN(parseFloat(rawVal))
-          ? parseFloat(rawVal).toFixed(3)
-          : "";
-      html += `<tr>
-        <td style="text-align:left">${i}. ${indicatorLabels[i]}</td>
-        <td><input type="number" class="preview-rating" data-indicator="${i}" data-month="${monthKey}" value="${val}" min="1" max="5" step="0.001" /></td>
-      </tr>`;
-    }
-
-    html += "</tbody></table>";
-    previewTableContainer.innerHTML = html;
-    previewModal.style.display = "flex";
-  }
-
-  function hidePreviewModal() {
-    previewModal.style.display = "none";
-  }
-
-  modalClose.addEventListener("click", hidePreviewModal);
-  modalCancel.addEventListener("click", hidePreviewModal);
-
-  // Close modal when clicking the overlay (outside the content)
-  previewModal.addEventListener("click", function (e) {
-    if (e.target === previewModal || e.target === modalOverlay) {
-      hidePreviewModal();
-    }
-  });
-
-  // Prevent modal close when clicking inside the content
-  document
-    .querySelector(".irc1a-modal-content")
-    .addEventListener("click", function (e) {
-      e.stopPropagation();
-    });
-
-  // Format preview modal inputs to 3 decimals when the user leaves the field
-  previewTableContainer.addEventListener(
-    "blur",
-    function (e) {
-      if (!e.target.matches("input.preview-rating")) return;
-      formatToThreeDecimals(e.target);
-    },
-    true, // capture, since blur does not bubble
-  );
-
-  modalImport.addEventListener("click", function (e) {
-    e.stopPropagation();
-    const inputs = previewTableContainer.querySelectorAll(".preview-rating");
-    const ratings = {};
-
-    inputs.forEach((input) => {
-      const indicator = input.dataset.indicator;
-      const month = input.dataset.month; // This is the month_key from extraction
-      const value = input.value;
-      if (value) {
-        ratings[indicator] = parseFloat(value);
-        const tableInput = document.querySelector(
-          `#irc1a-table tbody tr[data-indicator="${indicator}"] input[data-month="${month}"]`,
-        );
-        if (tableInput) {
-          tableInput.value = value;
-          formatToThreeDecimals(tableInput);
-        }
-      }
-    });
-
-    // Trigger recalc for all affected months and rows
-    const event = new Event("input", { bubbles: true });
-    document
-      .querySelectorAll("#irc1a-table input.irc1a-rating")
-      .forEach((inp) => inp.dispatchEvent(event));
-
-    // Persist the (possibly edited) ratings. Extraction only registered
-    // the uploaded file -- this is the step that actually writes the DB.
-    if (extractedData && extractedData.fileId && Object.keys(ratings).length) {
-      modalImport.disabled = true;
-      fetch("/irc/irc1a/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          file_id: extractedData.fileId,
-          year: extractedData.year,
-          month_key: extractedData.month_key,
-          ratings: ratings,
-        }),
-      })
-        .then((res) => res.json())
-        .then((result) => {
-          modalImport.disabled = false;
-          if (result.error) alert("Save failed: " + result.error);
-        })
-        .catch((err) => {
-          modalImport.disabled = false;
-          alert("Save failed: " + err.message);
-        });
-    }
-
-    hidePreviewModal();
-  });
 
   // --- Original IRC1a calculation code ---
   const MONTHS = [
@@ -252,11 +40,44 @@
   const RELATIVE_WEIGHT = 15;
   const FLAT_EPSILON = 0.0001;
 
+  const MONTH_LABELS = {
+    jan: "Jan",
+    feb: "Feb",
+    mar: "Mar",
+    apr: "Apr",
+    may: "May",
+    jun: "Jun",
+    jul: "Jul",
+    aug: "Aug",
+    sep: "Sep",
+    oct: "Oct",
+    nov: "Nov",
+    dec: "Dec",
+  };
+
+  const QUARTERS = [
+    { label: "Q1", months: ["jan", "feb", "mar"] },
+    { label: "Q2", months: ["apr", "may", "jun"] },
+    { label: "Q3", months: ["jul", "aug", "sep"] },
+    { label: "Q4", months: ["oct", "nov", "dec"] },
+  ];
+
   const table = document.getElementById("irc1a-table");
   if (!table) return;
 
   const lowestList = document.getElementById("irc1a-lowest-list");
   const rowAverages = {};
+  const monthAverages = {};
+
+  const overallAvgEl = document.getElementById("irc1a-overall-avg");
+  const overallBarEl = document.getElementById("irc1a-overall-bar");
+  const overallBarFillEl = document.getElementById("irc1a-overall-bar-fill");
+
+  const trendChartWrap = document.getElementById("irc1a-trend-chart-wrap");
+  const trendToggle = document.getElementById("irc1a-trend-toggle");
+  let trendMode = "monthly";
+
+  const resetBtn = document.getElementById("irc1a-reset-btn");
 
   function descriptiveValue(avg) {
     if (avg === null) return "—";
@@ -292,6 +113,8 @@
 
     avgSpan.textContent = avg === null ? "—" : avg.toFixed(3);
     descSpan.textContent = descriptiveValue(avg);
+
+    monthAverages[month] = avg;
   }
 
   function recalcRow(indicatorId) {
@@ -358,6 +181,165 @@
     }
   }
 
+  // Overall average across ALL entered cells (every indicator, every
+  // month) -- not an average of the row averages, but the average of
+  // available raw data points, so it isn't skewed by how many months a
+  // given indicator happens to have.
+  function recalcOverall() {
+    if (!overallAvgEl) return;
+
+    const inputs = table.querySelectorAll("tbody input.irc1a-rating");
+    const values = Array.from(inputs).map((input) => parseFloat(input.value));
+    const avg = average(values);
+
+    overallAvgEl.textContent = avg === null ? "—" : avg.toFixed(3);
+
+    if (overallBarFillEl) {
+      const pct = avg === null ? 0 : ((avg - 1) / 4) * 100;
+      overallBarFillEl.style.width = Math.max(2, Math.min(100, pct)) + "%";
+
+      overallBarFillEl.classList.remove(
+        "irc1a-band-poor",
+        "irc1a-band-fair",
+        "irc1a-band-satisfactory",
+        "irc1a-band-very-satisfactory",
+      );
+      const cls = bandClass(avg);
+      if (cls) overallBarFillEl.classList.add(cls);
+    }
+
+    if (overallBarEl) {
+      overallBarEl.setAttribute(
+        "title",
+        avg === null
+          ? "No data yet"
+          : `${avg.toFixed(3)} / 5 (${descriptiveValue(avg)})`,
+      );
+    }
+  }
+
+  // --- Monthly / Quarterly trend chart ---
+  function bandColor(avg) {
+    if (avg === null || avg === undefined) return "#9ca3af";
+    if (avg >= 3.51) return "#22c55e";
+    if (avg >= 2.51) return "#3b82f6";
+    if (avg >= 1.51) return "#f59e0b";
+    return "#ef4444";
+  }
+
+  function getMonthlyTrendPoints() {
+    return MONTHS.map((m) => ({
+      label: MONTH_LABELS[m],
+      avg: monthAverages[m] === undefined ? null : monthAverages[m],
+      tooltip: MONTH_LABELS[m],
+    }));
+  }
+
+  function getQuarterlyTrendPoints() {
+    // "Average only for months with data" -- a quarter with zero
+    // populated months has no average at all (null), rather than 0.
+    return QUARTERS.map((q) => {
+      const monthVals = q.months
+        .map((m) => monthAverages[m])
+        .filter((v) => v !== null && v !== undefined);
+      const avg = monthVals.length
+        ? monthVals.reduce((a, b) => a + b, 0) / monthVals.length
+        : null;
+      return { label: q.label, avg, tooltip: q.label };
+    });
+  }
+
+  function renderTrendChart() {
+    if (!trendChartWrap) return;
+
+    const points =
+      trendMode === "quarterly"
+        ? getQuarterlyTrendPoints()
+        : getMonthlyTrendPoints();
+
+    const hasData = points.some((p) => p.avg !== null);
+    if (!hasData) {
+      trendChartWrap.innerHTML =
+        '<p class="irc1a-lowest-placeholder">Enter ratings above to see the trend.</p>';
+      return;
+    }
+
+    const width = 560;
+    const height = 130;
+    const marginLeft = 26;
+    const marginRight = 10;
+    const marginTop = 10;
+    const marginBottom = 18;
+    const plotWidth = width - marginLeft - marginRight;
+    const plotHeight = height - marginTop - marginBottom;
+    const n = points.length;
+
+    const xAt = (i) =>
+      n === 1
+        ? marginLeft + plotWidth / 2
+        : marginLeft + (i / (n - 1)) * plotWidth;
+    const yAt = (v) => marginTop + (1 - (v - 1) / 4) * plotHeight;
+
+    let svg = `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
+
+    // Gridlines + y-axis labels at ratings 1-5
+    for (let v = 1; v <= 5; v++) {
+      const y = yAt(v);
+      svg += `<line x1="${marginLeft}" y1="${y}" x2="${width - marginRight}" y2="${y}" stroke="#eef1f5" stroke-width="1" />`;
+      svg += `<text x="${marginLeft - 6}" y="${y + 2.5}" text-anchor="end" font-size="6" fill="#999">${v}</text>`;
+    }
+
+    // Line segments -- broken at gaps so missing months/quarters don't
+    // get bridged by a misleading straight line.
+    let segment = [];
+    const segments = [];
+    points.forEach((p, i) => {
+      if (p.avg === null) {
+        if (segment.length) segments.push(segment);
+        segment = [];
+      } else {
+        segment.push([xAt(i), yAt(p.avg)]);
+      }
+    });
+    if (segment.length) segments.push(segment);
+
+    segments.forEach((seg) => {
+      if (seg.length < 2) return;
+      const d = seg
+        .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`)
+        .join(" ");
+      svg += `<path d="${d}" fill="none" stroke="#4a6fa5" stroke-width="1.25" />`;
+    });
+
+    // Points + x-axis labels
+    points.forEach((p, i) => {
+      const x = xAt(i);
+      svg += `<text x="${x}" y="${height - 4}" text-anchor="middle" font-size="6" fill="#666">${p.label}</text>`;
+      if (p.avg !== null) {
+        const y = yAt(p.avg);
+        const color = bandColor(p.avg);
+        svg += `<circle class="irc1a-trend-point" cx="${x}" cy="${y}" r="2.5" style="fill:${color}"><title>${p.tooltip}: ${p.avg.toFixed(3)} (${descriptiveValue(p.avg)})</title></circle>`;
+      }
+    });
+
+    svg += "</svg>";
+    trendChartWrap.innerHTML = svg;
+  }
+
+  if (trendToggle) {
+    trendToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".irc1a-toggle-btn");
+      if (!btn) return;
+      const mode = btn.dataset.mode;
+      if (mode === trendMode) return;
+      trendMode = mode;
+      trendToggle
+        .querySelectorAll(".irc1a-toggle-btn")
+        .forEach((b) => b.classList.toggle("active", b === btn));
+      renderTrendChart();
+    });
+  }
+
   function recalcLowest() {
     const entries = [];
     for (let i = 1; i <= INDICATOR_COUNT; i++) {
@@ -380,10 +362,11 @@
     entries.sort((a, b) => a.avg - b.avg);
     const lowestThree = entries.slice(0, 3);
 
-    lowestThree.forEach((item) => {
+    lowestThree.forEach((item, idx) => {
+      const rank = idx + 1;
       const li = document.createElement("li");
       li.className = "irc1a-lowest-item";
-      li.innerHTML = `<span class="irc1a-lowest-label">${item.label}</span><span class="irc1a-lowest-avg">${item.avg.toFixed(3)}</span>`;
+      li.innerHTML = `<span class="irc1a-lowest-rank irc1a-rank-${rank}">${rank}</span><span class="irc1a-lowest-label">${item.label}</span><span class="irc1a-lowest-avg">${item.avg.toFixed(3)}</span>`;
       lowestList.appendChild(li);
     });
   }
@@ -393,6 +376,8 @@
     for (let i = 1; i <= INDICATOR_COUNT; i++) recalcRow(i);
     recalcBars();
     recalcLowest();
+    recalcOverall();
+    renderTrendChart();
   }
 
   table.addEventListener("input", (e) => {
@@ -402,6 +387,8 @@
     if (row) recalcRow(row.dataset.indicator);
     recalcBars();
     recalcLowest();
+    recalcOverall();
+    renderTrendChart();
   });
 
   // Format each rating cell to exactly 3 decimal places once the user
@@ -485,6 +472,48 @@
       .catch(() => {
         /* Table just stays at its blank baseline. */
       });
+  }
+
+  // --- Reset All Data ---
+  function resetAllData() {
+    const confirmed = confirm(
+      "This will permanently delete every saved IRC1a rating for this year. This cannot be undone. Continue?",
+    );
+    if (!confirmed) return;
+
+    if (resetBtn) resetBtn.disabled = true;
+
+    fetch("/irc/irc1a/reset", { method: "DELETE" })
+      .then((res) => res.json())
+      .then((result) => {
+        if (resetBtn) resetBtn.disabled = false;
+        if (result.error) {
+          alert("Reset failed: " + result.error);
+          return;
+        }
+
+        // Wipe the table client-side without re-triggering per-cell
+        // save/delete requests (the DB was already cleared server-side
+        // in one shot above).
+        table.querySelectorAll("tbody input.irc1a-rating").forEach((input) => {
+          input.value = "";
+        });
+
+        const positive = document.getElementById("irc1a-positive");
+        const ofi = document.getElementById("irc1a-ofi");
+        if (positive) positive.value = "";
+        if (ofi) ofi.value = "";
+
+        recalcAll();
+      })
+      .catch((err) => {
+        if (resetBtn) resetBtn.disabled = false;
+        alert("Reset failed: " + err.message);
+      });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener("click", resetAllData);
   }
 
   recalcAll();

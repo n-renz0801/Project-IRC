@@ -8,10 +8,38 @@ block content %}
 
 <section id="irc1a-tab" class="tab-panel irc1a-panel">
   <div class="irc1a-header">
-    <h2>IRC1a &mdash; Monthly Customers Feedback Rating</h2>
-    <p class="irc1a-subtitle">
-      Rate each Technical Assistance (TA) indicator for every month.
-    </p>
+    <div class="irc1a-header-top">
+      <div>
+        <h2>IRC1a &mdash; Monthly Customers Feedback Rating</h2>
+        <p class="irc1a-subtitle">
+          Rate each Technical Assistance (TA) indicator for every month.
+        </p>
+      </div>
+      <button type="button" id="irc1a-reset-btn" class="irc1a-reset-btn">
+        <i class="ti ti-refresh" style="margin-right: 6px"></i> Reset All Data
+      </button>
+    </div>
+
+    <!-- Descriptive Rating Legend -->
+    <div class="irc1a-legend">
+      <span class="irc1a-legend-title">Rating Scale:</span>
+      <span class="irc1a-legend-item">
+        <span class="irc1a-legend-dot irc1a-band-poor"></span>
+        Poor (1.00&ndash;1.50)
+      </span>
+      <span class="irc1a-legend-item">
+        <span class="irc1a-legend-dot irc1a-band-fair"></span>
+        Fair (1.51&ndash;2.50)
+      </span>
+      <span class="irc1a-legend-item">
+        <span class="irc1a-legend-dot irc1a-band-satisfactory"></span>
+        Satisfactory (2.51&ndash;3.50)
+      </span>
+      <span class="irc1a-legend-item">
+        <span class="irc1a-legend-dot irc1a-band-very-satisfactory"></span>
+        Very Satisfactory (3.51&ndash;5.00)
+      </span>
+    </div>
   </div>
 
   <!-- Main Table -->
@@ -1434,8 +1462,18 @@ block content %}
           <td><span class="irc1a-avg" data-month="oct">&mdash;</span></td>
           <td><span class="irc1a-avg" data-month="nov">&mdash;</span></td>
           <td><span class="irc1a-avg" data-month="dec">&mdash;</span></td>
-          <td class="irc1a-rowavg-cell">&mdash;</td>
-          <td class="irc1a-rowbar-cell">&mdash;</td>
+          <td class="irc1a-rowavg-cell">
+            <span class="irc1a-row-avg" id="irc1a-overall-avg">&mdash;</span>
+          </td>
+          <td class="irc1a-rowbar-cell">
+            <div class="irc1a-bar" id="irc1a-overall-bar">
+              <div
+                class="irc1a-bar-fill"
+                id="irc1a-overall-bar-fill"
+                style="width: 0%"
+              ></div>
+            </div>
+          </td>
         </tr>
         <tr class="irc1a-descriptive-row">
           <td class="irc1a-indicator-col">Descriptive Value</td>
@@ -1458,35 +1496,35 @@ block content %}
     </table>
   </div>
 
-  <!-- Bottom row: Upload | Three Lowest | Remarks — three columns side by side -->
-  <div class="irc1a-bottom-row">
-    <!-- File Upload Section -->
-    <div class="irc1a-upload-section">
-      <div class="irc1a-upload-card">
-        <div class="irc1a-upload-icon"><i class="ti ti-file-upload"></i></div>
-        <h3>Import from File</h3>
-        <p class="irc1a-upload-hint">
-          Upload a PDF with TA ratings to auto-populate the table.
-        </p>
-        <div class="irc1a-upload-area" id="uploadArea">
-          <input
-            type="file"
-            id="fileInput"
-            accept=".pdf"
-            style="display: none"
-          />
-          <button type="button" class="irc1a-upload-btn" id="uploadBtn">
-            <i class="ti ti-upload" style="margin-right: 6px"></i> Choose PDF
-          </button>
-          <p class="irc1a-upload-text">or drag and drop here</p>
-        </div>
-        <p class="irc1a-upload-note">
-          Imported PDF should follow the correct template/structure to extract
-          data successfully.
-        </p>
+  <!-- Rating Trend — full-width row -->
+  <div class="irc1a-trend-section">
+    <div class="irc1a-trend-header">
+      <div>
+        <h3>Rating Trend</h3>
+        <p class="irc1a-subtitle">Overall average rating over time.</p>
+      </div>
+      <div class="irc1a-trend-toggle" id="irc1a-trend-toggle">
+        <button
+          type="button"
+          class="irc1a-toggle-btn active"
+          data-mode="monthly"
+        >
+          Monthly
+        </button>
+        <button type="button" class="irc1a-toggle-btn" data-mode="quarterly">
+          Quarterly
+        </button>
       </div>
     </div>
+    <div class="irc1a-trend-chart-wrap" id="irc1a-trend-chart-wrap">
+      <p class="irc1a-lowest-placeholder" id="irc1a-trend-placeholder">
+        Enter ratings above to see the trend.
+      </p>
+    </div>
+  </div>
 
+  <!-- Bottom row: Three Lowest | Remarks — two columns side by side -->
+  <div class="irc1a-bottom-row">
     <!-- Three Lowest TA Indicators Section -->
     <div class="irc1a-lowest-section">
       <h3>Three Lowest TA Indicators</h3>
@@ -1502,72 +1540,35 @@ block content %}
 
     <!-- Remarks Section -->
     <div class="irc1a-remarks-section">
-      <div class="irc1a-remarks-field">
-        <label for="irc1a-positive" class="irc1a-remarks-label"
-          >Positive Aspect</label
-        >
-        <textarea
-          id="irc1a-positive"
-          name="irc1a_positive"
-          class="irc1a-remarks-textarea"
-          rows="4"
-          placeholder="Describe a positive aspect observed..."
-        ></textarea>
-      </div>
-      <div class="irc1a-remarks-field">
-        <label for="irc1a-ofi" class="irc1a-remarks-label"
-          >Opportunity for Improvement (OFI)</label
-        >
-        <textarea
-          id="irc1a-ofi"
-          name="irc1a_ofi"
-          class="irc1a-remarks-textarea"
-          rows="4"
-          placeholder="Describe an opportunity for improvement, if applicable..."
-        ></textarea>
+      <div class="irc1a-remarks-grid">
+        <div class="irc1a-remarks-field">
+          <label for="irc1a-positive" class="irc1a-remarks-label"
+            >Positive Aspect</label
+          >
+          <textarea
+            id="irc1a-positive"
+            name="irc1a_positive"
+            class="irc1a-remarks-textarea"
+            rows="4"
+            placeholder="Describe a positive aspect observed..."
+          ></textarea>
+        </div>
+        <div class="irc1a-remarks-field">
+          <label for="irc1a-ofi" class="irc1a-remarks-label"
+            >Opportunity for Improvement (OFI)</label
+          >
+          <textarea
+            id="irc1a-ofi"
+            name="irc1a_ofi"
+            class="irc1a-remarks-textarea"
+            rows="4"
+            placeholder="Describe an opportunity for improvement, if applicable..."
+          ></textarea>
+        </div>
       </div>
     </div>
   </div>
   <!-- /.irc1a-bottom-row -->
-
-  <!-- Preview Modal -->
-  <div id="previewModal" class="irc1a-modal" style="display: none">
-    <div class="irc1a-modal-content">
-      <div class="irc1a-modal-header">
-        <h2>Review Extracted Data</h2>
-        <button type="button" class="irc1a-modal-close" id="modalClose">
-          &times;
-        </button>
-      </div>
-      <div class="irc1a-modal-body">
-        <p class="irc1a-modal-hint">
-          Please review the extracted ratings below. You can edit any value
-          before importing.
-        </p>
-        <div
-          id="previewTableContainer"
-          class="irc1a-preview-table-container"
-        ></div>
-      </div>
-      <div class="irc1a-modal-footer">
-        <button
-          type="button"
-          class="irc1a-modal-btn irc1a-modal-btn-cancel"
-          id="modalCancel"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="irc1a-modal-btn irc1a-modal-btn-import"
-          id="modalImport"
-        >
-          Import Data
-        </button>
-      </div>
-    </div>
-    <div class="irc1a-modal-overlay" id="modalOverlay"></div>
-  </div>
 </section>
 
 <script src="{{ url_for('static', filename='js/irc1a.js') }}"></script>
