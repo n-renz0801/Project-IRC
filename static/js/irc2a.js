@@ -118,6 +118,11 @@
   /** @type {{ level: string, dedpOnly: boolean }} */
   let filters = { level: "all", dedpOnly: false };
 
+  // Last-rendered chart percentages, so a window resize can redraw the
+  // chart (its bar/label pixel positions depend on measured track
+  // height) without recomputing school stats from scratch.
+  let lastChartPcts = { dedpPct: 0, nonDedpPct: 0 };
+
   const els = {};
 
   function cacheEls() {
@@ -140,6 +145,7 @@
     };
     els.levelFilterGroup = document.getElementById("irc2a-level-filters");
     els.dedpToggle = document.getElementById("dedp-filter-toggle");
+    els.resetAllBtn = document.getElementById("irc2aResetAllBtn");
 
     els.stats = {
       dedpElementary: document.getElementById("stat-dedp-elementary"),
@@ -192,25 +198,6 @@
       return false;
     }
     return true;
-  }
-
-  // Normalizes a school name for comparison: lowercase, strips accents
-  // (e.g. "Peñafrancia" -> "penafrancia") and collapses anything that isn't
-  // a letter/digit into single spaces. This absorbs the minor punctuation/
-  // spacing/casing differences that show up between how a name is typed in
-  // a PDF report versus the canonical SCHOOLS list here.
-  function normalizeSchoolName(name) {
-    return name
-      .normalize("NFKD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim();
-  }
-
-  function findMatchingSchool(extractedName) {
-    const norm = normalizeSchoolName(extractedName);
-    return SCHOOLS.find((s) => normalizeSchoolName(s.name) === norm) || null;
   }
 
   function makeItem(school, status) {
@@ -327,8 +314,17 @@
     els.stats.nonDedpTotal.textContent = `${nonDedpProvided.length} / ${nonDedpTotalSchools}`;
     els.stats.nonDedpPct.textContent = `${nonDedpPct}%`;
 
+    lastChartPcts = { dedpPct, nonDedpPct };
     renderPriorityChart(dedpPct, nonDedpPct);
   }
+
+  // Space permanently reserved at the top of each track for the value
+  // label, in px. Positions are computed in real pixels (not %) against
+  // this reserved zone so the label can never float above the track's
+  // own border -- let alone escape it and overlap the "TA Coverage"
+  // heading above the chart, which is what a purely percentage-based
+  // "bottom" could do once a bar got close to 100%.
+  const CHART_LABEL_RESERVE = 20;
 
   function renderPriorityChart(dedpPct, nonDedpPct) {
     if (!els.priorityChart) return;
@@ -339,7 +335,7 @@
     ];
 
     els.priorityChart.innerHTML = "";
-    const frag = document.createDocumentFragment();
+    const built = [];
 
     bars.forEach((b) => {
       const col = document.createElement("div");
@@ -349,16 +345,22 @@
       barWrap.className = "irc2a-chart-barwrap";
       barWrap.title = `${b.label}: ${b.pct}%`;
 
+      // Track = the full-height 100% "capacity" outline. The bar fills
+      // upward inside it, so it's always clear how much of the full
+      // container is actually reached, not just a bar floating alone.
+      const track = document.createElement("div");
+      track.className = `irc2a-chart-track irc2a-chart-track--${b.modifier}`;
+
       const bar = document.createElement("div");
       bar.className = `irc2a-chart-bar irc2a-chart-bar--${b.modifier}`;
-      bar.style.height = Math.max(2, b.pct) + "%"; // scale is fixed 0-100%
 
       const valLabel = document.createElement("span");
       valLabel.className = "irc2a-chart-val";
       valLabel.textContent = `${b.pct}%`;
 
-      barWrap.appendChild(valLabel);
-      barWrap.appendChild(bar);
+      track.appendChild(bar);
+      track.appendChild(valLabel);
+      barWrap.appendChild(track);
 
       const label = document.createElement("span");
       label.className = "irc2a-chart-label";
@@ -366,10 +368,27 @@
 
       col.appendChild(barWrap);
       col.appendChild(label);
-      frag.appendChild(col);
+      els.priorityChart.appendChild(col);
+
+      built.push({
+        track,
+        bar,
+        valLabel,
+        fillPct: Math.max(0, Math.min(100, b.pct)),
+      });
     });
 
-    els.priorityChart.appendChild(frag);
+    // Only once every track has real layout (i.e. it's actually in the
+    // DOM) can its height be measured -- so the bar height and label
+    // position are set here, in a second pass, as real pixel values.
+    built.forEach(({ track, bar, valLabel, fillPct }) => {
+      const trackHeight = track.clientHeight || 1;
+      const usable = Math.max(trackHeight - CHART_LABEL_RESERVE, 1);
+      const fillPx = Math.max(2, (fillPct / 100) * usable);
+
+      bar.style.height = fillPx + "px";
+      valLabel.style.bottom = fillPx + 4 + "px";
+    });
   }
 
   function toggleSchool(name) {
@@ -495,285 +514,43 @@
     resizeRaf = requestAnimationFrame(() => {
       resizeRaf = null;
       updatePanelHeight();
+      renderPriorityChart(lastChartPcts.dedpPct, lastChartPcts.nonDedpPct);
     });
   }
 
-  // --- Import from PDF -----------------------------------------------------
+  // --- Reset All Data --------------------------------------------------
 
-  let importEls = null;
-  let pendingImport = null; // { monthLabel, entries: [{ pdfName, school, status }] }
+  function resetAllData() {
+    if (!els.resetAllBtn) return;
 
-  function cacheImportEls() {
-    importEls = {
-      fileInput: document.getElementById("irc2aFileInput"),
-      uploadBtn: document.getElementById("irc2aUploadBtn"),
-      uploadArea: document.getElementById("irc2aUploadArea"),
-      modal: document.getElementById("irc2aPreviewModal"),
-      modalOverlay: document.getElementById("irc2aModalOverlay"),
-      modalClose: document.getElementById("irc2aModalClose"),
-      modalCancel: document.getElementById("irc2aModalCancel"),
-      modalConfirm: document.getElementById("irc2aModalConfirm"),
-      previewBody: document.getElementById("irc2aPreviewBody"),
-      previewMonth: document.getElementById("irc2aPreviewMonth"),
-    };
-  }
+    const confirmed = window.confirm(
+      'This will permanently move every school back to "Not Yet Provided ' +
+        'with TA" for this year. This cannot be undone. Continue?',
+    );
+    if (!confirmed) return;
 
-  function handleImportFile(file) {
-    const looksLikePdf =
-      file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
-    if (!looksLikePdf) {
-      alert("Please upload a PDF file.");
-      return;
-    }
+    els.resetAllBtn.disabled = true;
+    const originalLabel = els.resetAllBtn.innerHTML;
+    els.resetAllBtn.textContent = "Resetting...";
 
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const originalLabel = importEls.uploadBtn.innerHTML;
-    importEls.uploadBtn.textContent = "Uploading...";
-    importEls.uploadBtn.disabled = true;
-
-    fetch("/irc/irc2a/extract", { method: "POST", body: formData })
+    fetch("/irc/irc2a/reset", { method: "DELETE" })
       .then((res) => res.json())
-      .then((data) => {
-        importEls.uploadBtn.innerHTML = originalLabel;
-        importEls.uploadBtn.disabled = false;
-
-        if (data.error) {
-          alert("Error: " + data.error);
+      .then((result) => {
+        if (result.error) {
+          alert("Reset failed: " + result.error);
           return;
         }
-
-        buildPendingImport(data);
-        showImportModal();
+        initState();
+        render(currentFilters());
+        updatePanelHeight();
       })
       .catch((err) => {
-        importEls.uploadBtn.innerHTML = originalLabel;
-        importEls.uploadBtn.disabled = false;
-        alert("Upload failed: " + err.message);
+        alert("Reset failed: " + err.message);
+      })
+      .finally(() => {
+        els.resetAllBtn.disabled = false;
+        els.resetAllBtn.innerHTML = originalLabel;
       });
-  }
-
-  function buildPendingImport(data) {
-    const monthLabel = data.month
-      ? data.month.charAt(0).toUpperCase() + data.month.slice(1)
-      : "Unknown";
-
-    const entries = (data.schools || []).map((pdfName) => {
-      const matched = findMatchingSchool(pdfName);
-      let status;
-      if (!matched) {
-        status = "not-found";
-      } else if (state[matched.name] === "provided") {
-        status = "already-provided";
-      } else {
-        status = "will-mark";
-      }
-      return { pdfName, school: matched, status };
-    });
-
-    pendingImport = {
-      monthLabel,
-      entries,
-      fileId: data.file_id,
-      monthKey: data.month_key,
-      year: data.year,
-    };
-  }
-
-  // `status` here is the DISPLAY status (i.e. it already accounts for
-  // whether the row's checkbox is currently checked) — not necessarily the
-  // entry's original computed status.
-  function importStatusLabel(status) {
-    switch (status) {
-      case "will-mark":
-        return "Will be marked as Provided";
-      case "already-provided":
-        return "Already Provided with TA";
-      case "excluded":
-        return "Will not be imported";
-      case "not-found":
-      default:
-        return "Not found in system";
-    }
-  }
-
-  function showImportModal() {
-    if (!pendingImport) return;
-
-    importEls.previewMonth.textContent = pendingImport.monthLabel;
-    importEls.previewBody.innerHTML = "";
-
-    const frag = document.createDocumentFragment();
-
-    pendingImport.entries.forEach((entry, idx) => {
-      const row = document.createElement("tr");
-      row.className = `irc2a-preview-row irc2a-preview-row--${entry.status}`;
-      row.dataset.idx = String(idx);
-
-      const checkTd = document.createElement("td");
-      if (entry.status === "will-mark" || entry.status === "already-provided") {
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = true;
-        checkbox.className = "irc2a-preview-checkbox";
-        checkbox.dataset.idx = String(idx);
-        checkTd.appendChild(checkbox);
-      }
-      row.appendChild(checkTd);
-
-      const nameTd = document.createElement("td");
-      nameTd.textContent = entry.school ? entry.school.name : entry.pdfName;
-      row.appendChild(nameTd);
-
-      const statusTd = document.createElement("td");
-      const badge = document.createElement("span");
-      badge.className = `irc2a-preview-badge irc2a-preview-badge--${entry.status}`;
-      badge.textContent = importStatusLabel(entry.status);
-      badge.dataset.idx = String(idx);
-      statusTd.appendChild(badge);
-      row.appendChild(statusTd);
-
-      frag.appendChild(row);
-    });
-
-    importEls.previewBody.appendChild(frag);
-
-    updateConfirmButton();
-    importEls.modal.style.display = "flex";
-  }
-
-  function hideImportModal() {
-    importEls.modal.style.display = "none";
-  }
-
-  // Fired whenever a checkbox in the preview table is checked/unchecked.
-  // Flips that row's badge between its real status and "excluded", and
-  // refreshes the Import button's count.
-  function onPreviewCheckboxChange(e) {
-    const checkbox = e.target.closest(".irc2a-preview-checkbox");
-    if (!checkbox || !pendingImport) return;
-
-    const idx = Number(checkbox.dataset.idx);
-    const entry = pendingImport.entries[idx];
-    if (!entry) return;
-
-    const row = checkbox.closest("tr");
-    const badge = row ? row.querySelector(".irc2a-preview-badge") : null;
-
-    const displayStatus = checkbox.checked ? entry.status : "excluded";
-
-    if (badge) {
-      badge.className = `irc2a-preview-badge irc2a-preview-badge--${displayStatus}`;
-      badge.textContent = importStatusLabel(displayStatus);
-    }
-    if (row) {
-      row.classList.toggle("is-excluded", !checkbox.checked);
-    }
-
-    updateConfirmButton();
-  }
-
-  // Recomputes how many rows are currently checked and reflects that count
-  // (and enabled/disabled state) on the Import button. Called on initial
-  // modal open and again on every checkbox change.
-  function updateConfirmButton() {
-    if (!pendingImport || !importEls) return;
-    const checkedCount = importEls.previewBody.querySelectorAll(
-      ".irc2a-preview-checkbox:checked",
-    ).length;
-
-    importEls.modalConfirm.disabled = checkedCount === 0;
-    importEls.modalConfirm.textContent =
-      checkedCount > 0 ? `Import (${checkedCount})` : "Nothing to import";
-  }
-
-  function confirmImport() {
-    if (!pendingImport) return;
-
-    const checkedIdxs = new Set(
-      Array.from(
-        importEls.previewBody.querySelectorAll(
-          ".irc2a-preview-checkbox:checked",
-        ),
-      ).map((cb) => Number(cb.dataset.idx)),
-    );
-
-    const namesToImport = [];
-
-    pendingImport.entries.forEach((entry, idx) => {
-      // "already-provided" schools get set to "provided" again here too —
-      // harmless, since they already are — so that including them in the
-      // import (checkbox checked) visibly does what the user asked: retain
-      // them in the Provided with TA column. "not-found" entries have
-      // nothing in the system to apply to, so they're skipped regardless.
-      const isMatchedEntry =
-        entry.status === "will-mark" || entry.status === "already-provided";
-      if (isMatchedEntry && checkedIdxs.has(idx) && entry.school) {
-        state[entry.school.name] = "provided";
-        namesToImport.push(entry.school.name);
-      }
-    });
-
-    render(currentFilters());
-
-    // Persist the confirmed subset. Extraction only registered the
-    // uploaded file -- this is the step that actually writes the DB
-    // (mirrors the home page's IRC2a review-then-import flow).
-    if (namesToImport.length) {
-      fetch("/irc/irc2a/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          file_id: pendingImport.fileId,
-          year: pendingImport.year,
-          schools: namesToImport,
-        }),
-      }).catch(() => {
-        /* Best-effort: the board already reflects the change locally; a
-           failed save here just means a reload would show stale data. */
-      });
-    }
-
-    pendingImport = null;
-    hideImportModal();
-  }
-
-  function initImportUpload() {
-    cacheImportEls();
-    if (!importEls.uploadBtn || !importEls.fileInput) return;
-
-    importEls.uploadBtn.addEventListener("click", () =>
-      importEls.fileInput.click(),
-    );
-
-    importEls.uploadArea.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      importEls.uploadArea.classList.add("is-dragover");
-    });
-    importEls.uploadArea.addEventListener("dragleave", () => {
-      importEls.uploadArea.classList.remove("is-dragover");
-    });
-    importEls.uploadArea.addEventListener("drop", (e) => {
-      e.preventDefault();
-      importEls.uploadArea.classList.remove("is-dragover");
-      const files = e.dataTransfer.files;
-      if (files.length > 0) handleImportFile(files[0]);
-    });
-
-    importEls.fileInput.addEventListener("change", (e) => {
-      if (e.target.files.length > 0) handleImportFile(e.target.files[0]);
-      importEls.fileInput.value = ""; // allow re-uploading the same file
-    });
-
-    importEls.modalClose.addEventListener("click", hideImportModal);
-    importEls.modalCancel.addEventListener("click", hideImportModal);
-    importEls.modalOverlay.addEventListener("click", hideImportModal);
-    importEls.modalConfirm.addEventListener("click", confirmImport);
-
-    // Event delegation: handles checkboxes that are (re)created every time
-    // showImportModal() rebuilds the table body.
-    importEls.previewBody.addEventListener("change", onPreviewCheckboxChange);
   }
 
   function init() {
@@ -783,7 +560,10 @@
     initState();
     render();
     updatePanelHeight();
-    initImportUpload();
+
+    if (els.resetAllBtn) {
+      els.resetAllBtn.addEventListener("click", resetAllData);
+    }
 
     els.lists.unprovided.addEventListener("click", onListClick);
     els.lists.provided.addEventListener("click", onListClick);

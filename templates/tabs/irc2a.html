@@ -8,8 +8,15 @@ block content %}
 
 <section id="irc2a-tab" class="tab-panel irc2a-panel">
   <div class="irc2a-header">
-    <h2>IRC2a &mdash; Number of Schools Provided with TA</h2>
-    <p class="irc2a-subtitle">Click a school to move it between columns.</p>
+    <div class="irc2a-header-top">
+      <div>
+        <h2>IRC2a &mdash; Number of Schools Provided with TA</h2>
+        <p class="irc2a-subtitle">Click a school to move it between columns.</p>
+      </div>
+      <button type="button" class="irc2a-reset-btn" id="irc2aResetAllBtn">
+        <i class="ti ti-trash" style="margin-right: 6px"></i> Reset All Data
+      </button>
+    </div>
   </div>
 
   <!-- Filters -->
@@ -99,36 +106,8 @@ block content %}
   </div>
   <!-- /.irc2a-columns -->
 
-  <!-- Import | Summary | Chart row -->
+  <!-- Summary | Chart row -->
   <div class="irc2a-panel-row">
-    <!-- Import File Section -->
-    <div class="irc2a-upload-section">
-      <div class="irc2a-upload-card">
-        <div class="irc2a-upload-icon"><i class="ti ti-file-upload"></i></div>
-        <h3>Import from File</h3>
-        <p class="irc2a-upload-hint">
-          Upload a file with the TA status of each school to auto-populate the
-          board.
-        </p>
-        <div class="irc2a-upload-area" id="irc2aUploadArea">
-          <input
-            type="file"
-            id="irc2aFileInput"
-            accept=".pdf"
-            style="display: none"
-          />
-          <button type="button" class="irc2a-upload-btn" id="irc2aUploadBtn">
-            <i class="ti ti-upload" style="margin-right: 6px"></i> Choose File
-          </button>
-          <p class="irc2a-upload-text">or drag and drop here</p>
-        </div>
-        <p class="irc2a-upload-note">
-          Imported file should follow the correct template/structure to extract
-          data successfully.
-        </p>
-      </div>
-    </div>
-
     <!-- Summary Section -->
     <div class="irc2a-stats-section">
       <h3>DEDP Priority Summary</h3>
@@ -169,53 +148,6 @@ block content %}
     </div>
   </div>
   <!-- /.irc2a-panel-row -->
-
-  <!-- Import Preview Modal -->
-  <div id="irc2aPreviewModal" class="irc2a-modal" style="display: none">
-    <div class="irc2a-modal-content">
-      <div class="irc2a-modal-header">
-        <h2>Review Extracted Schools</h2>
-        <button type="button" class="irc2a-modal-close" id="irc2aModalClose">
-          &times;
-        </button>
-      </div>
-      <div class="irc2a-modal-body">
-        <p class="irc2a-modal-hint">
-          Extracted from the <strong id="irc2aPreviewMonth">&mdash;</strong>
-          report. Uncheck any school you don't want to import, then confirm.
-        </p>
-        <div class="irc2a-preview-table-wrap">
-          <table class="irc2a-preview-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>School</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="irc2aPreviewBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="irc2a-modal-footer">
-        <button
-          type="button"
-          class="irc2a-modal-btn irc2a-modal-btn-cancel"
-          id="irc2aModalCancel"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="irc2a-modal-btn irc2a-modal-btn-confirm"
-          id="irc2aModalConfirm"
-        >
-          Import
-        </button>
-      </div>
-    </div>
-    <div class="irc2a-modal-overlay" id="irc2aModalOverlay"></div>
-  </div>
 </section>
 
 <script src="{{ url_for('static', filename='js/irc2a.js') }}"></script>

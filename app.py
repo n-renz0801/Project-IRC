@@ -1527,6 +1527,25 @@ def import_irc2a_schools():
     return jsonify(results), 200
 
 
+@app.route("/irc/irc2a/reset", methods=["DELETE"])
+def reset_irc2a_statuses():
+    """Wipes every IRC2a school status for a given year (defaults to
+    current year) in one shot -- the "Reset All Data" button's
+    counterpart to set_irc2a_status, which only ever toggles a single
+    school. Every school reverts to "Not Yet Provided with TA" (the
+    frontend's baseline for a school with no row at all -- see
+    initState() in irc2a.js).
+
+    Scoped to IRC2a only: uploaded PDF files and IRC2b's monthly TA
+    grid are left untouched, same as IRC1a/IRC1b's own reset routes
+    only ever clear their own table.
+    """
+    year = request.args.get("year", type=int) or _current_year()
+    IRC2ASchoolStatus.query.filter_by(year=year).delete()
+    db.session.commit()
+    return jsonify({"reset": True, "year": year}), 200
+
+
 @app.route("/irc/irc2b/save", methods=["POST"])
 def save_irc2b_frequency():
     """Persists manual checkbox edits from the IRC2b monthly grid (no
