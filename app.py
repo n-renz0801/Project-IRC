@@ -1250,6 +1250,22 @@ def delete_irc1a_rating(month_key, indicator_id):
     }), 200
 
 
+@app.route("/irc/irc1a/reset", methods=["DELETE"])
+def reset_irc1a_ratings():
+    """Wipes every IRC1a rating for a given year (defaults to current
+    year) in one shot. This is the "Reset All Data" button's counterpart
+    to delete_irc1a_rating above, which only ever clears a single cell.
+
+    Uploaded PDF files themselves (and their UploadedFile rows) are left
+    untouched -- this only clears the rating values, same scoping as
+    delete_irc1a_rating.
+    """
+    year = request.args.get("year", type=int) or _current_year()
+    IRC1ARating.query.filter_by(year=year).delete()
+    db.session.commit()
+    return jsonify({"reset": True, "year": year}), 200
+
+
 @app.route("/irc/irc1b/extract", methods=["POST"])
 def extract_irc1b_pdf():
     """Extract the number of customers served from a monthly PDF.
