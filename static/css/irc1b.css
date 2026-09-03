@@ -17,6 +17,14 @@ html::-webkit-scrollbar {
   margin-bottom: 32px;
 }
 
+.irc1b-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .irc1b-header h2 {
   font-size: 28px;
   font-weight: 600;
@@ -31,88 +39,30 @@ html::-webkit-scrollbar {
   line-height: 1.5;
 }
 
-.irc1b-bottom-row {
-  display: grid;
-  grid-template-columns: 0.9fr 3.5fr;
-  gap: 20px;
-  align-items: start;
-}
-
-.irc1b-upload-section {
-  margin-bottom: 0;
-}
-
-.irc1b-upload-card {
-  background: linear-gradient(135deg, #f0f4f9 0%, #e8ecf3 100%);
-  border: 2px solid #d0d8e8;
-  border-radius: 12px;
-  padding: 16px;
-  text-align: center;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-.irc1b-upload-icon {
-  font-size: 26px;
-  margin-bottom: 8px;
-}
-
-.irc1b-upload-card h3 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 6px 0;
-  color: #1a1a1a;
-}
-
-.irc1b-upload-hint {
-  font-size: 12px;
-  color: #666;
-  margin: 0 0 12px 0;
-}
-
-.irc1b-upload-area {
-  background: white;
-  border: 2px dashed #a8b8d8;
-  border-radius: 8px;
-  padding: 14px 10px;
-  margin-bottom: 10px;
-  transition: all 0.3s ease;
-}
-
-.irc1b-upload-area:hover {
-  border-color: #7c8fb8;
-  background: #fafbfc;
-}
-
-.irc1b-upload-btn {
-  background: #4a6fa5;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s ease;
+/* Reset-all-data button */
+.irc1b-reset-btn {
   display: inline-flex;
   align-items: center;
-  margin-bottom: 6px;
+  flex-shrink: 0;
+  background: white;
+  color: #c0392b;
+  border: 1px solid #e3b3ae;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.irc1b-upload-btn:hover {
-  background: #3d5a8a;
+.irc1b-reset-btn:hover {
+  background: #fdecea;
+  border-color: #c0392b;
 }
 
-.irc1b-upload-text {
-  font-size: 11px;
-  color: #888;
-  margin: 0;
-}
-
-.irc1b-upload-note {
-  font-size: 10px;
-  color: #999;
-  margin: 10px 0 0 0;
+.irc1b-reset-btn:active {
+  background: #fbdedb;
 }
 
 /* ------------------------------------------------------------------
@@ -254,15 +204,55 @@ html::-webkit-scrollbar {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  height: 100%;
   box-sizing: border-box;
+  margin-bottom: 32px;
+}
+
+.irc1b-chart-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .irc1b-chart-section h3 {
   font-size: 16px;
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0;
   color: #1a1a1a;
+}
+
+/* Monthly / Quarterly toggle */
+.irc1b-chart-toggle {
+  display: inline-flex;
+  background: #eef2f7;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.irc1b-chart-toggle-btn {
+  border: none;
+  background: transparent;
+  color: #5a6473;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.irc1b-chart-toggle-btn:hover {
+  color: #1a1a1a;
+}
+
+.irc1b-chart-toggle-btn.active {
+  background: #4a6fa5;
+  color: white;
+  box-shadow: 0 1px 3px rgba(74, 111, 165, 0.35);
 }
 
 .irc1b-chart-wrapper {
@@ -270,77 +260,85 @@ html::-webkit-scrollbar {
 }
 
 /* ------------------------------------------------------------------
-   Chart — two-row structure: bars track (relative, % based) + labels
+   Chart — line graph. The track is a relative container sized in real
+   pixels; the JS measures it and draws an inline SVG (polyline +
+   points + average line) sized to match exactly, so everything lines
+   up with the month/quarter labels below it.
 ------------------------------------------------------------------ */
 
 .irc1b-chart {
   display: flex;
   flex-direction: column;
-  height: 200px;
+  height: 220px;
 }
 
-/* The bars track: everything (bars + avg line) is positioned as a
-   percentage of THIS element's height, so alignment is exact. */
-.irc1b-chart-bars {
+.irc1b-chart-track {
   position: relative;
   flex: 1;
   min-height: 0;
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
   border-bottom: 1px solid #e8e8e8;
   padding-bottom: 2px;
 }
 
-.irc1b-chart-col-bar {
-  flex: 1;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.irc1b-chart-val {
-  font-size: 11px;
-  color: #666;
-  margin-bottom: 4px;
-  font-weight: 500;
-}
-
-.irc1b-chart-bar {
-  width: 60%;
-  min-height: 2px;
-  background: #4a6fa5;
-  border-radius: 10px 10px 0 0;
-  transition: height 0.25s ease;
-}
-
-/* Average indicator line — positioned with bottom:%, same basis as bars */
-.irc1b-chart-avg-line {
+.irc1b-chart-svg {
   position: absolute;
+  top: 0;
   left: 0;
-  right: 0;
-  height: 0;
-  border-top: 2px dashed #e2635a;
-  pointer-events: none;
-  z-index: 2;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  display: block;
 }
 
+.irc1b-chart-line-path {
+  fill: none;
+  stroke: #4a6fa5;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.irc1b-chart-point {
+  fill: #4a6fa5;
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.irc1b-chart-point-empty {
+  fill: #cbd5e1;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+}
+
+.irc1b-chart-val-text {
+  font-size: 11px;
+  font-weight: 500;
+  fill: #666;
+}
+
+/* Average indicator line, drawn inside the SVG */
+.irc1b-chart-avg-line-svg {
+  stroke: #e2635a;
+  stroke-width: 2;
+  stroke-dasharray: 6, 4;
+}
+
+/* Average label — enlarged per request (was 10px) */
 .irc1b-chart-avg-label {
   position: absolute;
   right: 2px;
   transform: translateY(-100%);
-  font-size: 10px;
+  font-size: 15px;
   font-weight: 700;
   color: #e2635a;
   background: white;
-  padding: 1px 6px;
-  border: 1px solid #e2635a;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border: 1.5px solid #e2635a;
+  border-radius: 6px;
   white-space: nowrap;
   z-index: 3;
   pointer-events: none;
+  box-shadow: 0 1px 4px rgba(226, 99, 90, 0.2);
 }
 
 .irc1b-chart-labels {
@@ -378,185 +376,10 @@ html::-webkit-scrollbar {
   color: #185fa5;
 }
 
-/* Modal Styles */
-.irc1b-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.irc1b-modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: -1;
-}
-
-.irc1b-modal-content {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  z-index: 1001;
-}
-
-.irc1b-modal-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.irc1b-modal-header h2 {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  color: #1a1a1a;
-}
-
-.irc1b-modal-close {
-  background: none;
-  border: none;
-  font-size: 28px;
-  color: #999;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  transition: color 0.2s ease;
-}
-
-.irc1b-modal-close:hover {
-  color: #333;
-}
-
-.irc1b-modal-body {
-  padding: 24px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.irc1b-modal-hint {
-  font-size: 13px;
-  color: #666;
-  margin: 0 0 16px 0;
-}
-
-.irc1b-preview-table-container {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.irc1b-preview-month-info {
-  font-size: 13px;
-  color: #333;
-  margin: 0 0 12px 0;
-}
-
-.irc1b-preview-table {
-  width: 100%;
-  border-collapse: collapse;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.irc1b-preview-table thead {
-  background: #1f2937;
-}
-
-.irc1b-preview-table th,
-.irc1b-preview-table td {
-  border: 1px solid #e0e0e0;
-  padding: 10px 8px;
-}
-
-.irc1b-preview-table th {
-  color: #f3f4f6;
-  text-align: left;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.irc1b-preview-table input[type="number"] {
-  width: 100px;
-  padding: 6px 4px;
-  border: 1px solid #e2e5ea;
-  border-radius: 6px;
-  font-size: 13px;
-  text-align: center;
-  background: #fbfbfc;
-  box-sizing: border-box;
-}
-
-.irc1b-preview-table input[type="number"]:focus {
-  outline: none;
-  border-color: #4a6fa5;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
-}
-
-.irc1b-modal-footer {
-  padding: 16px 24px;
-  border-top: 1px solid #e0e0e0;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.irc1b-modal-btn {
-  padding: 10px 20px;
-  border: 1px solid #d0d0d0;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.irc1b-modal-btn-cancel {
-  background: white;
-  color: #333;
-}
-
-.irc1b-modal-btn-cancel:hover {
-  background: #f5f5f5;
-  border-color: #999;
-}
-
-.irc1b-modal-btn-import {
-  background: #4a6fa5;
-  color: white;
-  border-color: #4a6fa5;
-}
-
-.irc1b-modal-btn-import:hover {
-  background: #3d5a8a;
-  border-color: #3d5a8a;
-}
-
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .irc1b-label-col {
     width: 180px;
-  }
-}
-
-@media (max-width: 860px) {
-  .irc1b-bottom-row {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -574,15 +397,16 @@ html::-webkit-scrollbar {
     padding: 8px 6px;
   }
 
-  .irc1b-upload-card {
-    padding: 14px;
-  }
-
   .irc1b-chart-section {
     padding: 16px;
   }
 
   .irc1b-chart {
-    height: 160px;
+    height: 180px;
+  }
+
+  .irc1b-chart-avg-label {
+    font-size: 13px;
+    padding: 3px 8px;
   }
 }

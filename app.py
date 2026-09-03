@@ -1386,6 +1386,22 @@ def delete_irc1b_count(month_key):
     return jsonify({"deleted": True, "year": year, "month_key": month_key}), 200
 
 
+@app.route("/irc/irc1b/reset", methods=["DELETE"])
+def reset_irc1b_counts():
+    """Wipes every IRC1b customer count for a given year (defaults to
+    current year) in one shot. This is the "Reset All Data" button's
+    counterpart to delete_irc1b_count above, which only ever clears a
+    single cell -- same scoping as reset_irc1a_ratings.
+
+    Uploaded PDF files themselves (and their UploadedFile rows) are left
+    untouched -- this only clears the customer-count values.
+    """
+    year = request.args.get("year", type=int) or _current_year()
+    IRC1BCustomerCount.query.filter_by(year=year).delete()
+    db.session.commit()
+    return jsonify({"reset": True, "year": year}), 200
+
+
 @app.route("/irc/irc2a/extract", methods=["POST"])
 def extract_irc2a_pdf():
     """Extract the "Schools Provided with TA" list from a monthly PDF.

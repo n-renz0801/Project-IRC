@@ -28,7 +28,17 @@
     dec: "Dec",
   };
 
-  const MIN_MONTHS_FOR_AVERAGE = 1; // average only shows once MORE than this many months have data
+  // Quarter groupings for the "Quarterly" chart view -- a quarter's value
+  // is the sum of its 3 months' values, and it "has data" if any of its
+  // months has data (blank vs. typed, same distinction as the monthly view).
+  const QUARTERS = [
+    { key: "q1", label: "Q1", months: ["jan", "feb", "mar"] },
+    { key: "q2", label: "Q2", months: ["apr", "may", "jun"] },
+    { key: "q3", label: "Q3", months: ["jul", "aug", "sep"] },
+    { key: "q4", label: "Q4", months: ["oct", "nov", "dec"] },
+  ];
+
+  const MIN_POINTS_FOR_AVERAGE = 1; // average only shows once MORE than this many periods have data
 
   const table = document.getElementById("irc1b-table");
   if (!table) return;
@@ -36,6 +46,16 @@
   const totalSpan = document.getElementById("irc1b-total");
   const totalStatValue = document.getElementById("irc1b-total-stat-value");
   const chartEl = document.getElementById("irc1b-chart");
+  const periodToggle = document.getElementById("chartPeriodToggle");
+  const resetAllBtn = document.getElementById("resetAllBtn");
+
+  // "monthly" or "quarterly" -- which view the chart currently renders.
+  let currentPeriod = "monthly";
+
+  // Cached from the last recalc, so switching the toggle can redraw the
+  // chart instantly without re-reading every input.
+  let lastValues = null;
+  let lastHasData = null;
 
   function getValues() {
     const values = {};
@@ -64,78 +84,149 @@
     return Math.round(avg).toLocaleString();
   }
 
-  function renderChart(values, hasData) {
-    const max = Math.max(1, ...MONTHS.map((m) => values[m]));
+  // Builds the ordered list of chart data points for the current period.
+  function buildDataPoints(values, hasData, period) {
+    if (period === "quarterly") {
+      return QUARTERS.map((q) => ({
+        key: q.key,
+        label: q.label,
+        value: q.months.reduce((sum, m) => sum + values[m], 0),
+        hasData: q.months.some((m) => hasData[m]),
+      }));
+    }
+    return MONTHS.map((m) => ({
+      key: m,
+      label: MONTH_LABELS[m],
+      value: values[m],
+      hasData: hasData[m],
+    }));
+  }
 
-    // Average is computed only from months that have data entered
-    const filledMonths = MONTHS.filter((m) => hasData[m]);
-    const filledCount = filledMonths.length;
-    const showAverage = filledCount > MIN_MONTHS_FOR_AVERAGE;
+  // Draws the line-chart SVG (polyline + points + optional average line)
+  // into `track`, sized to the track's actual pixel dimensions so it lines
+  // up exactly with the period labels underneath.
+  function drawLineSvg(track, points, max, avg, showAverage) {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const width = Math.max(track.clientWidth, 1);
+    const height = Math.max(track.clientHeight, 1);
+
+    const padX = 22; // keeps the first/last points' value labels on-screen
+    const padTop = 24; // room above the highest point for its value label
+    const padBottom = 4;
+    const usableWidth = Math.max(width - padX * 2, 1);
+    const usableHeight = Math.max(height - padTop - padBottom, 1);
+
+    const n = points.length;
+    const xFor = (i) =>
+      n === 1 ? width / 2 : padX + (usableWidth * i) / (n - 1);
+    const yFor = (val) => {
+      if (max <= 0) return height - padBottom;
+      const frac = Math.max(0, Math.min(1, val / max));
+      return height - padBottom - frac * usableHeight;
+    };
+
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", "100%");
+    svg.setAttribute("height", "100%");
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.classList.add("irc1b-chart-svg");
+
+    if (showAverage) {
+      const y = yFor(avg);
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", "0");
+      line.setAttribute("x2", String(width));
+      line.setAttribute("y1", String(y));
+      line.setAttribute("y2", String(y));
+      line.setAttribute("class", "irc1b-chart-avg-line-svg");
+      svg.appendChild(line);
+    }
+
+    const linePoints = points
+      .map((p, i) => `${xFor(i)},${yFor(p.value)}`)
+      .join(" ");
+    const polyline = document.createElementNS(svgNS, "polyline");
+    polyline.setAttribute("points", linePoints);
+    polyline.setAttribute("class", "irc1b-chart-line-path");
+    svg.appendChild(polyline);
+
+    points.forEach((p, i) => {
+      const cx = xFor(i);
+      const cy = yFor(p.value);
+
+      if (p.value > 0) {
+        const text = document.createElementNS(svgNS, "text");
+        text.setAttribute("x", String(cx));
+        text.setAttribute("y", String(cy - 10));
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("class", "irc1b-chart-val-text");
+        text.textContent = p.value.toLocaleString();
+        svg.appendChild(text);
+      }
+
+      const circle = document.createElementNS(svgNS, "circle");
+      circle.setAttribute("cx", String(cx));
+      circle.setAttribute("cy", String(cy));
+      circle.setAttribute("r", p.value > 0 ? "4" : "3");
+      circle.setAttribute(
+        "class",
+        "irc1b-chart-point" + (p.value > 0 ? "" : " irc1b-chart-point-empty"),
+      );
+      const titleEl = document.createElementNS(svgNS, "title");
+      titleEl.textContent = `${p.label}: ${p.value.toLocaleString()}`;
+      circle.appendChild(titleEl);
+      svg.appendChild(circle);
+    });
+
+    track.appendChild(svg);
+
+    if (showAverage) {
+      const y = yFor(avg);
+      const label = document.createElement("div");
+      label.className = "irc1b-chart-avg-label";
+      label.style.top = y + "px";
+      label.textContent = "Avg: " + formatAverage(avg);
+      track.appendChild(label);
+    }
+  }
+
+  function renderChart(values, hasData) {
+    const points = buildDataPoints(values, hasData, currentPeriod);
+    const max = Math.max(1, ...points.map((p) => p.value));
+
+    const filledPoints = points.filter((p) => p.hasData);
+    const showAverage = filledPoints.length > MIN_POINTS_FOR_AVERAGE;
     const avg = showAverage
-      ? filledMonths.reduce((sum, m) => sum + values[m], 0) / filledCount
+      ? filledPoints.reduce((sum, p) => sum + p.value, 0) / filledPoints.length
       : 0;
 
     chartEl.innerHTML = "";
 
-    // Row 1: bars track (relative container — everything below is
-    // positioned as a % of THIS element, so bars and the avg line
-    // share the exact same coordinate system)
-    const barsTrack = document.createElement("div");
-    barsTrack.className = "irc1b-chart-bars";
+    // Track: relative container the SVG is measured against and drawn into.
+    const track = document.createElement("div");
+    track.className = "irc1b-chart-track";
+    chartEl.appendChild(track);
 
-    // Row 2: month labels, aligned under bars via matching flex/gap
+    // Period labels row, aligned under the points via matching flex/gap.
     const labelsRow = document.createElement("div");
     labelsRow.className = "irc1b-chart-labels";
-
-    MONTHS.forEach((m) => {
-      const val = values[m];
-      const pct = val > 0 ? Math.max(2, (val / max) * 100) : 0;
-
-      const colBar = document.createElement("div");
-      colBar.className = "irc1b-chart-col-bar";
-      colBar.title = `${MONTH_LABELS[m]}: ${val.toLocaleString()}`;
-
-      const valLabel = document.createElement("span");
-      valLabel.className = "irc1b-chart-val";
-      valLabel.textContent = val > 0 ? val.toLocaleString() : "";
-
-      const bar = document.createElement("div");
-      bar.className = "irc1b-chart-bar";
-      bar.style.height = pct + "%";
-
-      colBar.appendChild(valLabel);
-      colBar.appendChild(bar);
-      barsTrack.appendChild(colBar);
-
+    points.forEach((p) => {
       const label = document.createElement("span");
       label.className = "irc1b-chart-label";
-      label.textContent = MONTH_LABELS[m];
+      label.textContent = p.label;
       labelsRow.appendChild(label);
     });
-
-    if (showAverage) {
-      const fraction = max > 0 ? Math.min(1, avg / max) : 0;
-      const bottomPct = fraction * 100;
-
-      const line = document.createElement("div");
-      line.className = "irc1b-chart-avg-line";
-      line.style.bottom = bottomPct + "%";
-
-      const label = document.createElement("div");
-      label.className = "irc1b-chart-avg-label";
-      label.style.bottom = bottomPct + "%";
-      label.textContent = "Avg: " + formatAverage(avg);
-
-      barsTrack.appendChild(line);
-      barsTrack.appendChild(label);
-    }
-
-    chartEl.appendChild(barsTrack);
     chartEl.appendChild(labelsRow);
+
+    // Drawn last, once the track has real layout dimensions to measure.
+    drawLineSvg(track, points, max, avg, showAverage);
   }
 
   function recalcAll() {
     const { values, hasData } = getValues();
+    lastValues = values;
+    lastHasData = hasData;
     recalcTotal(values);
     renderChart(values, hasData);
   }
@@ -210,180 +301,78 @@
       });
   }
 
-  recalcAll();
-  loadPersistedCounts();
+  // --- Reset All Data ---
+  function resetAllData() {
+    const confirmed = window.confirm(
+      "This will permanently delete every month's customer count for this " +
+        "year. This cannot be undone. Continue?",
+    );
+    if (!confirmed) return;
 
-  // --- File upload & extraction ---
-  const fileInput = document.getElementById("fileInput");
-  const uploadBtn = document.getElementById("uploadBtn");
-  const uploadArea = document.getElementById("uploadArea");
-  const previewModal = document.getElementById("previewModal");
-  const modalOverlay = document.getElementById("modalOverlay");
-  const modalClose = document.getElementById("modalClose");
-  const modalCancel = document.getElementById("modalCancel");
-  const modalImport = document.getElementById("modalImport");
-  const previewTableContainer = document.getElementById(
-    "previewTableContainer",
-  );
+    resetAllBtn.disabled = true;
+    const originalLabel = resetAllBtn.innerHTML;
+    resetAllBtn.textContent = "Resetting...";
 
-  let extractedData = null;
-
-  uploadBtn.addEventListener("click", () => fileInput.click());
-
-  uploadArea.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    uploadArea.style.background = "var(--gold)";
-  });
-
-  uploadArea.addEventListener("dragleave", () => {
-    uploadArea.style.background = "";
-  });
-
-  uploadArea.addEventListener("drop", (e) => {
-    e.preventDefault();
-    uploadArea.style.background = "";
-    const files = e.dataTransfer.files;
-    if (files.length > 0) handleFileUpload(files[0]);
-  });
-
-  fileInput.addEventListener("change", (e) => {
-    if (e.target.files.length > 0) handleFileUpload(e.target.files[0]);
-  });
-
-  function handleFileUpload(file) {
-    if (!file.type.includes("pdf")) {
-      alert("Please upload a PDF file.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    uploadBtn.textContent = "Uploading...";
-    uploadBtn.disabled = true;
-
-    fetch("/irc/irc1b/extract", {
-      method: "POST",
-      body: formData,
-    })
+    fetch("/irc/irc1b/reset", { method: "DELETE" })
       .then((res) => res.json())
-      .then((data) => {
-        uploadBtn.textContent = "📄 Choose PDF File";
-        uploadBtn.disabled = false;
-
-        if (data.error) {
-          alert("Error: " + data.error);
+      .then((result) => {
+        if (result.error) {
+          alert("Reset failed: " + result.error);
           return;
         }
-
-        // Expected shape: { month: "July", month_key: "jul", customers: 123,
-        // file_id, year }. Nothing is written to the database yet at this
-        // point -- the server only registered the uploaded file. The count
-        // is persisted once the user reviews/edits it here and clicks Import.
-        extractedData = {
-          fileId: data.file_id,
-          year: data.year,
-          month: data.month,
-          month_key: data.month_key,
-          customers: data.customers,
-        };
-        showPreviewModal();
+        // Clear every input, then recompute the total/chart/DB state so
+        // the page matches the now-empty database.
+        table.querySelectorAll("input.irc1b-customers").forEach((input) => {
+          input.value = "";
+        });
+        recalcAll();
       })
       .catch((err) => {
-        uploadBtn.textContent = "📄 Choose PDF File";
-        uploadBtn.disabled = false;
-        alert("Upload failed: " + err.message);
+        alert("Reset failed: " + err.message);
+      })
+      .finally(() => {
+        resetAllBtn.disabled = false;
+        resetAllBtn.innerHTML = originalLabel;
       });
   }
 
-  function showPreviewModal() {
-    const month = extractedData.month || "Unknown";
-    const monthKey = extractedData.month_key || "unknown";
-    const customers = extractedData.customers;
-    const val = customers !== undefined && customers !== null ? customers : "";
-
-    let html = `<div class="irc1b-preview-month-info"><strong>Month:</strong> ${month.toUpperCase()}</div>`;
-    html +=
-      '<table class="irc1b-preview-table"><thead><tr><th>Indicator</th><th>' +
-      month.toUpperCase() +
-      "</th></tr></thead><tbody>";
-    html += `<tr>
-      <td style="text-align:left">No. of Customers Served</td>
-      <td><input type="number" class="preview-customers" data-month="${monthKey}" value="${val}" min="0" step="1" /></td>
-    </tr>`;
-    html += "</tbody></table>";
-
-    previewTableContainer.innerHTML = html;
-    previewModal.style.display = "flex";
+  if (resetAllBtn) {
+    resetAllBtn.addEventListener("click", resetAllData);
   }
 
-  function hidePreviewModal() {
-    previewModal.style.display = "none";
-  }
+  // --- Monthly / Quarterly chart toggle ---
+  if (periodToggle) {
+    periodToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".irc1b-chart-toggle-btn");
+      if (!btn) return;
+      const period = btn.dataset.period;
+      if (!period || period === currentPeriod) return;
 
-  modalClose.addEventListener("click", hidePreviewModal);
-  modalCancel.addEventListener("click", hidePreviewModal);
+      currentPeriod = period;
+      periodToggle.querySelectorAll(".irc1b-chart-toggle-btn").forEach((b) => {
+        const isActive = b === btn;
+        b.classList.toggle("active", isActive);
+        b.setAttribute("aria-selected", isActive ? "true" : "false");
+      });
 
-  previewModal.addEventListener("click", function (e) {
-    if (e.target === previewModal || e.target === modalOverlay) {
-      hidePreviewModal();
-    }
-  });
-
-  document
-    .querySelector(".irc1b-modal-content")
-    .addEventListener("click", function (e) {
-      e.stopPropagation();
-    });
-
-  modalImport.addEventListener("click", function (e) {
-    e.stopPropagation();
-    const input = previewTableContainer.querySelector(".preview-customers");
-    let customersValue = null;
-
-    if (input && input.value !== "") {
-      customersValue = parseInt(input.value, 10);
-      const month = input.dataset.month;
-      const tableInput = table.querySelector(
-        `input.irc1b-customers[data-month="${month}"]`,
-      );
-      if (tableInput) {
-        tableInput.value = input.value;
+      if (lastValues && lastHasData) {
+        renderChart(lastValues, lastHasData);
       }
-    }
+    });
+  }
 
-    recalcAll();
-
-    // Persist the (possibly edited) count. Extraction only registered the
-    // uploaded file -- this is the step that actually writes the DB.
-    if (
-      extractedData &&
-      extractedData.fileId &&
-      customersValue !== null &&
-      !Number.isNaN(customersValue)
-    ) {
-      modalImport.disabled = true;
-      fetch("/irc/irc1b/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          file_id: extractedData.fileId,
-          year: extractedData.year,
-          month_key: extractedData.month_key,
-          customers: customersValue,
-        }),
-      })
-        .then((res) => res.json())
-        .then((result) => {
-          modalImport.disabled = false;
-          if (result.error) alert("Save failed: " + result.error);
-        })
-        .catch((err) => {
-          modalImport.disabled = false;
-          alert("Save failed: " + err.message);
-        });
-    }
-
-    hidePreviewModal();
+  // Redraw on resize so the SVG stays aligned to the track's actual
+  // pixel size (e.g. sidebar collapse, window resize, zoom).
+  let resizeRaf = null;
+  window.addEventListener("resize", () => {
+    if (resizeRaf) cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(() => {
+      if (lastValues && lastHasData) {
+        renderChart(lastValues, lastHasData);
+      }
+    });
   });
+
+  recalcAll();
+  loadPersistedCounts();
 })();
