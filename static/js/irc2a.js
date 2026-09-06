@@ -118,11 +118,6 @@
   /** @type {{ level: string, dedpOnly: boolean }} */
   let filters = { level: "all", dedpOnly: false };
 
-  // Last-rendered chart percentages, so a window resize can redraw the
-  // chart (its bar/label pixel positions depend on measured track
-  // height) without recomputing school stats from scratch.
-  let lastChartPcts = { dedpPct: 0, nonDedpPct: 0 };
-
   const els = {};
 
   function cacheEls() {
@@ -152,10 +147,17 @@
       dedpSecondary: document.getElementById("stat-dedp-secondary"),
       dedpTotal: document.getElementById("stat-dedp-total"),
       dedpPct: document.getElementById("stat-dedp-pct"),
+      nonDedpElementary: document.getElementById("stat-nondedp-elementary"),
+      nonDedpSecondary: document.getElementById("stat-nondedp-secondary"),
       nonDedpTotal: document.getElementById("stat-nondedp-total"),
       nonDedpPct: document.getElementById("stat-nondedp-pct"),
     };
-    els.priorityChart = document.getElementById("irc2a-priority-chart");
+    els.bars = {
+      dedpElementary: document.getElementById("dedp-bar-elementary"),
+      dedpSecondary: document.getElementById("dedp-bar-secondary"),
+      nonDedpElementary: document.getElementById("nondedp-bar-elementary"),
+      nonDedpSecondary: document.getElementById("nondedp-bar-secondary"),
+    };
   }
 
   function initState() {
@@ -300,6 +302,12 @@
     const dedpSecondaryCount = dedpProvided.filter(
       (s) => s.level === "secondary",
     ).length;
+    const nonDedpElementaryCount = nonDedpProvided.filter(
+      (s) => s.level === "elementary",
+    ).length;
+    const nonDedpSecondaryCount = nonDedpProvided.filter(
+      (s) => s.level === "secondary",
+    ).length;
 
     const dedpTotalSchools = DEDP_PRIORITY.size;
     const nonDedpTotalSchools = SCHOOLS.length - DEDP_PRIORITY.size;
@@ -311,117 +319,44 @@
     els.stats.dedpSecondary.textContent = String(dedpSecondaryCount);
     els.stats.dedpTotal.textContent = `${dedpProvided.length} / ${dedpTotalSchools}`;
     els.stats.dedpPct.textContent = `${dedpPct}%`;
+    els.stats.nonDedpElementary.textContent = String(nonDedpElementaryCount);
+    els.stats.nonDedpSecondary.textContent = String(nonDedpSecondaryCount);
     els.stats.nonDedpTotal.textContent = `${nonDedpProvided.length} / ${nonDedpTotalSchools}`;
     els.stats.nonDedpPct.textContent = `${nonDedpPct}%`;
 
-    lastChartPcts = { dedpPct, nonDedpPct };
-    renderPriorityChart(dedpPct, nonDedpPct);
+    setBarSegments(
+      els.bars.dedpElementary,
+      els.bars.dedpSecondary,
+      dedpElementaryCount,
+      dedpSecondaryCount,
+      dedpTotalSchools,
+    );
+    setBarSegments(
+      els.bars.nonDedpElementary,
+      els.bars.nonDedpSecondary,
+      nonDedpElementaryCount,
+      nonDedpSecondaryCount,
+      nonDedpTotalSchools,
+    );
   }
 
-  // Space permanently reserved at the top of each track for the value
-  // label, in px. Positions are computed in real pixels (not %) against
-  // this reserved zone so the label can never float above the track's
-  // own border -- let alone escape it and overlap the "TA Coverage"
-  // heading above the chart, which is what a purely percentage-based
-  // "bottom" could do once a bar got close to 100%.
-  const CHART_LABEL_RESERVE = 20;
-
-  // Once a bar's fill reaches this percentage, there's no longer enough
-  // headroom in CHART_LABEL_RESERVE to float the value label above the bar
-  // without the track's overflow:hidden clipping it off. Past this point the
-  // label is drawn inside the bar itself instead, where it always has room
-  // no matter how close the fill gets to 100%.
-  const CHART_VAL_INSIDE_THRESHOLD = 80;
-
-  function renderPriorityChart(dedpPct, nonDedpPct) {
-    if (!els.priorityChart) return;
-
-    const bars = [
-      { label: "DEDP Priority", pct: dedpPct, modifier: "dedp" },
-      { label: "Non-DEDP Priority", pct: nonDedpPct, modifier: "nondedp" },
-    ];
-
-    els.priorityChart.innerHTML = "";
-    const built = [];
-
-    bars.forEach((b) => {
-      const col = document.createElement("div");
-      col.className = "irc2a-chart-col";
-
-      const barWrap = document.createElement("div");
-      barWrap.className = "irc2a-chart-barwrap";
-      barWrap.title = `${b.label}: ${b.pct}%`;
-
-      // Track = the full-height 100% "capacity" outline. The bar fills
-      // upward inside it, so it's always clear how much of the full
-      // container is actually reached, not just a bar floating alone.
-      const track = document.createElement("div");
-      track.className = `irc2a-chart-track irc2a-chart-track--${b.modifier}`;
-
-      const bar = document.createElement("div");
-      bar.className = `irc2a-chart-bar irc2a-chart-bar--${b.modifier}`;
-
-      const valLabel = document.createElement("span");
-      valLabel.className = "irc2a-chart-val";
-      valLabel.textContent = `${b.pct}%`;
-
-      track.appendChild(bar);
-      track.appendChild(valLabel);
-      barWrap.appendChild(track);
-
-      const label = document.createElement("span");
-      label.className = "irc2a-chart-label";
-      label.textContent = b.label;
-
-      col.appendChild(barWrap);
-      col.appendChild(label);
-      els.priorityChart.appendChild(col);
-
-      built.push({
-        track,
-        bar,
-        valLabel,
-        fillPct: Math.max(0, Math.min(100, b.pct)),
-      });
-    });
-
-    // Only once every track has real layout (i.e. it's actually in the
-    // DOM) can its height be measured -- so the bar height and label
-    // position are set here, in a second pass, as real pixel values.
-    built.forEach(({ track, bar, valLabel, fillPct }) => {
-      const trackHeight = track.clientHeight || 1;
-      const inside = fillPct >= CHART_VAL_INSIDE_THRESHOLD;
-
-      // Below the threshold the bar keeps its old headroom so the label can
-      // float above the fill. At/above it, the bar is allowed to use the
-      // track's full height -- the label moves inside the bar instead of
-      // needing that headroom, so there's no more reason to reserve it.
-      const usable = inside
-        ? Math.max(trackHeight, 1)
-        : Math.max(trackHeight - CHART_LABEL_RESERVE, 1);
-      const fillPx = Math.max(2, (fillPct / 100) * usable);
-      bar.style.height = fillPx + "px";
-
-      valLabel.classList.remove(
-        "irc2a-chart-val--above",
-        "irc2a-chart-val--inside",
-      );
-      if (inside) {
-        // Measured after the label has real text/font applied, so this
-        // accounts for actual rendered height rather than an assumed value.
-        const labelHeight = valLabel.offsetHeight || 16;
-        // Nestle it just inside the top of the filled bar. Clamped at 4px
-        // above the track's own bottom so a very short-but->=80% bar (edge
-        // case, shouldn't normally happen given the min fill height) never
-        // pushes the label below the bar it's meant to label.
-        const bottom = Math.max(4, fillPx - labelHeight - 6);
-        valLabel.classList.add("irc2a-chart-val--inside");
-        valLabel.style.bottom = bottom + "px";
-      } else {
-        valLabel.classList.add("irc2a-chart-val--above");
-        valLabel.style.bottom = fillPx + 4 + "px";
-      }
-    });
+  // Each segmented capacity bar's two fills are sized as plain CSS
+  // percentages of that group's total school count (not just of the
+  // schools provided so far), so the combined width of both segments is
+  // always exactly that group's % provided -- with the elementary vs.
+  // secondary split visible within it. Being pure CSS percentages (rather
+  // than pixel heights measured off a rendered track, as the old vertical
+  // chart needed) means these never need recalculating on window resize.
+  function setBarSegments(
+    elementaryEl,
+    secondaryEl,
+    elementaryCount,
+    secondaryCount,
+    totalSchools,
+  ) {
+    if (!elementaryEl || !secondaryEl) return;
+    elementaryEl.style.width = pct(elementaryCount, totalSchools) + "%";
+    secondaryEl.style.width = pct(secondaryCount, totalSchools) + "%";
   }
 
   function toggleSchool(name) {
@@ -547,7 +482,6 @@
     resizeRaf = requestAnimationFrame(() => {
       resizeRaf = null;
       updatePanelHeight();
-      renderPriorityChart(lastChartPcts.dedpPct, lastChartPcts.nonDedpPct);
     });
   }
 

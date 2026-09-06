@@ -106,44 +106,83 @@ block content %}
   </div>
   <!-- /.irc2a-columns -->
 
-  <!-- Summary | Chart row -->
+  <!-- Coverage summary row -->
   <div class="irc2a-panel-row">
-    <!-- Summary Section -->
-    <div class="irc2a-stats-section">
-      <h3>DEDP Priority Summary</h3>
-      <div class="irc2a-stats-grid">
-        <div class="irc2a-stat-card">
-          <span class="irc2a-stat-label">DEDP Elementary Provided</span>
-          <span class="irc2a-stat-value" id="stat-dedp-elementary">0</span>
+    <div class="irc2a-coverage-card">
+      <h3>TA Coverage Summary</h3>
+
+      <div class="irc2a-coverage-row">
+        <div class="irc2a-coverage-hero irc2a-coverage-hero--dedp">
+          <span class="irc2a-coverage-hero-value" id="stat-dedp-pct">0%</span>
+          <span class="irc2a-coverage-hero-label">DEDP priority</span>
         </div>
-        <div class="irc2a-stat-card">
-          <span class="irc2a-stat-label">DEDP Secondary Provided</span>
-          <span class="irc2a-stat-value" id="stat-dedp-secondary">0</span>
-        </div>
-        <div class="irc2a-stat-card irc2a-stat-card--highlight">
-          <span class="irc2a-stat-label">Total DEDP Priority Provided</span>
-          <span class="irc2a-stat-value" id="stat-dedp-total">0</span>
-        </div>
-        <div class="irc2a-stat-card irc2a-stat-card--highlight">
-          <span class="irc2a-stat-label">DEDP % Provided</span>
-          <span class="irc2a-stat-value" id="stat-dedp-pct">0%</span>
-        </div>
-        <div class="irc2a-stat-card">
-          <span class="irc2a-stat-label">Total Non-DEDP Provided</span>
-          <span class="irc2a-stat-value" id="stat-nondedp-total">0</span>
-        </div>
-        <div class="irc2a-stat-card">
-          <span class="irc2a-stat-label">Non-DEDP % Provided</span>
-          <span class="irc2a-stat-value" id="stat-nondedp-pct">0%</span>
+        <div class="irc2a-coverage-bar-wrap">
+          <div class="irc2a-coverage-bar-track irc2a-coverage-bar-track--dedp">
+            <div
+              class="irc2a-coverage-bar-seg irc2a-coverage-bar-seg--elementary"
+              id="dedp-bar-elementary"
+            ></div>
+            <div
+              class="irc2a-coverage-bar-seg irc2a-coverage-bar-seg--secondary"
+              id="dedp-bar-secondary"
+            ></div>
+          </div>
+          <div class="irc2a-coverage-meta">
+            <span class="irc2a-coverage-meta-breakdown">
+              <span
+                class="irc2a-coverage-legend-dot irc2a-coverage-legend-dot--dedp-elementary"
+              ></span>
+              <span id="stat-dedp-elementary">0</span> elementary &middot;
+              <span
+                class="irc2a-coverage-legend-dot irc2a-coverage-legend-dot--dedp-secondary"
+              ></span>
+              <span id="stat-dedp-secondary">0</span> secondary
+            </span>
+            <span class="irc2a-coverage-meta-total" id="stat-dedp-total"
+              >0 / 0</span
+            >
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Visual Plot Section -->
-    <div class="irc2a-plot-section">
-      <h3>TA Coverage: DEDP vs Non-DEDP</h3>
-      <div class="irc2a-plot-wrapper">
-        <div id="irc2a-priority-chart" class="irc2a-priority-chart"></div>
+      <div class="irc2a-coverage-divider"></div>
+
+      <div class="irc2a-coverage-row">
+        <div class="irc2a-coverage-hero irc2a-coverage-hero--nondedp">
+          <span class="irc2a-coverage-hero-value" id="stat-nondedp-pct"
+            >0%</span
+          >
+          <span class="irc2a-coverage-hero-label">Non-DEDP</span>
+        </div>
+        <div class="irc2a-coverage-bar-wrap">
+          <div
+            class="irc2a-coverage-bar-track irc2a-coverage-bar-track--nondedp"
+          >
+            <div
+              class="irc2a-coverage-bar-seg irc2a-coverage-bar-seg--elementary"
+              id="nondedp-bar-elementary"
+            ></div>
+            <div
+              class="irc2a-coverage-bar-seg irc2a-coverage-bar-seg--secondary"
+              id="nondedp-bar-secondary"
+            ></div>
+          </div>
+          <div class="irc2a-coverage-meta">
+            <span class="irc2a-coverage-meta-breakdown">
+              <span
+                class="irc2a-coverage-legend-dot irc2a-coverage-legend-dot--nondedp-elementary"
+              ></span>
+              <span id="stat-nondedp-elementary">0</span> elementary &middot;
+              <span
+                class="irc2a-coverage-legend-dot irc2a-coverage-legend-dot--nondedp-secondary"
+              ></span>
+              <span id="stat-nondedp-secondary">0</span> secondary
+            </span>
+            <span class="irc2a-coverage-meta-total" id="stat-nondedp-total"
+              >0 / 0</span
+            >
+          </div>
+        </div>
       </div>
     </div>
   </div>

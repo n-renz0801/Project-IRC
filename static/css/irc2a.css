@@ -449,211 +449,186 @@ html::-webkit-scrollbar {
 }
 
 /* ==========================================================================
-   Import | Summary | Chart row
+   Coverage summary row
    ========================================================================== */
 
 .irc2a-panel-row {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr;
-  gap: 16px;
-  align-items: stretch;
   /* Pushes this row all the way to the bottom of the flex column above
      (.irc2a-panel), regardless of how tall .irc2a-columns ends up being. */
   margin-top: auto;
   padding-top: 16px;
 }
 
-.irc2a-panel-row > * {
+.irc2a-coverage-card {
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
-  padding: 14px;
+  padding: 16px 20px;
+  width: 100%;
 }
 
-.irc2a-panel-row h3 {
+.irc2a-coverage-card h3 {
   font-size: 14px;
   font-weight: 600;
-  margin: 0 0 6px 0;
+  margin: 0 0 12px 0;
   color: #1a1a1a;
 }
 
-/* ---- summary stats ------------------------------------------------------ */
-
-.irc2a-stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.irc2a-stat-card {
+.irc2a-coverage-row {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  background: #f8fafc;
-  border-radius: 8px;
-  padding: 8px 10px;
+  align-items: center;
+  gap: 24px;
+  padding: 6px 0;
 }
 
-.irc2a-stat-card--highlight {
-  background: #eff4f9;
-}
+/* Hero % — the emphasized number every row leads with. */
 
-.irc2a-stat-label {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: #5b6b80;
-  line-height: 1.25;
-}
-
-.irc2a-stat-value {
-  font-size: 17px;
-  font-weight: 700;
-  color: #185fa5;
-}
-
-/* ---- priority bar chart -------------------------------------------------- */
-
-/* This section is a flex column so irc2a-plot-wrapper (and, in turn, the
-   chart itself) can stretch to fill all the leftover height below the
-   heading — instead of the chart being stuck at a fixed 130px regardless
-   of how tall the card actually is. */
-.irc2a-plot-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.irc2a-plot-wrapper {
-  margin-top: 6px;
-  flex: 1;
-  display: flex;
-  min-height: 0;
-}
-
-.irc2a-priority-chart {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  flex: 1;
-  width: 100%;
-  border-bottom: 1px solid #e8e8e8;
-  padding-bottom: 4px;
-}
-
-.irc2a-priority-chart .irc2a-chart-col {
-  flex: 1;
-  max-width: 180px;
+.irc2a-coverage-hero {
+  flex: 0 0 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 100%;
-}
-
-.irc2a-priority-chart .irc2a-chart-barwrap {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-/* Outlined "capacity" container — always drawn at full height so it
-   reads as the 100% ceiling, with the colored fill inside showing how
-   much of that ceiling is actually reached. overflow:hidden + the JS-
-   measured LABEL_RESERVE keep the value label permanently inside this
-   box, so it can never float up and overlap the "TA Coverage" heading
-   above the chart. */
-.irc2a-priority-chart .irc2a-chart-track {
-  position: relative;
-  width: 65%;
-  height: 100%;
-  box-sizing: border-box;
-  border: 2px solid #d8dee8;
-  border-radius: 10px;
-  background: #fafbfc;
-  overflow: hidden;
-}
-
-.irc2a-priority-chart .irc2a-chart-track--dedp {
-  border-color: rgba(181, 83, 77, 0.4);
-  background: rgba(181, 83, 77, 0.05);
-}
-
-.irc2a-priority-chart .irc2a-chart-track--nondedp {
-  border-color: rgba(74, 111, 165, 0.45);
-  background: rgba(74, 111, 165, 0.05);
-}
-
-.irc2a-priority-chart .irc2a-chart-val {
-  position: absolute;
-  left: 50%;
-  font-size: 12.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  z-index: 1;
-}
-
-/* Used while the bar still has headroom (< 80%, see CHART_VAL_INSIDE_THRESHOLD
-   in irc2a.js): the label floats just above the bar's own fill, inside the
-   track's reserved top margin. */
-.irc2a-priority-chart .irc2a-chart-val--above {
-  transform: translate(-50%, -100%);
-  color: #333;
-}
-
-/* Used once the bar gets tall enough (>= 80%) that there's no longer room to
-   float the label above it without the track's overflow:hidden clipping it.
-   Instead of floating above, the label sits just inside the top of the
-   filled bar itself, so it can never be cut off no matter how close the bar
-   gets to 100%. White + shadow keeps it legible against either bar color. */
-.irc2a-priority-chart .irc2a-chart-val--inside {
-  transform: translate(-50%, 0);
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-}
-
-.irc2a-priority-chart .irc2a-chart-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  min-height: 2px;
-  border-radius: 8px 8px 0 0;
-  transition: height 0.25s ease;
-}
-
-/* DEDP Priority bar — muted red per request (was a brighter #dc2626) */
-.irc2a-priority-chart .irc2a-chart-bar--dedp {
-  background: #b5534d;
-}
-
-.irc2a-priority-chart .irc2a-chart-bar--nondedp {
-  background: #4a6fa5;
-}
-
-.irc2a-priority-chart .irc2a-chart-label {
-  font-size: 11.5px;
-  color: #666;
-  margin-top: 5px;
   text-align: center;
 }
 
-@media (max-width: 1100px) {
-  .irc2a-panel-row {
-    grid-template-columns: 1fr;
+.irc2a-coverage-hero-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 36px;
+}
+
+.irc2a-coverage-hero--dedp .irc2a-coverage-hero-value {
+  color: #b5534d;
+}
+
+.irc2a-coverage-hero--nondedp .irc2a-coverage-hero-value {
+  color: #4a6fa5;
+}
+
+.irc2a-coverage-hero-label {
+  font-size: 12.5px;
+  line-height: 16px;
+  color: #5b6b80;
+  margin-top: 6px;
+}
+
+/* Segmented capacity bar — width of each segment is a % of that group's
+   total school count, so the two segments together always span exactly
+   that group's overall % provided, split by level. */
+
+.irc2a-coverage-bar-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.irc2a-coverage-bar-track {
+  /* Matches irc2a-coverage-hero-value's line-height so the bar and the
+     hero % it belongs to sit at the same height. */
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  overflow: hidden;
+}
+
+.irc2a-coverage-bar-track--dedp {
+  background: rgba(181, 83, 77, 0.12);
+}
+
+.irc2a-coverage-bar-track--nondedp {
+  background: rgba(74, 111, 165, 0.12);
+}
+
+.irc2a-coverage-bar-seg {
+  height: 100%;
+  min-width: 0;
+  transition: width 0.25s ease;
+}
+
+.irc2a-coverage-bar-track--dedp .irc2a-coverage-bar-seg--elementary {
+  background: #b5534d;
+}
+
+.irc2a-coverage-bar-track--dedp .irc2a-coverage-bar-seg--secondary {
+  background: #d98c86;
+}
+
+.irc2a-coverage-bar-track--nondedp .irc2a-coverage-bar-seg--elementary {
+  background: #4a6fa5;
+}
+
+.irc2a-coverage-bar-track--nondedp .irc2a-coverage-bar-seg--secondary {
+  background: #8fabce;
+}
+
+.irc2a-coverage-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.irc2a-coverage-meta-breakdown {
+  line-height: 16px;
+  color: #5b6b80;
+}
+
+.irc2a-coverage-meta-total {
+  line-height: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+.irc2a-coverage-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.irc2a-coverage-legend-dot--dedp-elementary {
+  background: #b5534d;
+}
+
+.irc2a-coverage-legend-dot--dedp-secondary {
+  background: #d98c86;
+}
+
+.irc2a-coverage-legend-dot--nondedp-elementary {
+  background: #4a6fa5;
+}
+
+.irc2a-coverage-legend-dot--nondedp-secondary {
+  background: #8fabce;
+}
+
+.irc2a-coverage-divider {
+  height: 1px;
+  background: #eee;
+  margin: 4px 0;
+}
+
+@media (max-width: 620px) {
+  .irc2a-coverage-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
   }
 
-  /* On the stacked mobile layout the chart card no longer needs to match
-     a sibling's stretched height, so give it a sane fixed height instead
-     of an unbounded flex-grow. */
-  .irc2a-plot-wrapper {
-    min-height: 160px;
+  .irc2a-coverage-hero {
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
   }
 }
-/* Responsive */
 @media (max-width: 768px) {
   .irc2a-header h2 {
     font-size: 20px;
