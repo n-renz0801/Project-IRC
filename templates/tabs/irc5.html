@@ -16,9 +16,14 @@ block content %}
         conducted. Enter <strong>N/A</strong> in a field if it does not apply.
       </p>
     </div>
-    <button type="button" id="irc5-add-btn" class="irc5-add-btn">
-      <span class="irc5-add-icon">+</span> Add Entry
-    </button>
+    <div class="irc5-header-actions">
+      <button type="button" id="irc5-reset-btn" class="irc5-reset-btn">
+        Reset
+      </button>
+      <button type="button" id="irc5-add-btn" class="irc5-add-btn">
+        <span class="irc5-add-icon">+</span> Add Entry
+      </button>
+    </div>
   </div>
 
   <!-- ================= MAIN TABLE ================= -->
@@ -202,6 +207,36 @@ block content %}
       </button>
       <button type="button" id="irc5-confirm-delete" class="irc5-btn-danger">
         Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RESET-PAGE CONFIRMATION MODAL ================= -->
+<!-- Deliberately page-agnostic wording (no mention of "entries" or IRC5
+     specifically) so the same copy/pattern can be reused on other pages —
+     reuses the .irc5-confirm-* CSS classes above, just with its own ids so
+     it doesn't share state with the delete-entry confirmation. -->
+<div id="irc5-reset-confirm-overlay" class="irc5-confirm-overlay">
+  <div class="irc5-confirm-box">
+    <h4>Reset the contents of this page?</h4>
+    <p>
+      This will delete all data entered on this page. This cannot be undone.
+    </p>
+    <div class="irc5-confirm-actions">
+      <button
+        type="button"
+        id="irc5-reset-confirm-cancel"
+        class="irc5-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc5-reset-confirm-confirm"
+        class="irc5-btn-danger"
+      >
+        Yes, Reset
       </button>
     </div>
   </div>

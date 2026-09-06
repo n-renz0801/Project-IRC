@@ -11,6 +11,17 @@
     "irc8b-summary-overall-desc",
   );
 
+  const resetBtn = document.getElementById("irc8b-reset-btn");
+  const resetConfirmOverlay = document.getElementById(
+    "irc8b-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc8b-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc8b-reset-confirm-confirm",
+  );
+
   // ================= Rating scale =================
   const RATING_LABELS = {
     5: "Role model",
@@ -201,6 +212,45 @@
       console.error("Failed to save IRC8b rating:", err);
     }
   }
+
+  // ================= Reset-page confirmation modal =================
+  // There's no bulk-clear endpoint (only per-criterion POST /rating,
+  // which accepts rating: null to clear one), so reset fires one
+  // best-effort clear request per currently-set rating -- same
+  // per-item pattern used everywhere else these reset buttons appear.
+  function openResetConfirm() {
+    resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    resetConfirmOverlay.classList.remove("visible");
+  }
+
+  resetBtn.addEventListener("click", openResetConfirm);
+  resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  resetConfirmOverlay.addEventListener("click", (e) => {
+    if (e.target === resetConfirmOverlay) closeResetConfirm();
+  });
+
+  resetConfirmConfirmBtn.addEventListener("click", async () => {
+    resetConfirmConfirmBtn.disabled = true;
+    try {
+      const clears = [];
+      Object.keys(ratings).forEach((subKey) => {
+        ratings[subKey].forEach((value, idx) => {
+          if (value !== null) {
+            clears.push(saveRating(subKey, idx, null));
+          }
+          ratings[subKey][idx] = null;
+        });
+      });
+      await Promise.all(clears);
+    } finally {
+      render();
+      resetConfirmConfirmBtn.disabled = false;
+      closeResetConfirm();
+    }
+  });
 
   // ================= Helpers =================
   function fmtNum(n) {

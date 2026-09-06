@@ -9,6 +9,9 @@ block content %}
 <section id="irc8b-tab" class="tab-panel irc8b-panel">
   <div class="irc8b-header">
     <h2>IRC8B &mdash; Core Behavioral Competencies and Core Skills</h2>
+    <button type="button" id="irc8b-reset-btn" class="irc8b-reset-btn">
+      Reset
+    </button>
   </div>
 
   <!-- Rating scale legend — constant, uneditable, applies to every criterion below -->
@@ -56,6 +59,36 @@ block content %}
     </div>
   </div>
 </section>
+
+<!-- ================= RESET-PAGE CONFIRMATION MODAL ================= -->
+<!-- Page-agnostic wording; same .irc8b-confirm-* shape as the
+     delete-confirmation dialogs on IRC6/IRC9 (single centered box, no
+     header/footer divider lines, no close-X button) even though this
+     page has no delete flow of its own to borrow the CSS from. -->
+<div id="irc8b-reset-confirm-overlay" class="irc8b-confirm-overlay">
+  <div class="irc8b-confirm-box">
+    <h4>Reset the contents of this page?</h4>
+    <p>
+      This will delete all data entered on this page. This cannot be undone.
+    </p>
+    <div class="irc8b-confirm-actions">
+      <button
+        type="button"
+        id="irc8b-reset-confirm-cancel"
+        class="irc8b-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc8b-reset-confirm-confirm"
+        class="irc8b-btn-danger"
+      >
+        Yes, Reset
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/irc8b.js') }}"></script>
 
