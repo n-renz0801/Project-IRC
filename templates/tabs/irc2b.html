@@ -36,10 +36,10 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
           rowspan="2"
           role="button"
           tabindex="0"
-          title="Showing distinct quarters reached (click to switch to total months)"
+          title="Showing total checked months (click to switch to quarters reached)"
         >
           <span class="irc2b-total-header-label"
-            >Total<br />(<span class="irc2b-total-mode-text">Quarters</span
+            >Total<br />(<span class="irc2b-total-mode-text">Months</span
             >)</span
           >
           <span class="irc2b-total-toggle-icon-wrap">
@@ -137,6 +137,7 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
     </div>
     <div
       class="irc2b-chart-toggle"
+      data-scope="{{ section_id }}"
       role="group"
       aria-label="{{ section_label }} chart interval toggle"
     >
@@ -158,27 +159,27 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
   </div>
   <svg
     class="irc2b-linechart"
-    viewBox="0 0 760 200"
+    viewBox="0 0 760 140"
     xmlns="http://www.w3.org/2000/svg"
     preserveAspectRatio="none"
   >
-    <line class="irc2b-linechart-grid" x1="44" y1="24" x2="740" y2="24"></line>
-    <line class="irc2b-linechart-grid" x1="44" y1="95" x2="740" y2="95"></line>
+    <line class="irc2b-linechart-grid" x1="44" y1="22" x2="740" y2="22"></line>
+    <line class="irc2b-linechart-grid" x1="44" y1="65" x2="740" y2="65"></line>
     <line
       class="irc2b-linechart-axis"
       x1="44"
-      y1="166"
+      y1="108"
       x2="740"
-      y2="166"
+      y2="108"
     ></line>
 
-    <text class="irc2b-linechart-axis-label" x="38" y="170" text-anchor="end">
+    <text class="irc2b-linechart-axis-label" x="38" y="112" text-anchor="end">
       0
     </text>
-    <text class="irc2b-linechart-axis-label" x="38" y="99" text-anchor="end">
+    <text class="irc2b-linechart-axis-label" x="38" y="69" text-anchor="end">
       {{ (schools|length / 2) | round | int }}
     </text>
-    <text class="irc2b-linechart-axis-label" x="38" y="28" text-anchor="end">
+    <text class="irc2b-linechart-axis-label" x="38" y="26" text-anchor="end">
       {{ schools|length }}
     </text>
 
@@ -197,97 +198,175 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
         Assistance.
       </p>
     </div>
+    <button
+      type="button"
+      id="irc2b-reset-all-btn"
+      class="irc2b-reset-all-btn"
+      title="Clear every TA checkmark for Elementary and Secondary schools"
+    >
+      <i class="ti ti-refresh-alert" aria-hidden="true"></i>
+      Reset All Data
+    </button>
   </div>
 
-  <div class="irc2b-dashboard">
-    <div class="irc2b-stat-card irc2b-stat-card-elementary">
-      <div class="irc2b-stat-icon-ghost">
-        <i class="ti ti-building-community" aria-hidden="true"></i>
+  {% set overall_schools_total = elementary_schools|length +
+  secondary_schools|length %}
+  <div class="irc2b-coverage-card">
+    <h3>TA Coverage Summary</h3>
+
+    <div class="irc2b-coverage-row">
+      <div class="irc2b-coverage-hero irc2b-coverage-hero-elementary">
+        <span class="irc2b-coverage-hero-value" id="irc2b-elementary-percent"
+          >0%</span
+        >
+        <span class="irc2b-coverage-hero-label">Elementary</span>
       </div>
-      <div class="irc2b-stat-header">
-        <div class="irc2b-stat-icon-badge">
-          <i class="ti ti-building-community" aria-hidden="true"></i>
+      <div class="irc2b-coverage-bar-wrap">
+        <div
+          class="irc2b-coverage-bar-track irc2b-coverage-bar-track-elementary"
+        >
+          <div
+            class="irc2b-coverage-bar-fill irc2b-coverage-bar-fill-elementary"
+            id="irc2b-elementary-bar"
+            style="width: 0%"
+          ></div>
         </div>
-        <span class="irc2b-stat-label">Elementary</span>
+        <div class="irc2b-coverage-bar-meta irc2b-coverage-bar-meta-elementary">
+          <span class="irc2b-coverage-bar-meta-value">
+            <span id="irc2b-elementary-count">0</span>/{{
+            elementary_schools|length }}
+          </span>
+          <span class="irc2b-coverage-bar-meta-label">Schools</span>
+        </div>
       </div>
-      <span class="irc2b-stat-percent-big" id="irc2b-elementary-percent"
-        >0%</span
-      >
-      <span class="irc2b-stat-caption">
-        <span id="irc2b-elementary-count">0</span> of {{
-        elementary_schools|length }} schools
-      </span>
     </div>
 
-    <div class="irc2b-stat-card irc2b-stat-card-secondary">
-      <div class="irc2b-stat-icon-ghost">
-        <i class="ti ti-school" aria-hidden="true"></i>
+    <div class="irc2b-coverage-divider"></div>
+
+    <div class="irc2b-coverage-row">
+      <div class="irc2b-coverage-hero irc2b-coverage-hero-secondary">
+        <span class="irc2b-coverage-hero-value" id="irc2b-secondary-percent"
+          >0%</span
+        >
+        <span class="irc2b-coverage-hero-label">Secondary</span>
       </div>
-      <div class="irc2b-stat-header">
-        <div class="irc2b-stat-icon-badge">
-          <i class="ti ti-school" aria-hidden="true"></i>
+      <div class="irc2b-coverage-bar-wrap">
+        <div
+          class="irc2b-coverage-bar-track irc2b-coverage-bar-track-secondary"
+        >
+          <div
+            class="irc2b-coverage-bar-fill irc2b-coverage-bar-fill-secondary"
+            id="irc2b-secondary-bar"
+            style="width: 0%"
+          ></div>
         </div>
-        <span class="irc2b-stat-label">Secondary</span>
+        <div class="irc2b-coverage-bar-meta irc2b-coverage-bar-meta-secondary">
+          <span class="irc2b-coverage-bar-meta-value">
+            <span id="irc2b-secondary-count">0</span>/{{
+            secondary_schools|length }}
+          </span>
+          <span class="irc2b-coverage-bar-meta-label">Schools</span>
+        </div>
       </div>
-      <span class="irc2b-stat-percent-big" id="irc2b-secondary-percent"
-        >0%</span
-      >
-      <span class="irc2b-stat-caption">
-        <span id="irc2b-secondary-count">0</span> of {{ secondary_schools|length
-        }} schools
-      </span>
     </div>
 
-    <div class="irc2b-dashboard-chart-section">
-      <h3>Elementary vs Secondary</h3>
-      <div class="irc2b-dashboard-chart">
-        <div class="irc2b-dashboard-chart-col">
-          <span
-            class="irc2b-dashboard-chart-val irc2b-dashboard-chart-val-elementary"
-            id="irc2b-elementary-bar-val"
-            >0%</span
-          >
-          <div class="irc2b-dashboard-chart-bar-track">
-            <div
-              class="irc2b-dashboard-chart-bar irc2b-bar-elementary"
-              id="irc2b-elementary-bar"
-              style="height: 0%"
-            ></div>
-          </div>
-          <span
-            class="irc2b-dashboard-chart-label irc2b-dashboard-chart-label-elementary"
-            ><i class="ti ti-building-community" aria-hidden="true"></i>
-            Elementary</span
-          >
-        </div>
-        <div class="irc2b-dashboard-chart-col">
-          <span
-            class="irc2b-dashboard-chart-val irc2b-dashboard-chart-val-secondary"
-            id="irc2b-secondary-bar-val"
-            >0%</span
-          >
-          <div class="irc2b-dashboard-chart-bar-track">
-            <div
-              class="irc2b-dashboard-chart-bar irc2b-bar-secondary"
-              id="irc2b-secondary-bar"
-              style="height: 0%"
-            ></div>
-          </div>
-          <span
-            class="irc2b-dashboard-chart-label irc2b-dashboard-chart-label-secondary"
-            ><i class="ti ti-school" aria-hidden="true"></i> Secondary</span
-          >
-        </div>
-      </div>
+    <div class="irc2b-coverage-divider"></div>
+
+    <div class="irc2b-coverage-overall">
+      <span class="irc2b-coverage-overall-label">Overall coverage</span>
+      <span class="irc2b-coverage-overall-value">
+        <span id="irc2b-overall-count">0</span> of {{ overall_schools_total }}
+        schools (<span id="irc2b-overall-percent">0%</span>)
+      </span>
     </div>
   </div>
 
-  <h3 class="irc2b-section-title">
+  {% set overall_total = elementary_schools|length + secondary_schools|length %}
+  <div class="irc2b-linechart-wrapper irc2b-linechart-wrapper-overall">
+    <div class="irc2b-linechart-header">
+      <div class="irc2b-linechart-title-group">
+        <span class="irc2b-linechart-title irc2b-linechart-title-overall">
+          <i class="ti ti-chart-line" aria-hidden="true"></i>
+          Overall Trend (Elementary + Secondary)
+        </span>
+        <span class="irc2b-linechart-caption"
+          >Total schools (Elementary + Secondary) provided with TA, per
+          month</span
+        >
+      </div>
+      <div
+        class="irc2b-chart-toggle"
+        data-scope="overall"
+        role="group"
+        aria-label="Overall chart interval toggle"
+      >
+        <button
+          type="button"
+          class="irc2b-chart-toggle-btn irc2b-chart-toggle-btn-active"
+          data-chart-mode="monthly"
+        >
+          Monthly
+        </button>
+        <button
+          type="button"
+          class="irc2b-chart-toggle-btn"
+          data-chart-mode="quarterly"
+        >
+          Quarterly
+        </button>
+      </div>
+    </div>
+    <svg
+      class="irc2b-linechart"
+      viewBox="0 0 760 140"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="none"
+    >
+      <line
+        class="irc2b-linechart-grid"
+        x1="44"
+        y1="22"
+        x2="740"
+        y2="22"
+      ></line>
+      <line
+        class="irc2b-linechart-grid"
+        x1="44"
+        y1="65"
+        x2="740"
+        y2="65"
+      ></line>
+      <line
+        class="irc2b-linechart-axis"
+        x1="44"
+        y1="108"
+        x2="740"
+        y2="108"
+      ></line>
+
+      <text class="irc2b-linechart-axis-label" x="38" y="112" text-anchor="end">
+        0
+      </text>
+      <text class="irc2b-linechart-axis-label" x="38" y="69" text-anchor="end">
+        {{ (overall_total / 2) | round | int }}
+      </text>
+      <text class="irc2b-linechart-axis-label" x="38" y="26" text-anchor="end">
+        {{ overall_total }}
+      </text>
+
+      <g id="irc2b-overall-xaxis-group"></g>
+      <g id="irc2b-overall-line-group"></g>
+    </svg>
+  </div>
+
+  <h3 class="irc2b-section-title irc2b-section-title-elementary">
     <i class="ti ti-building-community"></i> Elementary
   </h3>
   {{ render_table(elementary_schools, "elementary", "Elementary") }}
 
-  <h3 class="irc2b-section-title"><i class="ti ti-school"></i> Secondary</h3>
+  <h3 class="irc2b-section-title irc2b-section-title-secondary">
+    <i class="ti ti-school"></i> Secondary
+  </h3>
   {{ render_table(secondary_schools, "secondary", "Secondary") }}
 </section>
 

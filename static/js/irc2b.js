@@ -1,5 +1,9 @@
 (function () {
   const SECTIONS = ["elementary", "secondary"];
+  // Every scope that can drive a line chart. "overall" has no table of its
+  // own (no Total column, no row totals) -- it only ever feeds the combined
+  // elem+secondary chart below the dashboard.
+  const CHART_SCOPES = ["elementary", "secondary", "overall"];
   const MONTH_KEYS = [
     "jan",
     "feb",
@@ -32,23 +36,44 @@
 
   // Shared plot geometry for the line charts — used both when placing
   // data points and when placing the matching x-axis labels beneath them.
+  // Kept flatter (wider aspect ratio) than a typical chart on purpose —
+  // these sit stacked one after another down the page, so height is at
+  // a premium; see the matching viewBox="0 0 760 146" in irc2b.html.
   const CHART_PLOT_LEFT = 44;
   const CHART_PLOT_RIGHT = 740;
-  const CHART_PLOT_TOP = 24;
-  const CHART_PLOT_BOTTOM = 166;
-  const CHART_X_LABEL_Y = 182;
+  const CHART_PLOT_TOP = 22;
+  const CHART_PLOT_BOTTOM = 108;
+  const CHART_X_LABEL_Y = 128;
+
+  // The <svg> is stretched by CSS (width: 100%) far past its viewBox's own
+  // 760 user-unit width, so any font-size written in those same user units
+  // gets magnified right along with it -- a "12px" label can easily render
+  // at 16-18 actual screen pixels once the card is full desktop width.
+  // These two constants are the font sizes we actually want ON SCREEN (in
+  // real CSS pixels, matching the rest of the page's small text); they get
+  // converted into the right number of user units per-chart, at render
+  // time, based on that chart's *actual* rendered width (see
+  // getChartFontScale/updateLineChart below).
+  const CHART_VIEWBOX_WIDTH = 760;
+  const CHART_LABEL_SCREEN_PX = 11.5;
+  const CHART_POINT_VAL_SCREEN_PX = 11.5;
 
   const tab = document.getElementById("irc2b-tab");
   if (!tab) return;
 
-  // "quarters" = legacy logic (1 point per distinct quarter reached, max 4)
-  // "months"   = current logic (1 point per checked month, max 12)
-  // Global so both tables always show the same mode side by side.
-  let totalDisplayMode = "quarters";
-
-  // "monthly" = 12-point line chart, "quarterly" = 4-point line chart.
-  // Global so both charts always show the same interval side by side.
-  let chartDisplayMode = "monthly";
+  // Per-scope display mode: "quarters" or "months".
+  //   - For "elementary" / "secondary": drives BOTH that table's Total
+  //     column (quarters reached vs. total months checked) AND that same
+  //     section's line chart (quarterly vs. monthly) -- the two always
+  //     stay in lockstep for a given section, toggled from either control.
+  //   - For "overall": drives only the combined elem+secondary chart,
+  //     independently of the two section charts.
+  // Defaults to "months" for every scope.
+  const scopeMode = {
+    elementary: "months",
+    secondary: "months",
+    overall: "months",
+  };
 
   function getTable(section) {
     return document.getElementById(`irc2b-table-${section}`);
@@ -98,7 +123,7 @@
   // Footer row: "how many schools" per quarter, and "how many schools"
   // reached in 2+ quarters overall. Returns { count2Plus, totalSchools }
   // so the caller can roll this up into the page-level dashboard.
-  // NOTE: unaffected by totalDisplayMode — always quarter-based.
+  // NOTE: unaffected by scopeMode — always quarter-based.
   function recalcFooter(section) {
     const quarterCounts = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
     let schoolsWithTwoPlusQuarters = 0;
@@ -136,58 +161,80 @@
     };
   }
 
-  // Paints every row-total badge and both table headers according to
-  // the currently active totalDisplayMode. Reads from the data-*
-  // attributes set in recalcRow — no checkbox scanning here.
-  function applyTotalDisplayMode() {
-    const isMonths = totalDisplayMode === "months";
+  // Paints one section's row-total badges and its table headers according
+  // to that section's own scopeMode. Reads from the data-* attributes set
+  // in recalcRow — no checkbox scanning here.
+  function applyTotalDisplayMode(section) {
+    const table = getTable(section);
+    if (!table) return;
 
-    SECTIONS.forEach((section) => {
-      const table = getTable(section);
-      if (!table) return;
+    const isMonths = scopeMode[section] === "months";
 
-      table.querySelectorAll(".irc2b-row-total").forEach((el) => {
-        const value = isMonths
-          ? el.dataset.monthsTotal
-          : el.dataset.quartersTotal;
-        el.textContent = Number(value || 0).toLocaleString();
-      });
-
-      const modeTextEl = table.querySelector(".irc2b-total-mode-text");
-      if (modeTextEl) {
-        modeTextEl.textContent = isMonths ? "Months" : "Quarters";
-      }
-
-      const headerEl = table.querySelector(".irc2b-total-col-clickable");
-      if (headerEl) {
-        headerEl.setAttribute(
-          "title",
-          isMonths
-            ? "Showing total checked months (click to switch to quarters reached)"
-            : "Showing distinct quarters reached (click to switch to total months)",
-        );
-      }
+    table.querySelectorAll(".irc2b-row-total").forEach((el) => {
+      const value = isMonths
+        ? el.dataset.monthsTotal
+        : el.dataset.quartersTotal;
+      el.textContent = Number(value || 0).toLocaleString();
     });
+
+    const modeTextEl = table.querySelector(".irc2b-total-mode-text");
+    if (modeTextEl) {
+      modeTextEl.textContent = isMonths ? "Months" : "Quarters";
+    }
+
+    const headerEl = table.querySelector(".irc2b-total-col-clickable");
+    if (headerEl) {
+      headerEl.setAttribute(
+        "title",
+        isMonths
+          ? "Showing total checked months (click to switch to quarters reached)"
+          : "Showing distinct quarters reached (click to switch to total months)",
+      );
+    }
   }
 
-  function toggleTotalDisplayMode() {
-    totalDisplayMode = totalDisplayMode === "quarters" ? "months" : "quarters";
-    applyTotalDisplayMode();
+  // Toggling a table's Total column also flips that same section's line
+  // chart between monthly/quarterly, since both read the same scopeMode
+  // entry for that section.
+  function toggleSectionMode(section) {
+    scopeMode[section] =
+      scopeMode[section] === "quarters" ? "months" : "quarters";
+    applyTotalDisplayMode(section);
+    applyChartToggleButtons(section);
+    updateLineChart(section);
   }
 
-  // --- Dashboard: stat cards + side-by-side bar chart ---
+  // --- Dashboard: consolidated "TA Coverage Summary" card ---
+  // Paints one level's row (hero % + thick bar, IRC2a-style): fills in
+  // the raw count, the big hero percentage, and the width of the bar.
+  // The label under the hero and the bar's track color are static
+  // markup — only these three values change.
   function updatePercentStat(section, count, total) {
     const percent = total > 0 ? Math.round((count / total) * 100) : 0;
 
     const countEl = document.getElementById(`irc2b-${section}-count`);
     const percentEl = document.getElementById(`irc2b-${section}-percent`);
     const barEl = document.getElementById(`irc2b-${section}-bar`);
-    const barValEl = document.getElementById(`irc2b-${section}-bar-val`);
 
     if (countEl) countEl.textContent = count.toLocaleString();
     if (percentEl) percentEl.textContent = `${percent}%`;
-    if (barEl) barEl.style.height = `${percent}%`;
-    if (barValEl) barValEl.textContent = `${percent}%`;
+    if (barEl) barEl.style.width = `${percent}%`;
+
+    return percent;
+  }
+
+  // Hero number: same "2+ quarters reached" metric as the per-level rows,
+  // just rolled up across Elementary + Secondary combined.
+  function updateOverallStat(elementaryStats, secondaryStats) {
+    const count = elementaryStats.count2Plus + secondaryStats.count2Plus;
+    const total = elementaryStats.totalSchools + secondaryStats.totalSchools;
+    const percent = total > 0 ? Math.round((count / total) * 100) : 0;
+
+    const percentEl = document.getElementById("irc2b-overall-percent");
+    const countEl = document.getElementById("irc2b-overall-count");
+
+    if (percentEl) percentEl.textContent = `${percent}%`;
+    if (countEl) countEl.textContent = count.toLocaleString();
 
     return percent;
   }
@@ -220,10 +267,29 @@
     });
   }
 
+  // Combined elem+secondary counts for the "overall" chart -- simple
+  // element-wise sum of the two sections' own series.
+  function getOverallMonthlyCounts() {
+    const e = getMonthlyCounts("elementary");
+    const s = getMonthlyCounts("secondary");
+    return MONTH_KEYS.map((_, i) => e[i] + s[i]);
+  }
+
+  function getOverallQuarterlyCounts() {
+    const e = getQuarterlyCounts("elementary");
+    const s = getQuarterlyCounts("secondary");
+    return QUARTER_KEYS.map((_, i) => e[i] + s[i]);
+  }
+
   // Builds the path/area/points/value-label markup for the chart's
   // data <g> group. Works for any number of points (12 for monthly,
-  // 4 for quarterly) since spacing is derived from values.length.
-  function buildLineDataMarkup(section, values, maxValue) {
+  // 4 for quarterly) since spacing is derived from values.length, and for
+  // any scope ("elementary" / "secondary" / "overall") since it's only
+  // ever used to build a CSS class suffix. `userFontSize` is already
+  // pre-converted (see getChartFontScale) so the labels land at
+  // CHART_POINT_VAL_SCREEN_PX regardless of how wide this chart happens
+  // to be rendered.
+  function buildLineDataMarkup(scope, values, maxValue, userFontSize) {
     const plotWidth = CHART_PLOT_RIGHT - CHART_PLOT_LEFT;
     const plotHeight = CHART_PLOT_BOTTOM - CHART_PLOT_TOP;
     const n = values.length;
@@ -250,20 +316,20 @@
     const circles = points
       .map(
         (p) =>
-          `<circle class="irc2b-linechart-point irc2b-linechart-point-${section}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4"></circle>`,
+          `<circle class="irc2b-linechart-point irc2b-linechart-point-${scope}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.4"></circle>`,
       )
       .join("");
 
     const labels = points
       .map(
         (p) =>
-          `<text class="irc2b-linechart-point-val irc2b-linechart-point-val-${section}" x="${p.x.toFixed(1)}" y="${(p.y - 8).toFixed(1)}">${p.val}</text>`,
+          `<text class="irc2b-linechart-point-val irc2b-linechart-point-val-${scope}" x="${p.x.toFixed(1)}" y="${(p.y - 7).toFixed(1)}" style="font-size:${userFontSize}px">${p.val}</text>`,
       )
       .join("");
 
     return (
-      `<path class="irc2b-linechart-area-${section}" d="${areaPath}"></path>` +
-      `<path class="irc2b-linechart-path irc2b-linechart-path-${section}" d="${linePath}"></path>` +
+      `<path class="irc2b-linechart-area-${scope}" d="${areaPath}"></path>` +
+      `<path class="irc2b-linechart-path irc2b-linechart-path-${scope}" d="${linePath}"></path>` +
       circles +
       labels
     );
@@ -271,7 +337,8 @@
 
   // Builds the x-axis label group to match whichever label set (months
   // or quarters) is active — same x spacing formula as the data points.
-  function buildXAxisLabelMarkup(labels) {
+  // `userFontSize` is pre-converted the same way as in buildLineDataMarkup.
+  function buildXAxisLabelMarkup(labels, userFontSize) {
     const plotWidth = CHART_PLOT_RIGHT - CHART_PLOT_LEFT;
     const n = labels.length;
     const step = n > 1 ? plotWidth / (n - 1) : 0;
@@ -279,51 +346,115 @@
     return labels
       .map((label, i) => {
         const x = CHART_PLOT_LEFT + i * step;
-        return `<text class="irc2b-linechart-x-label" x="${x.toFixed(1)}" y="${CHART_X_LABEL_Y}">${label}</text>`;
+        return `<text class="irc2b-linechart-x-label" x="${x.toFixed(1)}" y="${CHART_X_LABEL_Y}" style="font-size:${userFontSize}px">${label}</text>`;
       })
       .join("");
   }
 
-  function updateLineChart(section) {
-    const lineGroup = document.getElementById(`irc2b-${section}-line-group`);
-    const xAxisGroup = document.getElementById(`irc2b-${section}-xaxis-group`);
+  // A chart's <svg> is scaled from its 760-wide viewBox up to however
+  // wide the card actually renders. This returns that scale factor
+  // (rendered CSS width / 760) so callers can convert a desired ON-SCREEN
+  // pixel size into the user-unit font-size that will actually produce
+  // it. Falls back to 1 (no correction) if the element isn't laid out yet.
+  function getChartFontScale(svgEl) {
+    if (!svgEl) return 1;
+    const width = svgEl.getBoundingClientRect().width;
+    return width > 0 ? width / CHART_VIEWBOX_WIDTH : 1;
+  }
+
+  // Repaints one scope's chart (elementary, secondary, or the combined
+  // overall chart) according to that scope's own entry in scopeMode.
+  function updateLineChart(scope) {
+    const lineGroup = document.getElementById(`irc2b-${scope}-line-group`);
+    const xAxisGroup = document.getElementById(`irc2b-${scope}-xaxis-group`);
+    const svgEl = lineGroup ? lineGroup.closest("svg.irc2b-linechart") : null;
     const captionEl = document.querySelector(
-      `.irc2b-linechart-wrapper-${section} .irc2b-linechart-caption`,
+      `.irc2b-linechart-wrapper-${scope} .irc2b-linechart-caption`,
     );
     if (!lineGroup || !xAxisGroup) return;
 
-    const totalSchools = getAllRowIndices(section).length;
-    const isQuarterly = chartDisplayMode === "quarterly";
+    const isQuarterly = scopeMode[scope] === "quarters";
 
-    const values = isQuarterly
-      ? getQuarterlyCounts(section)
-      : getMonthlyCounts(section);
+    let values;
+    let maxValue;
+
+    if (scope === "overall") {
+      values = isQuarterly
+        ? getOverallQuarterlyCounts()
+        : getOverallMonthlyCounts();
+      maxValue =
+        getAllRowIndices("elementary").length +
+        getAllRowIndices("secondary").length;
+    } else {
+      values = isQuarterly
+        ? getQuarterlyCounts(scope)
+        : getMonthlyCounts(scope);
+      maxValue = getAllRowIndices(scope).length;
+    }
+
     const labels = isQuarterly ? QUARTER_KEYS : MONTH_LABELS;
 
-    lineGroup.innerHTML = buildLineDataMarkup(section, values, totalSchools);
-    xAxisGroup.innerHTML = buildXAxisLabelMarkup(labels);
+    const scale = getChartFontScale(svgEl);
+    const labelFontUser = (CHART_LABEL_SCREEN_PX / scale).toFixed(2);
+    const pointValFontUser = (CHART_POINT_VAL_SCREEN_PX / scale).toFixed(2);
+
+    lineGroup.innerHTML = buildLineDataMarkup(
+      scope,
+      values,
+      maxValue,
+      pointValFontUser,
+    );
+    xAxisGroup.innerHTML = buildXAxisLabelMarkup(labels, labelFontUser);
+
+    // The three static axis-number labels ("0", mid, max) are rendered by
+    // the Jinja template rather than built here, but they're subject to
+    // the exact same viewBox stretching -- so they need the same
+    // per-render correction to actually match the rest of the page.
+    if (svgEl) {
+      svgEl.querySelectorAll(".irc2b-linechart-axis-label").forEach((el) => {
+        el.style.fontSize = `${labelFontUser}px`;
+      });
+    }
 
     if (captionEl) {
-      captionEl.textContent = isQuarterly
-        ? "Schools reached with TA, per quarter"
-        : "Schools provided with TA, per month";
+      if (scope === "overall") {
+        captionEl.textContent = isQuarterly
+          ? "Total schools (Elementary + Secondary) reached with TA, per quarter"
+          : "Total schools (Elementary + Secondary) provided with TA, per month";
+      } else {
+        captionEl.textContent = isQuarterly
+          ? "Schools reached with TA, per quarter"
+          : "Schools provided with TA, per month";
+      }
     }
   }
 
-  // Repaints the active/inactive state on every toggle button (both
-  // charts share chartDisplayMode, so both sets of buttons stay in sync).
-  function applyChartToggleButtons() {
-    document.querySelectorAll(".irc2b-chart-toggle-btn").forEach((btn) => {
-      const isActive = btn.dataset.chartMode === chartDisplayMode;
-      btn.classList.toggle("irc2b-chart-toggle-btn-active", isActive);
-    });
+  // Repaints the active/inactive state on a given scope's toggle buttons
+  // only (each chart's Monthly/Quarterly buttons are scoped via
+  // data-scope on their wrapping .irc2b-chart-toggle, so the three charts
+  // never step on each other).
+  function applyChartToggleButtons(scope) {
+    document
+      .querySelectorAll(
+        `.irc2b-chart-toggle[data-scope="${scope}"] .irc2b-chart-toggle-btn`,
+      )
+      .forEach((btn) => {
+        const activeChartMode =
+          scopeMode[scope] === "quarters" ? "quarterly" : "monthly";
+        const isActive = btn.dataset.chartMode === activeChartMode;
+        btn.classList.toggle("irc2b-chart-toggle-btn-active", isActive);
+      });
   }
 
-  function setChartDisplayMode(mode) {
-    if (mode !== "monthly" && mode !== "quarterly") return;
-    chartDisplayMode = mode;
-    applyChartToggleButtons();
-    SECTIONS.forEach((section) => updateLineChart(section));
+  function setScopeChartMode(scope, chartBtnMode) {
+    if (chartBtnMode !== "monthly" && chartBtnMode !== "quarterly") return;
+    const newMode = chartBtnMode === "quarterly" ? "quarters" : "months";
+    if (scopeMode[scope] === newMode) return;
+
+    scopeMode[scope] = newMode;
+    if (scope !== "overall") applyTotalDisplayMode(scope);
+    applyChartToggleButtons(scope);
+    updateLineChart(scope);
   }
 
   function updateDashboard() {
@@ -340,10 +471,10 @@
       secondaryStats.count2Plus,
       secondaryStats.totalSchools,
     );
+    updateOverallStat(elementaryStats, secondaryStats);
 
-    applyTotalDisplayMode();
-
-    SECTIONS.forEach((section) => updateLineChart(section));
+    SECTIONS.forEach((section) => applyTotalDisplayMode(section));
+    CHART_SCOPES.forEach((scope) => updateLineChart(scope));
   }
 
   // --- Event delegation: checkbox changes ---
@@ -432,7 +563,51 @@
       });
   }
 
-  // --- Total column header click: toggle Quarters <-> Months ---
+  // --- Reset All Data ---
+  // Wipes every checkbox (both sections) both on screen and in the
+  // database. No per-cell undo -- this is a deliberate, confirmed,
+  // all-or-nothing action (see /irc/irc2b/reset in app.py).
+  function resetAllData() {
+    const confirmed = window.confirm(
+      "This will permanently clear every TA checkmark for Elementary and Secondary schools this year. This cannot be undone.\n\nContinue?",
+    );
+    if (!confirmed) return;
+
+    const btn = document.getElementById("irc2b-reset-all-btn");
+    if (btn) btn.disabled = true;
+
+    fetch("/irc/irc2b/reset", { method: "DELETE" })
+      .then((res) => {
+        if (!res.ok) throw new Error("reset failed");
+        return res.json();
+      })
+      .then(() => {
+        SECTIONS.forEach((section) => {
+          const table = getTable(section);
+          if (!table) return;
+          table.querySelectorAll("input.irc2b-check").forEach((cb) => {
+            cb.checked = false;
+          });
+        });
+        updateDashboard();
+      })
+      .catch(() => {
+        window.alert(
+          "Something went wrong while resetting the data. Please try again.",
+        );
+      })
+      .finally(() => {
+        if (btn) btn.disabled = false;
+      });
+  }
+
+  const resetAllBtn = document.getElementById("irc2b-reset-all-btn");
+  if (resetAllBtn) {
+    resetAllBtn.addEventListener("click", resetAllData);
+  }
+
+  // --- Total column header click: toggle Quarters <-> Months (and, in
+  // lockstep, that section's chart between quarterly/monthly) ---
   SECTIONS.forEach((section) => {
     const table = getTable(section);
     if (!table) return;
@@ -440,18 +615,33 @@
     const header = table.querySelector(".irc2b-total-col-clickable");
     if (!header) return;
 
-    header.addEventListener("click", toggleTotalDisplayMode);
+    header.addEventListener("click", () => toggleSectionMode(section));
   });
 
-  // --- Chart toggle buttons: Monthly <-> Quarterly ---
+  // --- Chart toggle buttons: Monthly <-> Quarterly, scoped per chart via
+  // the wrapping .irc2b-chart-toggle's data-scope ---
   document.querySelectorAll(".irc2b-chart-toggle-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      setChartDisplayMode(btn.dataset.chartMode);
+      const scopeEl = btn.closest(".irc2b-chart-toggle");
+      const scope = scopeEl ? scopeEl.dataset.scope : null;
+      if (!scope) return;
+      setScopeChartMode(scope, btn.dataset.chartMode);
     });
   });
 
+  // --- Keep chart label sizes correct if the card's rendered width
+  // changes (window resize, sidebar toggle, etc.) -- the font-size
+  // correction in updateLineChart depends on the SVG's live width. ---
+  let chartResizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(chartResizeTimer);
+    chartResizeTimer = setTimeout(() => {
+      CHART_SCOPES.forEach((scope) => updateLineChart(scope));
+    }, 150);
+  });
+
   // --- Initial render ---
-  applyChartToggleButtons();
+  CHART_SCOPES.forEach((scope) => applyChartToggleButtons(scope));
   updateDashboard();
   loadPersistedFrequencies();
 })();
