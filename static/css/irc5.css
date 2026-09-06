@@ -46,6 +46,13 @@
   color: #1f2937;
 }
 
+.irc5-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .irc5-add-btn {
   display: flex;
   align-items: center;
@@ -76,6 +83,26 @@
   font-size: 16px;
   font-weight: 700;
   line-height: 1;
+}
+
+.irc5-reset-btn {
+  flex-shrink: 0;
+  background: #fff;
+  color: #dc2626;
+  border: 1.5px solid #f3b4b4;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc5-reset-btn:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
 }
 
 /* ------------------------------------------------------------------

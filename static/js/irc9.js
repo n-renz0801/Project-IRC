@@ -51,6 +51,17 @@
   const confirmCancelBtn = document.getElementById("irc9-confirm-cancel");
   const confirmDeleteBtn = document.getElementById("irc9-confirm-delete");
 
+  const resetBtn = document.getElementById("irc9-reset-btn");
+  const resetConfirmOverlay = document.getElementById(
+    "irc9-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc9-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc9-reset-confirm-confirm",
+  );
+
   // PDF import
   const importBtn = document.getElementById("irc9-import-btn");
   const fileInput = document.getElementById("irc9-file-input");
@@ -184,6 +195,48 @@
       }
     }
     closeDeleteConfirm();
+  });
+
+  // ------------------------------------------------------------------
+  // Reset-page confirmation modal
+  //
+  // No "minimum rows" invariant here (unlike IRC6's Goal/Outcome), so
+  // this just deletes every entry. No bulk-delete endpoint exists, so
+  // it fires one DELETE per existing entry, same pattern as the
+  // single-row delete above.
+  // ------------------------------------------------------------------
+  function openResetConfirm() {
+    resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    resetConfirmOverlay.classList.remove("visible");
+  }
+
+  resetBtn.addEventListener("click", openResetConfirm);
+  resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  resetConfirmOverlay.addEventListener("click", (e) => {
+    if (e.target === resetConfirmOverlay) closeResetConfirm();
+  });
+
+  resetConfirmConfirmBtn.addEventListener("click", async () => {
+    resetConfirmConfirmBtn.disabled = true;
+    try {
+      await Promise.all(
+        entries.map((en) =>
+          apiCall("DELETE", `/irc/irc9/entry/${en.id}`).catch(() => {
+            /* Best-effort, same as everywhere else in this file -- a
+               failed delete just risks that row reappearing on
+               reload. */
+          }),
+        ),
+      );
+    } finally {
+      entries = [];
+      renderTable();
+      resetConfirmConfirmBtn.disabled = false;
+      closeResetConfirm();
+    }
   });
 
   // ------------------------------------------------------------------

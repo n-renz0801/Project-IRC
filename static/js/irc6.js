@@ -69,6 +69,17 @@
   const confirmCancelBtn = document.getElementById("irc6-confirm-cancel");
   const confirmDeleteBtn = document.getElementById("irc6-confirm-delete");
 
+  const resetBtn = document.getElementById("irc6-reset-btn");
+  const resetConfirmOverlay = document.getElementById(
+    "irc6-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc6-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc6-reset-confirm-confirm",
+  );
+
   // ------------------------------------------------------------------
   // Helpers
   // ------------------------------------------------------------------
@@ -259,6 +270,77 @@
       }
     }
     closeDeleteConfirm();
+  });
+
+  // ------------------------------------------------------------------
+  // Reset-page confirmation modal
+  //
+  // Unlike a plain "delete everything" table, the Goal and Outcome rows
+  // here are edit-only and can't be deleted (see delete_irc6_entry in
+  // app.py). So resetting means: delete every Output entry, AND blank
+  // out Goal/Outcome's own fields via the normal save endpoint (id
+  // included, kind stays fixed server-side) rather than removing them --
+  // mirroring how IRC4's reset respects its own "at least 3 objectives"
+  // invariant instead of deleting past it.
+  // ------------------------------------------------------------------
+  const BLANK_IRC6_FIELDS = {
+    objectives: "",
+    indicators: "",
+    definition: "",
+    dcSource: "",
+    dcPerson: "",
+    dcFreq: "",
+    daUsed: "",
+    daPerson: "",
+    daFreq: "",
+    users: "",
+    repComm: "",
+    repFreq: "",
+  };
+
+  function openResetConfirm() {
+    resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    resetConfirmOverlay.classList.remove("visible");
+  }
+
+  resetBtn.addEventListener("click", openResetConfirm);
+  resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  resetConfirmOverlay.addEventListener("click", (e) => {
+    if (e.target === resetConfirmOverlay) closeResetConfirm();
+  });
+
+  resetConfirmConfirmBtn.addEventListener("click", async () => {
+    resetConfirmConfirmBtn.disabled = true;
+    try {
+      const outputs = entries.filter((en) => en.kind === "output");
+      const keepers = entries.filter((en) => en.kind !== "output");
+
+      await Promise.all([
+        ...outputs.map((en) =>
+          fetch(`/irc/irc6/entry/${en.id}`, { method: "DELETE" }).catch(
+            () => {},
+          ),
+        ),
+        ...keepers.map((en) =>
+          fetch("/irc/irc6/entry", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: en.id,
+              year: YEAR,
+              ...BLANK_IRC6_FIELDS,
+            }),
+          }).catch(() => {}),
+        ),
+      ]);
+    } finally {
+      await loadEntries();
+      resetConfirmConfirmBtn.disabled = false;
+      closeResetConfirm();
+    }
   });
 
   // ------------------------------------------------------------------

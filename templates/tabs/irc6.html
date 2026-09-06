@@ -15,9 +15,14 @@ block content %}
         <strong>Monitoring &amp; Evaluation (M&amp;E) Plan</strong>.
       </p>
     </div>
-    <button type="button" id="irc6-add-btn" class="irc6-add-btn">
-      <span class="irc6-add-icon">+</span> Add Output
-    </button>
+    <div class="irc6-header-actions">
+      <button type="button" id="irc6-reset-btn" class="irc6-reset-btn">
+        Reset
+      </button>
+      <button type="button" id="irc6-add-btn" class="irc6-add-btn">
+        <span class="irc6-add-icon">+</span> Add Output
+      </button>
+    </div>
   </div>
 
   <!-- ================= MAIN TABLE ================= -->
@@ -245,6 +250,35 @@ block content %}
       </button>
       <button type="button" id="irc6-confirm-delete" class="irc6-btn-danger">
         Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RESET-PAGE CONFIRMATION MODAL ================= -->
+<!-- Page-agnostic wording, reuses the .irc6-confirm-* CSS classes above
+     (same look as the delete-confirmation dialog) with its own ids so it
+     doesn't share state with it. -->
+<div id="irc6-reset-confirm-overlay" class="irc6-confirm-overlay">
+  <div class="irc6-confirm-box">
+    <h4>Reset the contents of this page?</h4>
+    <p>
+      This will delete all data entered on this page. This cannot be undone.
+    </p>
+    <div class="irc6-confirm-actions">
+      <button
+        type="button"
+        id="irc6-reset-confirm-cancel"
+        class="irc6-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc6-reset-confirm-confirm"
+        class="irc6-btn-danger"
+      >
+        Yes, Reset
       </button>
     </div>
   </div>

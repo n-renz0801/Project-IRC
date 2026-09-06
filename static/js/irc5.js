@@ -70,6 +70,17 @@
   const confirmCancelBtn = document.getElementById("irc5-confirm-cancel");
   const confirmDeleteBtn = document.getElementById("irc5-confirm-delete");
 
+  const resetBtn = document.getElementById("irc5-reset-btn");
+  const resetConfirmOverlay = document.getElementById(
+    "irc5-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc5-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc5-reset-confirm-confirm",
+  );
+
   // ------------------------------------------------------------------
   // Helpers
   // ------------------------------------------------------------------
@@ -493,6 +504,49 @@
       }
     }
     closeDeleteConfirm();
+  });
+
+  // ------------------------------------------------------------------
+  // Reset-page confirmation modal
+  //
+  // Wipes every entry (there's no "minimum rows" invariant here like
+  // IRC4's objectives, so this just empties the table -- nothing needs
+  // to be re-seeded afterward). No bulk-delete endpoint exists, so this
+  // fires one DELETE per existing entry, same as the single-row delete
+  // above.
+  // ------------------------------------------------------------------
+  function openResetConfirm() {
+    resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    resetConfirmOverlay.classList.remove("visible");
+  }
+
+  resetBtn.addEventListener("click", openResetConfirm);
+  resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  resetConfirmOverlay.addEventListener("click", (e) => {
+    if (e.target === resetConfirmOverlay) closeResetConfirm();
+  });
+
+  resetConfirmConfirmBtn.addEventListener("click", async () => {
+    resetConfirmConfirmBtn.disabled = true;
+    try {
+      await Promise.all(
+        entries.map((en) =>
+          fetch(`/irc/irc5/entry/${en.id}`, { method: "DELETE" }).catch(() => {
+            /* Best-effort, same as everywhere else in this file -- a
+                 failed delete just risks that row reappearing on
+                 reload. */
+          }),
+        ),
+      );
+    } finally {
+      entries = [];
+      renderTable();
+      resetConfirmConfirmBtn.disabled = false;
+      closeResetConfirm();
+    }
   });
 
   // ------------------------------------------------------------------

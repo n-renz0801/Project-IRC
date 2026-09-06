@@ -9,6 +9,10 @@
 
 .irc8b-header {
   margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .irc8b-header h2 {
@@ -16,6 +20,26 @@
   font-weight: 600;
   margin: 0 0 8px 0;
   color: #1a1a1a;
+}
+
+.irc8b-reset-btn {
+  flex-shrink: 0;
+  background: #fff;
+  color: #dc2626;
+  border: 1.5px solid #f3b4b4;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc8b-reset-btn:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
 }
 
 /* ---------- Rating scale legend ---------- */
@@ -287,6 +311,85 @@
   text-align: right;
 }
 
+/* ---------- Reset-confirmation modal ---------- */
+/* Copied 1:1 from IRC6/IRC9's .ircX-confirm-overlay / .ircX-confirm-box /
+   .ircX-confirm-actions (and their secondary/danger buttons) so this
+   dialog looks identical across pages: a single centered box, no
+   header/footer divider lines, no close-X button. */
+
+.irc8b-confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.irc8b-confirm-overlay.visible {
+  display: flex;
+}
+
+.irc8b-confirm-box {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 380px;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.irc8b-confirm-box h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.irc8b-confirm-box p {
+  margin: 0 0 20px 0;
+  font-size: 13.5px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.irc8b-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.irc8b-btn-secondary,
+.irc8b-btn-danger {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.irc8b-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.irc8b-btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.irc8b-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.irc8b-btn-danger:hover {
+  background: #b91c1c;
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 900px) {
@@ -296,6 +399,10 @@
 }
 
 @media (max-width: 640px) {
+  .irc8b-header {
+    flex-wrap: wrap;
+  }
+
   .irc8b-header h2 {
     font-size: 21px;
   }

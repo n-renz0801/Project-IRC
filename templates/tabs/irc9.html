@@ -18,6 +18,9 @@ block content %}
         accept=".pdf"
         style="display: none"
       />
+      <button type="button" id="irc9-reset-btn" class="irc9-reset-btn">
+        Reset
+      </button>
       <button type="button" id="irc9-import-btn" class="irc9-import-btn">
         <i class="ti ti-file-upload"></i> Import from PDF
       </button>
@@ -175,6 +178,35 @@ block content %}
         class="irc9-btn-primary"
       >
         Import Entries
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RESET-PAGE CONFIRMATION MODAL ================= -->
+<!-- Page-agnostic wording, reuses the .irc9-confirm-* CSS classes above
+     (same look as the delete-confirmation dialog) with its own ids so it
+     doesn't share state with it. -->
+<div id="irc9-reset-confirm-overlay" class="irc9-confirm-overlay">
+  <div class="irc9-confirm-box">
+    <h4>Reset the contents of this page?</h4>
+    <p>
+      This will delete all data entered on this page. This cannot be undone.
+    </p>
+    <div class="irc9-confirm-actions">
+      <button
+        type="button"
+        id="irc9-reset-confirm-cancel"
+        class="irc9-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc9-reset-confirm-confirm"
+        class="irc9-btn-danger"
+      >
+        Yes, Reset
       </button>
     </div>
   </div>

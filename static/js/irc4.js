@@ -258,6 +258,13 @@
     els.modalScheduleSuggestions = document.getElementById(
       "irc4ModalScheduleSuggestions",
     );
+
+    // Reset button + its confirmation modal (separate from the Add/Edit
+    // Group modal above — no shared state).
+    els.resetBtn = document.getElementById("irc4ResetBtn");
+    els.resetModal = document.getElementById("irc4ResetModal");
+    els.resetModalCancel = document.getElementById("irc4ResetModalCancel");
+    els.resetModalConfirm = document.getElementById("irc4ResetModalConfirm");
   }
 
   // Textareas are non-resizable (CSS: resize: none) and grow purely with
@@ -325,6 +332,15 @@
       refreshView();
     }
 
+    // Used by resetPlan() to blank the field out from the outside (not
+    // tied to user typing, so it skips the onChange callback — the caller
+    // is responsible for persisting/clearing the underlying data itself).
+    function setValue(val) {
+      inputEl.value = val || "";
+      autoGrow(inputEl);
+      refreshView();
+    }
+
     inputEl.value = initialValue || "";
     refreshView();
 
@@ -358,7 +374,7 @@
       }
     });
 
-    return { refreshView, enterEdit, exitEdit };
+    return { refreshView, enterEdit, exitEdit, setValue };
   }
 
   // ============================================================
@@ -1012,6 +1028,85 @@
   }
 
   // ============================================================
+  // Reset — wipes the entire plan (Activity, Objectives, Groups, TA
+  // Receiver, MOV's) back to a blank slate, after the person confirms in
+  // irc4ResetModal. Built entirely out of the same per-field/per-item
+  // endpoints the rest of the page already uses (savePlanField, the
+  // objective/group DELETE routes, addObjective) rather than a new
+  // dedicated "wipe everything" server route.
+  // ============================================================
+
+  function openResetModal() {
+    els.resetModal.style.display = "flex";
+  }
+
+  function closeResetModal() {
+    els.resetModal.style.display = "none";
+  }
+
+  async function resetPlan() {
+    els.resetModalConfirm.disabled = true;
+
+    // Blank the three free-text fields, both on screen and server-side.
+    data.activity = "";
+    data.taReceiver = "";
+    data.movs = "";
+    if (els.activityFieldApi) els.activityFieldApi.setValue("");
+    if (els.taReceiverFieldApi) els.taReceiverFieldApi.setValue("");
+    if (els.movsFieldApi) els.movsFieldApi.setValue("");
+    savePlanField("activity", "");
+    savePlanField("taReceiver", "");
+    savePlanField("movs", "");
+
+    // Delete every existing group and objective server-side in parallel,
+    // same best-effort fetch pattern used by removeGroup/removeObjective.
+    const deletes = [
+      ...data.groups.map((g) =>
+        fetch(`/irc/irc4/group/${encodeURIComponent(g.id)}`, {
+          method: "DELETE",
+        }).catch(() => {}),
+      ),
+      ...data.objectives.map((o) =>
+        fetch(`/irc/irc4/objective/${encodeURIComponent(o.id)}`, {
+          method: "DELETE",
+        }).catch(() => {}),
+      ),
+    ];
+    await Promise.all(deletes);
+
+    data.groups = [];
+    data.objectives = [];
+    els.groupsList.innerHTML = "";
+    updateGroupsEmptyState();
+    els.objectivesList.innerHTML = "";
+    updateObjectivesWarning();
+
+    // Deleting every objective may itself cause the server to re-seed its
+    // own baseline (the server guarantees at least three blank objectives
+    // exist for a plan — see loadPlan()'s comment above). Re-fetch just
+    // the objectives (not the whole plan via loadPlan(), which would risk
+    // clobbering the activity/taReceiver/movs fields above with stale
+    // values if their save requests haven't landed yet) and only top up
+    // locally if the server came back with fewer than MIN_OBJECTIVES —
+    // this avoids ending up with double the baseline (server's 3 + ours)
+    // or none at all.
+    try {
+      const res = await fetch("/irc/irc4/data");
+      const payload = await res.json();
+      data.objectives = payload.objectives || [];
+    } catch (e) {
+      data.objectives = [];
+    }
+    renderObjectivesFromData();
+    while (data.objectives.length < MIN_OBJECTIVES) {
+      await addObjective();
+    }
+
+    els.resetModalConfirm.disabled = false;
+    closeResetModal();
+  }
+
+  // ============================================================
   // Init
   // ============================================================
 
@@ -1034,15 +1129,25 @@
     await loadSchools();
     await loadPlan();
 
-    initEditableField(els.activityField, data.activity, (val) => {
-      data.activity = val;
-      debouncedSaveActivity(val);
-    });
-    initEditableField(els.taReceiverField, data.taReceiver, (val) => {
-      data.taReceiver = val;
-      debouncedSaveTaReceiver(val);
-    });
-    initEditableField(els.movsField, data.movs, (val) => {
+    // Field APIs are kept around (not just fired-and-forgotten) so
+    // resetPlan() can blank them out from the outside later.
+    els.activityFieldApi = initEditableField(
+      els.activityField,
+      data.activity,
+      (val) => {
+        data.activity = val;
+        debouncedSaveActivity(val);
+      },
+    );
+    els.taReceiverFieldApi = initEditableField(
+      els.taReceiverField,
+      data.taReceiver,
+      (val) => {
+        data.taReceiver = val;
+        debouncedSaveTaReceiver(val);
+      },
+    );
+    els.movsFieldApi = initEditableField(els.movsField, data.movs, (val) => {
       data.movs = val;
       debouncedSaveMovs(val);
     });
@@ -1075,6 +1180,17 @@
     els.modalScheduleInput.addEventListener("keydown", onModalScheduleKeydown);
     els.modalScheduleInput.addEventListener("focus", onModalScheduleOpen);
     els.modalScheduleInput.addEventListener("click", onModalScheduleOpen);
+
+    els.resetBtn.addEventListener("click", openResetModal);
+    els.resetModalCancel.addEventListener("click", closeResetModal);
+    // The overlay IS the outer confirm element here (single box, no
+    // separate overlay layer) — same click-outside pattern as IRC5's
+    // confirm dialog: only close if the click landed on the backdrop
+    // itself, not on the box or its children.
+    els.resetModal.addEventListener("click", (e) => {
+      if (e.target === els.resetModal) closeResetModal();
+    });
+    els.resetModalConfirm.addEventListener("click", resetPlan);
 
     // Objectives/groups were already loaded by loadPlan() above (the
     // server guarantees at least three blank objectives exist) — render
