@@ -589,11 +589,29 @@ html::-webkit-scrollbar {
 .irc2a-priority-chart .irc2a-chart-val {
   position: absolute;
   left: 50%;
-  transform: translate(-50%, -100%);
   font-size: 12.5px;
-  color: #333;
   font-weight: 700;
   white-space: nowrap;
+  z-index: 1;
+}
+
+/* Used while the bar still has headroom (< 80%, see CHART_VAL_INSIDE_THRESHOLD
+   in irc2a.js): the label floats just above the bar's own fill, inside the
+   track's reserved top margin. */
+.irc2a-priority-chart .irc2a-chart-val--above {
+  transform: translate(-50%, -100%);
+  color: #333;
+}
+
+/* Used once the bar gets tall enough (>= 80%) that there's no longer room to
+   float the label above it without the track's overflow:hidden clipping it.
+   Instead of floating above, the label sits just inside the top of the
+   filled bar itself, so it can never be cut off no matter how close the bar
+   gets to 100%. White + shadow keeps it legible against either bar color. */
+.irc2a-priority-chart .irc2a-chart-val--inside {
+  transform: translate(-50%, 0);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .irc2a-priority-chart .irc2a-chart-bar {

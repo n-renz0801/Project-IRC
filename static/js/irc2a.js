@@ -326,6 +326,13 @@
   // "bottom" could do once a bar got close to 100%.
   const CHART_LABEL_RESERVE = 20;
 
+  // Once a bar's fill reaches this percentage, there's no longer enough
+  // headroom in CHART_LABEL_RESERVE to float the value label above the bar
+  // without the track's overflow:hidden clipping it off. Past this point the
+  // label is drawn inside the bar itself instead, where it always has room
+  // no matter how close the fill gets to 100%.
+  const CHART_VAL_INSIDE_THRESHOLD = 80;
+
   function renderPriorityChart(dedpPct, nonDedpPct) {
     if (!els.priorityChart) return;
 
@@ -383,11 +390,37 @@
     // position are set here, in a second pass, as real pixel values.
     built.forEach(({ track, bar, valLabel, fillPct }) => {
       const trackHeight = track.clientHeight || 1;
-      const usable = Math.max(trackHeight - CHART_LABEL_RESERVE, 1);
-      const fillPx = Math.max(2, (fillPct / 100) * usable);
+      const inside = fillPct >= CHART_VAL_INSIDE_THRESHOLD;
 
+      // Below the threshold the bar keeps its old headroom so the label can
+      // float above the fill. At/above it, the bar is allowed to use the
+      // track's full height -- the label moves inside the bar instead of
+      // needing that headroom, so there's no more reason to reserve it.
+      const usable = inside
+        ? Math.max(trackHeight, 1)
+        : Math.max(trackHeight - CHART_LABEL_RESERVE, 1);
+      const fillPx = Math.max(2, (fillPct / 100) * usable);
       bar.style.height = fillPx + "px";
-      valLabel.style.bottom = fillPx + 4 + "px";
+
+      valLabel.classList.remove(
+        "irc2a-chart-val--above",
+        "irc2a-chart-val--inside",
+      );
+      if (inside) {
+        // Measured after the label has real text/font applied, so this
+        // accounts for actual rendered height rather than an assumed value.
+        const labelHeight = valLabel.offsetHeight || 16;
+        // Nestle it just inside the top of the filled bar. Clamped at 4px
+        // above the track's own bottom so a very short-but->=80% bar (edge
+        // case, shouldn't normally happen given the min fill height) never
+        // pushes the label below the bar it's meant to label.
+        const bottom = Math.max(4, fillPx - labelHeight - 6);
+        valLabel.classList.add("irc2a-chart-val--inside");
+        valLabel.style.bottom = bottom + "px";
+      } else {
+        valLabel.classList.add("irc2a-chart-val--above");
+        valLabel.style.bottom = fillPx + 4 + "px";
+      }
     });
   }
 
