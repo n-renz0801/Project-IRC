@@ -2,26 +2,23 @@
 
 To do:
 
-irc1b:
-
-1. convert bar graph to line graph
-2. incrase size of average label
-3. toggleable (monthly/quarterly)
-
-irc2a
-
-1. ta coverage bar graph show max limit
-2. set dedp color to red
+home:
+1. add reset that will wipe all month data
 
 irc2b
 
 1. set default to months
 2. add graph showing total schools provided (elem + secondary)
 3. section header color for elem and secondary
+4. reset button
 
 irc3
 
 1. set check indicator for schools that were already provided with TA
+2. reset button
+
+irc4
+1. reset button
 
 IRC5
 
@@ -38,7 +35,5 @@ irc7:
 2. different column header color for added columns
 3. add reset functionality for irc7-group-header irc7-added-header to clear only its column data
 
-Project Traced:
-
-1. remove bagong pilipinas logo
-2. Deped -> division -> SGOD -> Project traced/irc
+irc8a:
+1. reset only ratings & mov link
