@@ -16,14 +16,27 @@ html::-webkit-scrollbar {
      between the stat cards, chart section, and line charts. */
   --irc2b-elementary: rgb(180, 83, 9);
   --irc2b-elementary-dark: rgb(140, 65, 7);
+  --irc2b-elementary-darker: rgb(74, 34, 4);
   --irc2b-elementary-light: rgb(217, 119, 6);
+  --irc2b-elementary-hover: rgba(180, 83, 9, 0.08);
   --irc2b-secondary: rgb(4, 120, 87);
   --irc2b-secondary-dark: rgb(3, 90, 65);
+  --irc2b-secondary-darker: rgb(2, 46, 33);
   --irc2b-secondary-light: rgb(5, 150, 105);
+  --irc2b-secondary-hover: rgba(4, 120, 87, 0.08);
   --irc2b-gold: #fcd116;
+  /* Combined elem+secondary "overall" scope — deliberately neutral
+     (indigo) so it never reads as either the orange or the green series. */
+  --irc2b-overall: rgb(79, 70, 229);
+  --irc2b-overall-dark: rgb(55, 48, 163);
+  --irc2b-overall-light: rgb(129, 140, 248);
 }
 
 .irc2b-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 28px;
 }
 
@@ -42,288 +55,237 @@ html::-webkit-scrollbar {
   max-width: 760px;
 }
 
+/* ---- Reset All Data — quiet by default, reads as destructive on hover ---- */
+.irc2b-reset-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  appearance: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b91c1c;
+  background: #fff;
+  border: 1.5px solid #f0c7c7;
+  border-radius: 999px;
+  padding: 9px 16px;
+  margin-top: 2px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.irc2b-reset-all-btn i {
+  font-size: 15px;
+}
+
+.irc2b-reset-all-btn:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.25);
+}
+
+.irc2b-reset-all-btn:active {
+  background: #991b1b;
+  border-color: #991b1b;
+}
+
+.irc2b-reset-all-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 /* ------------------------------------------------------------------
-   Dashboard — gradient stat cards + tinted chart card
+   Dashboard — consolidated "TA Coverage Summary" card, styled after
+   IRC2a's coverage-row pattern: a big hero percentage with its label
+   underneath, paired with a thick bar sized to match the hero's own
+   line-height. Replaces the old pair of gradient stat cards + separate
+   bar-chart section, which repeated the same two percentages twice
+   over, and also replaces this card's own first draft (a compact
+   hero + thin progress rows), which under-emphasized the per-level
+   numbers relative to IRC2a's convention.
 ------------------------------------------------------------------ */
 
-.irc2b-dashboard {
-  display: grid;
-  grid-template-columns: 0.7fr 0.7fr 1.6fr;
-  gap: 16px;
+.irc2b-coverage-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  padding: 16px 20px;
   margin-bottom: 32px;
-  align-items: stretch;
 }
 
-/* ---- Stat cards: shared shell ---- */
-.irc2b-stat-card {
-  position: relative;
-  overflow: hidden;
-  border-radius: 12px;
-  padding: 18px 22px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.irc2b-stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-}
-
-.irc2b-stat-card::before {
-  content: "";
-  position: absolute;
-  width: 130px;
-  height: 130px;
-  border-radius: 50%;
-  bottom: -55px;
-  right: -45px;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0) 70%
-  );
-}
-
-.irc2b-stat-card::after {
-  content: "";
-  position: absolute;
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  top: -40px;
-  left: -30px;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0) 70%
-  );
-}
-
-/* Color variants — Elementary = burnt orange, Secondary = green, paired
-   with the matching bar/line colors below so the whole dashboard reads
-   as one connected system. */
-.irc2b-stat-card-elementary {
-  background: linear-gradient(
-    135deg,
-    var(--irc2b-elementary) 0%,
-    var(--irc2b-elementary-dark) 100%
-  );
-}
-
-.irc2b-stat-card-secondary {
-  background: linear-gradient(
-    135deg,
-    var(--irc2b-secondary) 0%,
-    var(--irc2b-secondary-dark) 100%
-  );
-}
-
-/* Ghost icon, large and faint, top-right of the card */
-.irc2b-stat-icon-ghost {
-  position: absolute;
-  top: 0.85rem;
-  right: 0.85rem;
-  width: 52px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.16);
-  pointer-events: none;
-  transform: scale(1.6);
-  transform-origin: top right;
-}
-
-.irc2b-stat-icon-ghost i {
-  font-size: 32px;
-}
-
-.irc2b-stat-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 2px;
-  position: relative;
-  z-index: 1;
-}
-
-.irc2b-stat-icon-badge {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-}
-
-.irc2b-stat-icon-badge i {
-  font-size: 20px;
-  color: #fff;
-}
-
-.irc2b-stat-label {
+.irc2b-coverage-card h3 {
   font-size: 14px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.irc2b-stat-percent-big {
-  position: relative;
-  z-index: 1;
-  font-size: 44px;
-  font-weight: 700;
-  color: var(--irc2b-gold);
-  line-height: 1.1;
-}
-
-.irc2b-stat-caption {
-  position: relative;
-  z-index: 1;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.72);
-}
-
-/* ---- Chart card: tinted, not white, accent-bordered like a section-card ---- */
-.irc2b-dashboard-chart-section {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(160deg, #f7f5f2 0%, #efece6 100%);
-  border: 1.5px solid #ded8cd;
-  border-left: 4px solid #57534e;
-  border-radius: 12px;
-  padding: 14px 26px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-}
-
-.irc2b-dashboard-chart-section::before {
-  content: "";
-  position: absolute;
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  top: -75px;
-  right: -65px;
-  background: radial-gradient(
-    circle,
-    rgba(0, 0, 0, 0.08) 0%,
-    rgba(0, 0, 0, 0) 70%
-  );
-}
-
-.irc2b-dashboard-chart-section h3 {
-  position: relative;
-  z-index: 1;
-  font-size: 15px;
   font-weight: 600;
   margin: 0 0 12px 0;
-  color: #3f3a34;
+  color: #1a1a1a;
 }
 
-.irc2b-dashboard-chart {
-  position: relative;
-  z-index: 1;
+.irc2b-coverage-row {
   display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 64px;
-  height: 150px;
-  padding: 12px 28px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+  align-items: stretch;
+  gap: 24px;
+  padding: 6px 0;
 }
 
-.irc2b-dashboard-chart-col {
+/* ---- Hero: big % with its label centered underneath ---- */
+.irc2b-coverage-hero {
+  flex: 0 0 110px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 100px;
-  height: 100%;
-}
-
-.irc2b-dashboard-chart-val {
-  display: inline-block;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 3px 11px;
-  border-radius: 999px;
-  margin-bottom: 8px;
-}
-
-/* Val badges are color-coded per column, same hues as the bars/cards */
-.irc2b-dashboard-chart-val-elementary {
-  color: var(--irc2b-elementary-dark);
-  background: rgba(180, 83, 9, 0.14);
-}
-
-.irc2b-dashboard-chart-val-secondary {
-  color: var(--irc2b-secondary-dark);
-  background: rgba(4, 120, 87, 0.14);
-}
-
-.irc2b-dashboard-chart-bar-track {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
   justify-content: center;
+  text-align: center;
 }
 
-.irc2b-dashboard-chart-bar {
-  width: 62%;
-  min-height: 3px;
-  border-radius: 10px 10px 0 0;
-  transition: height 0.25s ease;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+.irc2b-coverage-hero-value {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 40px;
 }
 
-/* Bars echo the two stat-card colors above */
-.irc2b-bar-elementary {
-  background: linear-gradient(
-    180deg,
-    var(--irc2b-elementary-light) 0%,
-    var(--irc2b-elementary) 100%
-  );
+.irc2b-coverage-hero-elementary .irc2b-coverage-hero-value {
+  color: var(--irc2b-elementary-dark);
 }
 
-.irc2b-bar-secondary {
-  background: linear-gradient(
-    180deg,
-    var(--irc2b-secondary-light) 0%,
-    var(--irc2b-secondary) 100%
-  );
+.irc2b-coverage-hero-secondary .irc2b-coverage-hero-value {
+  color: var(--irc2b-secondary-dark);
 }
 
-.irc2b-dashboard-chart-label {
+.irc2b-coverage-hero-label {
+  font-size: 12.5px;
+  line-height: 16px;
+  color: #5b6b80;
+  margin-top: 6px;
+}
+
+/* ---- Thick bar: track stretches to fill the row's full height, with
+   a matching two-row count block (fraction / "Schools") to its right
+   that mirrors the hero's own value/label typography exactly. ---- */
+.irc2b-coverage-bar-wrap {
+  flex: 1;
+  min-width: 0;
   display: flex;
+  align-items: stretch;
+  gap: 14px;
+}
+
+.irc2b-coverage-bar-track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.irc2b-coverage-bar-track-elementary {
+  background: rgba(180, 83, 9, 0.12);
+}
+
+.irc2b-coverage-bar-track-secondary {
+  background: rgba(4, 120, 87, 0.12);
+}
+
+.irc2b-coverage-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  min-width: 3px;
+  border-radius: 6px;
+  transition: width 0.25s ease;
+}
+
+.irc2b-coverage-bar-fill-elementary {
+  background: var(--irc2b-elementary);
+}
+
+.irc2b-coverage-bar-fill-secondary {
+  background: var(--irc2b-secondary);
+}
+
+.irc2b-coverage-bar-meta {
+  flex: 0 0 64px;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  margin-top: 11px;
-  font-size: 15px;
+  justify-content: center;
+  text-align: center;
+}
+
+.irc2b-coverage-bar-meta-value {
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 40px;
+  white-space: nowrap;
+}
+
+.irc2b-coverage-bar-meta-elementary .irc2b-coverage-bar-meta-value {
+  color: var(--irc2b-elementary-dark);
+}
+
+.irc2b-coverage-bar-meta-secondary .irc2b-coverage-bar-meta-value {
+  color: var(--irc2b-secondary-dark);
+}
+
+.irc2b-coverage-bar-meta-label {
+  font-size: 12.5px;
+  line-height: 16px;
+  color: #5b6b80;
+  margin-top: 6px;
+}
+
+.irc2b-coverage-divider {
+  height: 1px;
+  background: #eee;
+  margin: 4px 0;
+}
+
+/* ---- Quiet overall summary line beneath both level rows ---- */
+.irc2b-coverage-overall {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.irc2b-coverage-overall-label {
+  font-size: 13px;
+  color: #5b6b80;
+}
+
+.irc2b-coverage-overall-value {
+  font-size: 13px;
   font-weight: 600;
-  color: #2d2a26;
+  color: #1a1a1a;
+  white-space: nowrap;
 }
 
-.irc2b-dashboard-chart-label i {
-  font-size: 17px;
-}
+@media (max-width: 620px) {
+  .irc2b-coverage-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
 
-.irc2b-dashboard-chart-label-elementary i {
-  color: var(--irc2b-elementary);
-}
+  .irc2b-coverage-hero {
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+  }
 
-.irc2b-dashboard-chart-label-secondary i {
-  color: var(--irc2b-secondary);
+  .irc2b-coverage-bar-wrap {
+    justify-content: center;
+  }
 }
 
 /* ------------------------------------------------------------------
@@ -347,6 +309,24 @@ html::-webkit-scrollbar {
 .irc2b-section-title i {
   color: #4a6fa5;
   font-size: 18px;
+}
+
+/* Elementary/Secondary headers pick up the same orange/green convention
+   used across the stat cards, bars, and per-section line charts. */
+.irc2b-section-title-elementary {
+  color: var(--irc2b-elementary-dark);
+}
+
+.irc2b-section-title-elementary i {
+  color: var(--irc2b-elementary);
+}
+
+.irc2b-section-title-secondary {
+  color: var(--irc2b-secondary-dark);
+}
+
+.irc2b-section-title-secondary i {
+  color: var(--irc2b-secondary);
 }
 
 /* ------------------------------------------------------------------
@@ -374,6 +354,16 @@ html::-webkit-scrollbar {
   background: #1f2937;
 }
 
+.irc2b-table[data-section="elementary"] thead,
+.irc2b-table[data-section="elementary"] thead th {
+  background: var(--irc2b-elementary-darker);
+}
+
+.irc2b-table[data-section="secondary"] thead,
+.irc2b-table[data-section="secondary"] thead th {
+  background: var(--irc2b-secondary-darker);
+}
+
 .irc2b-table thead th {
   padding: 10px 6px;
   text-align: center;
@@ -393,6 +383,14 @@ html::-webkit-scrollbar {
 
 .irc2b-month-row {
   border-bottom: 3px solid #4a6fa5;
+}
+
+.irc2b-table[data-section="elementary"] .irc2b-month-row {
+  border-bottom-color: var(--irc2b-elementary);
+}
+
+.irc2b-table[data-section="secondary"] .irc2b-month-row {
+  border-bottom-color: var(--irc2b-secondary);
 }
 
 .irc2b-month-row th {
@@ -532,6 +530,14 @@ html::-webkit-scrollbar {
   background: #f0f5ff;
 }
 
+.irc2b-table[data-section="elementary"] tbody tr:hover {
+  background: var(--irc2b-elementary-hover);
+}
+
+.irc2b-table[data-section="secondary"] tbody tr:hover {
+  background: var(--irc2b-secondary-hover);
+}
+
 .irc2b-table tbody td {
   padding: 9px 6px;
   border-right: 1px solid #e8e8e8;
@@ -575,11 +581,29 @@ html::-webkit-scrollbar {
   background: #1f2937;
 }
 
+.irc2b-table[data-section="elementary"] tfoot {
+  background: var(--irc2b-elementary-darker);
+}
+
+.irc2b-table[data-section="secondary"] tfoot {
+  background: var(--irc2b-secondary-darker);
+}
+
 .irc2b-footer-row td {
   border-top: 3px solid #4a6fa5;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   padding: 12px 6px;
   background: #1f2937;
+}
+
+.irc2b-table[data-section="elementary"] .irc2b-footer-row td {
+  border-top-color: var(--irc2b-elementary);
+  background: var(--irc2b-elementary-darker);
+}
+
+.irc2b-table[data-section="secondary"] .irc2b-footer-row td {
+  border-top-color: var(--irc2b-secondary);
+  background: var(--irc2b-secondary-darker);
 }
 
 .irc2b-footer-row td:last-child {
@@ -629,8 +653,8 @@ html::-webkit-scrollbar {
   border: 1px solid #e0e0e0;
   border-left: 4px solid #57534e;
   border-radius: 12px;
-  padding: 18px 22px 12px;
-  margin-bottom: 28px;
+  padding: 14px 20px 8px;
+  margin-bottom: 20px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
@@ -640,6 +664,10 @@ html::-webkit-scrollbar {
 
 .irc2b-linechart-wrapper-secondary {
   border-left-color: var(--irc2b-secondary);
+}
+
+.irc2b-linechart-wrapper-overall {
+  border-left-color: var(--irc2b-overall);
 }
 
 .irc2b-linechart-header {
@@ -676,6 +704,10 @@ html::-webkit-scrollbar {
 
 .irc2b-linechart-title-secondary i {
   color: var(--irc2b-secondary);
+}
+
+.irc2b-linechart-title-overall i {
+  color: var(--irc2b-overall);
 }
 
 .irc2b-linechart-caption {
@@ -728,6 +760,10 @@ html::-webkit-scrollbar {
   background: var(--irc2b-secondary);
 }
 
+.irc2b-linechart-wrapper-overall .irc2b-chart-toggle-btn-active {
+  background: var(--irc2b-overall);
+}
+
 .irc2b-linechart {
   width: 100%;
   height: auto;
@@ -745,19 +781,19 @@ html::-webkit-scrollbar {
 }
 
 .irc2b-linechart-axis-label {
-  font-size: 9.5px;
+  font-size: 11.5px;
   fill: #9aa5b1;
 }
 
 .irc2b-linechart-x-label {
-  font-size: 9.5px;
+  font-size: 11.5px;
   fill: #8a93a0;
   text-anchor: middle;
 }
 
 .irc2b-linechart-path {
   fill: none;
-  stroke-width: 3;
+  stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
   transition: d 0.25s ease;
@@ -771,6 +807,10 @@ html::-webkit-scrollbar {
   stroke: var(--irc2b-secondary);
 }
 
+.irc2b-linechart-path-overall {
+  stroke: var(--irc2b-overall);
+}
+
 .irc2b-linechart-area-elementary {
   fill: rgba(180, 83, 9, 0.09);
   stroke: none;
@@ -781,9 +821,14 @@ html::-webkit-scrollbar {
   stroke: none;
 }
 
+.irc2b-linechart-area-overall {
+  fill: rgba(79, 70, 229, 0.09);
+  stroke: none;
+}
+
 .irc2b-linechart-point {
   fill: #fff;
-  stroke-width: 2.4;
+  stroke-width: 2.1;
 }
 
 .irc2b-linechart-point-elementary {
@@ -794,8 +839,12 @@ html::-webkit-scrollbar {
   stroke: var(--irc2b-secondary);
 }
 
+.irc2b-linechart-point-overall {
+  stroke: var(--irc2b-overall);
+}
+
 .irc2b-linechart-point-val {
-  font-size: 9.5px;
+  font-size: 11.5px;
   font-weight: 700;
   text-anchor: middle;
 }
@@ -808,30 +857,26 @@ html::-webkit-scrollbar {
   fill: var(--irc2b-secondary-dark);
 }
 
+.irc2b-linechart-point-val-overall {
+  fill: var(--irc2b-overall-dark);
+}
+
 /* Responsive: only guard against very narrow windows since this is a
-   PC/laptop-only tool — no phone-sized breakpoints needed. */
-@media (max-width: 1100px) {
-  .irc2b-dashboard {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .irc2b-dashboard-chart-section {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 700px) {
-  .irc2b-dashboard {
-    grid-template-columns: 1fr;
-  }
-
-  .irc2b-dashboard-chart-section {
-    grid-column: auto;
-  }
-}
+   PC/laptop-only tool — no phone-sized breakpoints needed. The
+   .irc2b-coverage-row / .irc2b-coverage-hero narrow-screen behavior is
+   handled by the (max-width: 620px) rule alongside those classes above. */
 
 @media (max-width: 900px) {
   .irc2b-header h2 {
     font-size: 24px;
+  }
+
+  .irc2b-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .irc2b-reset-all-btn {
+    align-self: flex-start;
   }
 }

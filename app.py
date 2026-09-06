@@ -1587,6 +1587,25 @@ def save_irc2b_frequency():
     return jsonify(results), 200
 
 
+@app.route("/irc/irc2b/reset", methods=["DELETE"])
+def reset_irc2b_frequencies():
+    """Wipes every IRC2b TA-frequency checkbox for a given year (defaults
+    to current year) in one shot -- the "Reset All Data" button's
+    counterpart to save_irc2b_frequency, which only ever toggles
+    individual checkboxes. Every school/month reverts to unchecked (the
+    frontend's baseline for a school/month with no row at all -- see
+    loadPersistedFrequencies() in irc2b.js).
+
+    Scoped to IRC2b only: uploaded PDF files and IRC2a's status board
+    are left untouched, same as IRC1a/IRC1b/IRC2a's own reset routes
+    only ever clear their own table.
+    """
+    year = request.args.get("year", type=int) or _current_year()
+    IRC2BTAFrequency.query.filter_by(year=year).delete()
+    db.session.commit()
+    return jsonify({"reset": True, "year": year}), 200
+
+
 @app.route("/irc/irc3/save", methods=["POST"])
 def save_irc3_status():
     """Persists the manually-entered IRC3 *targets* for a year. The
