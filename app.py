@@ -2730,46 +2730,6 @@ def delete_irc8a_indicator(indicator_id):
     return jsonify({"deleted": True, "id": indicator_id}), 200
 
 
-@app.route("/irc/irc8a/reset", methods=["DELETE"])
-def reset_irc8a_data():
-    """Two reset scopes for the "Reset" button/modal, chosen via
-    ?scope=ratings_mov|all (defaults to "ratings_mov"), mirroring IRC7's
-    reset endpoint (see reset_irc7_data above):
-
-      - scope=ratings_mov (default): the "Clear ratings & MOV links only"
-        option. For every objective under this year's KRAs, clears the
-        three selected ratings (rating_quality/efficiency/timeliness) and
-        the MOV link. KRAs, objectives, their weights/text, rubric
-        indicators, timeline, and actual results are all left untouched --
-        only what's been *rated* and *linked* disappears.
-
-      - scope=all: the "Reset entire form" option. Deletes every KRA for
-        this year outright, which cascades to delete all of its
-        objectives and their rubric indicators too (see the FK
-        relationships in models.py).
-    """
-    scope = request.args.get("scope", "ratings_mov")
-    year = request.args.get("year", type=int) or _current_year()
-
-    if scope == "all":
-        IRC8AKra.query.filter_by(year=year).delete()
-        db.session.commit()
-        return jsonify({"reset": True, "scope": "all", "year": year}), 200
-
-    objectives = (
-        IRC8AObjective.query.join(IRC8AKra, IRC8AObjective.kra_id == IRC8AKra.id)
-        .filter(IRC8AKra.year == year)
-        .all()
-    )
-    for objective in objectives:
-        objective.rating_quality = None
-        objective.rating_efficiency = None
-        objective.rating_timeliness = None
-        objective.mov = None
-    db.session.commit()
-    return jsonify({"reset": True, "scope": "ratings_mov", "year": year}), 200
-
-
 # ---------------------------------------------------------------------------
 # IRC8c -- Summary of Ratings for Discussion
 #
@@ -2856,6 +2816,26 @@ def save_irc8c_row():
 
     db.session.commit()
     return jsonify(row.to_dict()), 200
+
+
+@app.route("/irc/irc8c/reset", methods=["DELETE"])
+def reset_irc8c_data():
+    """Resets this year's four Development Plan rows back to their default
+    blank/locked state -- mirrors reset_irc7_data's single-scope shape
+    (there's no "values only" vs "everything" split here since IRC8c has
+    nothing but these four fixed rows to begin with; see models.py's
+    IRC8CRow docstring for why they're permanent slots, not a user-managed
+    list).
+
+    Deleting the rows outright (rather than blanking each column) is safe
+    because get_irc8c_data() re-creates any missing slot with
+    is_locked=True on its next read -- the same "recreate on read" shape
+    IRC8b's fixed criteria rely on.
+    """
+    year = request.args.get("year", type=int) or _current_year()
+    IRC8CRow.query.filter_by(year=year).delete()
+    db.session.commit()
+    return jsonify({"reset": True, "year": year}), 200
 
 
 def not_found(e):
