@@ -41,7 +41,7 @@
   top: 0;
   bottom: 0;
   z-index: 150;
-  width: min(420px, 88vw);
+  width: min(460px, 90vw);
   background: var(--white);
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
   padding: 22px;
@@ -89,6 +89,9 @@
 
 .home-uploads-card-header-action {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* The card itself doubles as the drag-and-drop target now that the old
@@ -126,6 +129,32 @@
 
 .home-upload-btn--confirm:hover {
   background: #146b3a;
+}
+
+/* Reset (wipe all months) — same danger treatment as the reset buttons
+   on IRC6/IRC7/IRC8a/IRC8c, adapted to this page's --navy/--gold vars. */
+.home-upload-reset-btn {
+  background: #fff;
+  color: #dc2626;
+  border: 1.5px solid #f3b4b4;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.home-upload-reset-btn:hover {
+  background: #fdeaea;
+  border-color: #dc2626;
+}
+
+.home-upload-reset-btn:disabled {
+  opacity: 0.6;
 }
 
 /* Status message — functional (success/error/info) colors, same
@@ -453,6 +482,82 @@
 
 .home-month-row-delete:hover {
   background: #fdeaea;
+}
+
+/* ---------- Reset confirmation modal — same visual pattern as IRC6's
+   .irc6-confirm-* dialog, using this page's own class prefix. ---------- */
+
+.home-upload-reset-confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.home-upload-reset-confirm-overlay.visible {
+  display: flex;
+}
+
+.home-upload-reset-confirm-box {
+  background: var(--white);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 380px;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.home-upload-reset-confirm-box h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy-deep);
+}
+
+.home-upload-reset-confirm-box p {
+  margin: 0 0 20px 0;
+  font-size: 13.5px;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+.home-upload-reset-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.home-upload-btn-secondary,
+.home-upload-btn-danger {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-upload-btn-secondary {
+  background: var(--off-white);
+  color: var(--text);
+}
+
+.home-upload-btn-secondary:hover {
+  background: var(--shadow);
+}
+
+.home-upload-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.home-upload-btn-danger:hover {
+  background: #b91c1c;
 }
 
 /* ---------- Responsive ---------- */
