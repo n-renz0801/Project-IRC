@@ -86,18 +86,40 @@
            Home page. "Checked by" never changes, so it's hardcoded here. -->
       {% if active_tab %}
       <div class="report-signatory">
-        <div class="report-signatory-block">
-          <p class="report-signatory-label">Prepared by:</p>
-          <p class="report-signatory-name" id="reportPreparedByName">&nbsp;</p>
-          <p
-            class="report-signatory-position"
-            id="reportPreparedByPosition"
-          ></p>
+        <div class="report-signatory-title">
+          <i class="ti ti-clipboard-text" aria-hidden="true"></i>
+          <span>Report signatories</span>
         </div>
-        <div class="report-signatory-block">
-          <p class="report-signatory-label">Checked by:</p>
-          <p class="report-signatory-name">DR. JONATHAN P. DOMINGO</p>
-          <p class="report-signatory-position">SGOD Chief</p>
+        <div class="report-signatory-grid">
+          <div class="report-signatory-block">
+            <p class="report-signatory-label">Prepared by</p>
+            <div class="report-signatory-person">
+              <span class="report-signatory-avatar" aria-hidden="true">
+                <i class="ti ti-user"></i>
+              </span>
+              <div class="report-signatory-info">
+                <p class="report-signatory-name" id="reportPreparedByName">
+                  &nbsp;
+                </p>
+                <p
+                  class="report-signatory-position"
+                  id="reportPreparedByPosition"
+                ></p>
+              </div>
+            </div>
+          </div>
+          <div class="report-signatory-block">
+            <p class="report-signatory-label">Checked by</p>
+            <div class="report-signatory-person">
+              <span class="report-signatory-avatar" aria-hidden="true">
+                <i class="ti ti-user"></i>
+              </span>
+              <div class="report-signatory-info">
+                <p class="report-signatory-name">DR. JONATHAN P. DOMINGO</p>
+                <p class="report-signatory-position">SGOD Chief</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       {% endif %}

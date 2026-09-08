@@ -199,36 +199,94 @@ nav ul li a.active::after {
 ═══════════════════════════════════════════════════════════════════════════ */
 
 .report-signatory {
+  margin-top: 48px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px var(--shadow);
+}
+
+.report-signatory-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--navy-deep);
+  border-bottom: 3px solid var(--gold);
+  padding: 10px 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--white);
+}
+
+.report-signatory-title i {
+  font-size: 1rem;
+  color: var(--gold);
+}
+
+.report-signatory-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(220px, 1fr));
-  gap: 24px;
-  margin-top: 48px;
-  padding-top: 28px;
-  border-top: 1px solid var(--border);
+}
+
+.report-signatory-block {
+  padding: 18px 22px;
+}
+
+.report-signatory-block:first-child {
+  border-right: 1px solid var(--border);
 }
 
 .report-signatory-label {
-  font-size: 0.8rem;
-  color: var(--text-light);
-  margin: 0 0 18px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--navy);
+  margin: 0 0 12px;
+}
+
+.report-signatory-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-signatory-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--off-white);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.report-signatory-avatar i {
+  font-size: 1.2rem;
+  color: var(--navy);
+}
+
+.report-signatory-info {
+  min-width: 0;
 }
 
 .report-signatory-name {
-  display: inline-block;
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--text);
   text-transform: uppercase;
-  min-width: 240px;
-  border-bottom: 1px solid var(--text);
-  padding-bottom: 4px;
   margin: 0;
 }
 
 .report-signatory-position {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-light);
-  margin: 4px 0 0;
+  margin: 2px 0 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -261,9 +319,13 @@ nav ul li a.active::after {
     padding: 20px;
   }
 
-  .report-signatory {
+  .report-signatory-grid {
     grid-template-columns: 1fr;
-    gap: 28px;
+  }
+
+  .report-signatory-block:first-child {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
   }
 }
 
