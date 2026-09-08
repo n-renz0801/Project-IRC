@@ -98,6 +98,25 @@
   const legendOverlay = document.getElementById("irc1a-legend-overlay");
   const legendCloseBtn = document.getElementById("irc1a-legend-close");
 
+  // --- Auto-growing remarks textareas ---
+  // Height tracks content instead of scrolling internally, so the card
+  // simply grows to fit whatever's typed.
+  function autoResizeTextarea(el) {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }
+
+  const remarksTextareas = [
+    document.getElementById("irc1a-positive"),
+    document.getElementById("irc1a-ofi"),
+  ];
+  remarksTextareas.forEach((el) => {
+    if (!el) return;
+    autoResizeTextarea(el);
+    el.addEventListener("input", () => autoResizeTextarea(el));
+  });
+
   function descriptiveValue(avg) {
     if (avg === null) return "—";
     if (avg >= 3.51) return "Very Satisfactory";
@@ -187,6 +206,19 @@
   }
 
   // --- Monthly / Quarterly trend chart ---
+  // Visual language matches the IRC2b line charts: light grid + solid
+  // axis, rounded line with a soft area fill, white points with a
+  // colored ring, bold value labels above each point.
+  const CHART_VIEWBOX_WIDTH = 720;
+  const CHART_VIEWBOX_HEIGHT = 136;
+  const CHART_PLOT_LEFT = 34;
+  const CHART_PLOT_RIGHT = 708;
+  const CHART_PLOT_TOP = 18;
+  const CHART_PLOT_BOTTOM = 104;
+  const CHART_X_LABEL_Y = 124;
+  const CHART_LABEL_SCREEN_PX = 11.5;
+  const CHART_POINT_VAL_SCREEN_PX = 11.5;
+
   function bandColor(avg) {
     if (avg === null || avg === undefined) return "#9ca3af";
     if (avg >= 3.51) return "#22c55e";
@@ -196,25 +228,102 @@
   }
 
   function getMonthlyTrendPoints() {
-    return MONTHS.map((m) => ({
-      label: MONTH_LABELS[m],
-      avg: monthAverages[m] === undefined ? null : monthAverages[m],
-      tooltip: MONTH_LABELS[m],
-    }));
+    return MONTHS.map((m) => {
+      const raw = monthAverages[m];
+      const hasValue = raw !== undefined && raw !== null;
+      return {
+        label: MONTH_LABELS[m],
+        avg: hasValue ? raw : 0,
+        hasValue,
+        tooltip: MONTH_LABELS[m],
+      };
+    });
   }
 
   function getQuarterlyTrendPoints() {
-    // "Average only for months with data" -- a quarter with zero
-    // populated months has no average at all (null), rather than 0.
+    // Quarter average is over whichever of its months have data; a
+    // quarter with zero populated months plots at 0 rather than being
+    // skipped.
     return QUARTERS.map((q) => {
       const monthVals = q.months
         .map((m) => monthAverages[m])
         .filter((v) => v !== null && v !== undefined);
       const avg = monthVals.length
         ? monthVals.reduce((a, b) => a + b, 0) / monthVals.length
-        : null;
-      return { label: q.label, avg, tooltip: q.label };
+        : 0;
+      return {
+        label: q.label,
+        avg,
+        hasValue: monthVals.length > 0,
+        tooltip: q.label,
+      };
     });
+  }
+
+  // The <svg> is stretched by CSS (width: 100%, height: 100%) to fill
+  // its wrapping element, which can end up a different aspect ratio
+  // than the viewBox -- the wrap's height maximizes to fill whatever
+  // vertical space the hero row gives it, while its width just follows
+  // the column. With preserveAspectRatio="none" that means the X and Y
+  // axes get scaled by two different factors, so anything drawn in
+  // viewBox user-units (like glyph shapes) comes out stretched taller
+  // or shorter than it is wide.
+  //
+  // Line/area geometry is fine with that -- it's supposed to fill the
+  // box. Text isn't: a letter stretched 2x vertically just looks
+  // broken. getChartScale() reports both factors so text can cancel
+  // out the distortion (see svgText()) while everything else keeps
+  // maximizing the available height as before.
+  function getChartScale() {
+    if (!trendChartWrap) return { sx: 1, sy: 1 };
+    const rect = trendChartWrap.getBoundingClientRect();
+    return {
+      sx: rect.width > 0 ? rect.width / CHART_VIEWBOX_WIDTH : 1,
+      sy: rect.height > 0 ? rect.height / CHART_VIEWBOX_HEIGHT : 1,
+    };
+  }
+
+  // Draws a <text> anchored at (x, y) in viewBox coordinates, but
+  // pre-scaled by the inverse of the chart's X/Y stretch so the glyphs
+  // themselves render at a true, undistorted screenPx size once the
+  // outer non-uniform scale is applied. The anchor point (x, y) still
+  // moves and spaces out with the rest of the chart geometry -- only
+  // the letterforms are protected from stretching.
+  function svgText(x, y, screenPx, className, content, opts = {}) {
+    const { sx, sy } = getChartScale();
+    const invX = sx > 0 ? 1 / sx : 1;
+    const invY = sy > 0 ? 1 / sy : 1;
+    const anchorAttr = opts.anchor ? ` text-anchor="${opts.anchor}"` : "";
+    const extraStyle = opts.style ? opts.style : "";
+    return (
+      `<g transform="translate(${x.toFixed(2)},${y.toFixed(2)}) scale(${invX.toFixed(4)},${invY.toFixed(4)})">` +
+      `<text class="${className}" x="0" y="0"${anchorAttr} style="font-size:${screenPx}px;${extraStyle}">${content}</text>` +
+      `</g>`
+    );
+  }
+
+  // Same distortion as text hits the point markers, but the fix needs
+  // to go the other way. Text should stay a fixed, true-to-life pixel
+  // size no matter how big the chart gets -- that's normal UI text.
+  // The point markers were never meant to be a fixed size, though:
+  // before any of this, r="3.4" scaled up along with the chart's own
+  // width stretch (sx), just distorted into an ellipse by the taller
+  // height stretch (sy). Canceling the distortion *completely* (the
+  // text approach) made them a tiny, constant 3.4px regardless of
+  // chart size -- too small on a big chart. Instead, only cancel the
+  // x/y *mismatch*: pre-scale locally by (1, sx/sy) so the y radius
+  // is corrected to match the x radius, and the marker still grows
+  // with the chart the way it originally did, just circular now.
+  function svgCircle(cx, cy, r, className, style, titleContent) {
+    const { sx, sy } = getChartScale();
+    const yAdjust = sy > 0 ? sx / sy : 1;
+    const styleAttr = style ? ` style="${style}"` : "";
+    const title = titleContent ? `<title>${titleContent}</title>` : "";
+    return (
+      `<g transform="translate(${cx.toFixed(2)},${cy.toFixed(2)}) scale(1,${yAdjust.toFixed(4)})">` +
+      `<circle class="${className}" cx="0" cy="0" r="${r}"${styleAttr}>${title}</circle>` +
+      `</g>`
+    );
   }
 
   function renderTrendChart() {
@@ -225,69 +334,98 @@
         ? getQuarterlyTrendPoints()
         : getMonthlyTrendPoints();
 
-    const hasData = points.some((p) => p.avg !== null);
-    if (!hasData) {
-      trendChartWrap.innerHTML =
-        '<p class="irc1a-lowest-placeholder">Enter ratings below to see the trend.</p>';
-      return;
-    }
-
-    const width = 720;
-    const height = 180;
-    const marginLeft = 30;
-    const marginRight = 12;
-    const marginTop = 12;
-    const marginBottom = 22;
-    const plotWidth = width - marginLeft - marginRight;
-    const plotHeight = height - marginTop - marginBottom;
+    // Every point already carries a real value (0 when nothing has been
+    // entered for it yet -- see getMonthlyTrendPoints/getQuarterlyTrendPoints),
+    // so the chart always draws, flat along the 0 line until data comes in.
+    const plotWidth = CHART_PLOT_RIGHT - CHART_PLOT_LEFT;
+    const plotHeight = CHART_PLOT_BOTTOM - CHART_PLOT_TOP;
     const n = points.length;
 
     const xAt = (i) =>
       n === 1
-        ? marginLeft + plotWidth / 2
-        : marginLeft + (i / (n - 1)) * plotWidth;
-    const yAt = (v) => marginTop + (1 - (v - 1) / 4) * plotHeight;
+        ? CHART_PLOT_LEFT + plotWidth / 2
+        : CHART_PLOT_LEFT + (i / (n - 1)) * plotWidth;
+    // Rating scale runs 0-4 (0 = no data, 4 = ceiling), so the y-axis
+    // always maps 0 -> bottom, 4 -> top.
+    const yAt = (v) => CHART_PLOT_BOTTOM - (v / 4) * plotHeight;
+    const yMid = (CHART_PLOT_TOP + CHART_PLOT_BOTTOM) / 2;
 
-    let svg = `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
+    let svg = `<svg class="irc1a-trend-svg" viewBox="0 0 ${CHART_VIEWBOX_WIDTH} ${CHART_VIEWBOX_HEIGHT}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">`;
 
-    // Gridlines + y-axis labels at ratings 1-5
-    for (let v = 1; v <= 5; v++) {
-      const y = yAt(v);
-      svg += `<line x1="${marginLeft}" y1="${y}" x2="${width - marginRight}" y2="${y}" stroke="#eef1f5" stroke-width="1" />`;
-      svg += `<text x="${marginLeft - 6}" y="${y + 2.5}" text-anchor="end" font-size="7" fill="#999">${v}</text>`;
-    }
+    // Grid: two light guide lines (rating 4 and rating 2) + a solid
+    // axis at the bottom (rating 0), with matching y-axis labels.
+    svg += `<line class="irc1a-trend-grid" x1="${CHART_PLOT_LEFT}" y1="${CHART_PLOT_TOP}" x2="${CHART_PLOT_RIGHT}" y2="${CHART_PLOT_TOP}"></line>`;
+    svg += `<line class="irc1a-trend-grid" x1="${CHART_PLOT_LEFT}" y1="${yMid}" x2="${CHART_PLOT_RIGHT}" y2="${yMid}"></line>`;
+    svg += `<line class="irc1a-trend-axis" x1="${CHART_PLOT_LEFT}" y1="${CHART_PLOT_BOTTOM}" x2="${CHART_PLOT_RIGHT}" y2="${CHART_PLOT_BOTTOM}"></line>`;
+    svg += svgText(
+      CHART_PLOT_LEFT - 6,
+      CHART_PLOT_TOP + 4,
+      CHART_LABEL_SCREEN_PX,
+      "irc1a-trend-axis-label",
+      "4",
+      { anchor: "end" },
+    );
+    svg += svgText(
+      CHART_PLOT_LEFT - 6,
+      yMid + 4,
+      CHART_LABEL_SCREEN_PX,
+      "irc1a-trend-axis-label",
+      "2",
+      { anchor: "end" },
+    );
+    svg += svgText(
+      CHART_PLOT_LEFT - 6,
+      CHART_PLOT_BOTTOM + 4,
+      CHART_LABEL_SCREEN_PX,
+      "irc1a-trend-axis-label",
+      "0",
+      { anchor: "end" },
+    );
 
-    // Line segments -- broken at gaps so missing months/quarters don't
-    // get bridged by a misleading straight line.
-    let segment = [];
-    const segments = [];
-    points.forEach((p, i) => {
-      if (p.avg === null) {
-        if (segment.length) segments.push(segment);
-        segment = [];
-      } else {
-        segment.push([xAt(i), yAt(p.avg)]);
-      }
-    });
-    if (segment.length) segments.push(segment);
+    // Line + area -- every point now has a real (possibly zero) value,
+    // so the path runs continuously across all of them, no gaps.
+    const linePoints = points.map((p, i) => ({ x: xAt(i), y: yAt(p.avg) }));
+    const linePath = linePoints
+      .map(
+        (p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)},${p.y.toFixed(1)}`,
+      )
+      .join(" ");
+    const areaPath =
+      `M ${linePoints[0].x.toFixed(1)},${CHART_PLOT_BOTTOM} ` +
+      linePoints.map((p) => `L ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ") +
+      ` L ${linePoints[n - 1].x.toFixed(1)},${CHART_PLOT_BOTTOM} Z`;
+    svg += `<path class="irc1a-trend-area" d="${areaPath}"></path>`;
+    svg += `<path class="irc1a-trend-path" d="${linePath}"></path>`;
 
-    segments.forEach((seg) => {
-      if (seg.length < 2) return;
-      const d = seg
-        .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`)
-        .join(" ");
-      svg += `<path d="${d}" fill="none" stroke="#4a6fa5" stroke-width="1.5" />`;
-    });
-
-    // Points + x-axis labels
+    // Points + value labels + x-axis labels
     points.forEach((p, i) => {
       const x = xAt(i);
-      svg += `<text x="${x}" y="${height - 4}" text-anchor="middle" font-size="7" fill="#666">${p.label}</text>`;
-      if (p.avg !== null) {
-        const y = yAt(p.avg);
-        const color = bandColor(p.avg);
-        svg += `<circle class="irc1a-trend-point" cx="${x}" cy="${y}" r="3" style="fill:${color}"><title>${p.tooltip}: ${p.avg.toFixed(3)} (${descriptiveValue(p.avg)})</title></circle>`;
-      }
+      const y = yAt(p.avg);
+      const color = p.hasValue ? bandColor(p.avg) : "#9ca3af";
+      svg += svgText(
+        x,
+        CHART_X_LABEL_Y,
+        CHART_LABEL_SCREEN_PX,
+        "irc1a-trend-x-label",
+        p.label,
+        { anchor: "middle" },
+      );
+      svg += svgCircle(
+        x,
+        y,
+        3.4,
+        "irc1a-trend-point",
+        `stroke:${color}`,
+        `${p.tooltip}: ${p.hasValue ? p.avg.toFixed(3) + " (" + descriptiveValue(p.avg) + ")" : "No data"}`,
+      );
+      svg += svgText(
+        x,
+        y - 7,
+        CHART_POINT_VAL_SCREEN_PX,
+        "irc1a-trend-point-val",
+        p.avg.toFixed(3),
+        { anchor: "middle", style: `fill:${color}` },
+      );
     });
 
     svg += "</svg>";
@@ -307,6 +445,15 @@
       renderTrendChart();
     });
   }
+
+  // Keep chart label sizes correct if the card's rendered width changes
+  // (window resize, sidebar toggle, etc.) -- the font-size correction
+  // in renderTrendChart depends on the wrap element's live width.
+  let trendResizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(trendResizeTimer);
+    trendResizeTimer = setTimeout(renderTrendChart, 150);
+  });
 
   function recalcLowest() {
     const entries = [];
@@ -490,8 +637,14 @@
 
         const positive = document.getElementById("irc1a-positive");
         const ofi = document.getElementById("irc1a-ofi");
-        if (positive) positive.value = "";
-        if (ofi) ofi.value = "";
+        if (positive) {
+          positive.value = "";
+          autoResizeTextarea(positive);
+        }
+        if (ofi) {
+          ofi.value = "";
+          autoResizeTextarea(ofi);
+        }
 
         recalcAll();
       })

@@ -35,178 +35,205 @@ of the Technical Assistance.") ] %}
           <i class="ti ti-info-circle" aria-hidden="true"></i> Legend
         </button>
         <button type="button" id="irc1a-reset-btn" class="irc1a-reset-btn">
-          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
         </button>
       </div>
     </div>
   </div>
 
-  <!-- ================= 2. TOP ANALYTICS SECTION (HERO) ================= -->
-  <div class="irc1a-hero-row">
-    <!-- Left Block (75%) -->
-    <div class="irc1a-trend-card">
-      <div class="irc1a-trend-header irc1a-dark-header">
-        <div>
-          <h3>Monthly Rating Trend</h3>
-          <p class="irc1a-subtitle irc1a-subtitle-dark">
-            Overall average rating over time.
-          </p>
+  <!-- ================= GUIDED FLOW: 1. Review -> 2. Remarks -> 3. Rate ================= -->
+  <div class="irc1a-flow">
+    <div class="irc1a-flow-rail" aria-hidden="true">
+      <span class="irc1a-flow-badge">1</span>
+      <span class="irc1a-flow-badge">2</span>
+      <span class="irc1a-flow-badge">3</span>
+    </div>
+
+    <!-- 2. TOP ANALYTICS SECTION (HERO) -->
+    <div class="irc1a-flow-section irc1a-flow-section-1">
+      <p class="irc1a-flow-label">Performance overview</p>
+      <div class="irc1a-hero-row">
+        <!-- Left Block (75%) -->
+        <div class="irc1a-trend-card">
+          <div class="irc1a-trend-header irc1a-dark-header">
+            <div>
+              <h3>Monthly Rating Trend</h3>
+              <p class="irc1a-subtitle irc1a-subtitle-dark">
+                Overall average rating over time.
+              </p>
+            </div>
+            <div class="irc1a-trend-toggle" id="irc1a-trend-toggle">
+              <button
+                type="button"
+                class="irc1a-toggle-btn active"
+                data-mode="monthly"
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                class="irc1a-toggle-btn"
+                data-mode="quarterly"
+              >
+                Quarterly
+              </button>
+            </div>
+          </div>
+          <div class="irc1a-card-body">
+            <div class="irc1a-trend-chart-wrap" id="irc1a-trend-chart-wrap">
+              <p class="irc1a-lowest-placeholder" id="irc1a-trend-placeholder">
+                Enter ratings below to see the trend.
+              </p>
+            </div>
+          </div>
         </div>
-        <div class="irc1a-trend-toggle" id="irc1a-trend-toggle">
-          <button
-            type="button"
-            class="irc1a-toggle-btn active"
-            data-mode="monthly"
+
+        <!-- Right Block (25%) -->
+        <div class="irc1a-badge-card">
+          <span class="irc1a-badge-label">Overall Performance</span>
+          <span class="irc1a-badge-score" id="irc1a-overall-avg">&mdash;</span>
+          <span class="irc1a-badge-scale">out of 4</span>
+          <span class="irc1a-badge-pill" id="irc1a-overall-desc"
+            >No data yet</span
           >
-            Monthly
-          </button>
-          <button type="button" class="irc1a-toggle-btn" data-mode="quarterly">
-            Quarterly
-          </button>
+
+          <div class="irc1a-badge-lowest">
+            <span class="irc1a-badge-lowest-title"
+              >Three Lowest Indicators</span
+            >
+            <ol id="irc1a-lowest-list" class="irc1a-lowest-list">
+              <li class="irc1a-lowest-placeholder">
+                Enter ratings below to see results.
+              </li>
+            </ol>
+          </div>
         </div>
       </div>
-      <div class="irc1a-card-body">
-        <div class="irc1a-trend-chart-wrap" id="irc1a-trend-chart-wrap">
-          <p class="irc1a-lowest-placeholder" id="irc1a-trend-placeholder">
-            Enter ratings below to see the trend.
+    </div>
+
+    <!-- 3. MIDDLE SECTION (SUMMARY INSIGHTS) -->
+    <div class="irc1a-flow-section irc1a-flow-section-2">
+      <p class="irc1a-flow-label">Feedback remarks</p>
+      <div class="irc1a-insights-row">
+        <div class="irc1a-insight-card">
+          <div class="irc1a-dark-header irc1a-insight-header">
+            <label for="irc1a-positive" class="irc1a-remarks-label"
+              >Positive Aspects</label
+            >
+            <p class="irc1a-subtitle irc1a-subtitle-dark">
+              Key strengths observed this period.
+            </p>
+          </div>
+          <div class="irc1a-card-body">
+            <textarea
+              id="irc1a-positive"
+              name="irc1a_positive"
+              class="irc1a-remarks-textarea"
+              rows="4"
+              placeholder="Describe a positive aspect observed..."
+            ></textarea>
+          </div>
+        </div>
+        <div class="irc1a-insight-card">
+          <div class="irc1a-dark-header irc1a-insight-header">
+            <label for="irc1a-ofi" class="irc1a-remarks-label"
+              >Opportunities for Improvement (OFI)</label
+            >
+            <p class="irc1a-subtitle irc1a-subtitle-dark">
+              Key areas of growth to address.
+            </p>
+          </div>
+          <div class="irc1a-card-body">
+            <textarea
+              id="irc1a-ofi"
+              name="irc1a_ofi"
+              class="irc1a-remarks-textarea"
+              rows="4"
+              placeholder="Describe an opportunity for improvement, if applicable..."
+            ></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. BOTTOM SECTION (DETAILED DATA TABLE) -->
+    <div class="irc1a-flow-section irc1a-flow-section-3">
+      <p class="irc1a-flow-label">Indicator ratings</p>
+      <div class="irc1a-table-card">
+        <div class="irc1a-table-card-header irc1a-dark-header">
+          <h3>TA Indicator Ratings</h3>
+          <p class="irc1a-subtitle irc1a-subtitle-dark">
+            Enter a rating (1&ndash;4) for each indicator, per month.
           </p>
         </div>
+        <div class="irc1a-table-wrapper">
+          <table id="irc1a-table" class="irc1a-table">
+            <thead>
+              <tr>
+                <th class="irc1a-indicator-col">TA Indicator</th>
+                {% for key, label in irc1a_months %}
+                <th>{{ label }}</th>
+                {% endfor %}
+                <th class="irc1a-rowavg-col">Rating / Average</th>
+                <th class="irc1a-rowdesc-col">Descriptive Rating</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for id, label in irc1a_indicators %}
+              <tr data-indicator="{{ id }}">
+                <td class="irc1a-indicator-col">{{ id }}. {{ label }}</td>
+                {% for key, month_label in irc1a_months %}
+                <td>
+                  <input
+                    type="number"
+                    class="irc1a-rating"
+                    data-month="{{ key }}"
+                    min="1"
+                    max="5"
+                    step="0.01"
+                  />
+                </td>
+                {% endfor %}
+                <td class="irc1a-rowavg-cell">
+                  <span class="irc1a-row-avg" data-indicator="{{ id }}"
+                    >&mdash;</span
+                  >
+                </td>
+                <td class="irc1a-rowdesc-cell">
+                  <span class="irc1a-row-desc" data-indicator="{{ id }}"
+                    >&mdash;</span
+                  >
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+
+            <tfoot>
+              <tr class="irc1a-average-row">
+                <td class="irc1a-indicator-col">Overall Average</td>
+                {% for key, label in irc1a_months %}
+                <td>
+                  <span class="irc1a-avg" data-month="{{ key }}">&mdash;</span>
+                </td>
+                {% endfor %}
+                <td class="irc1a-rowavg-cell">
+                  <span class="irc1a-row-avg" id="irc1a-footer-annual-avg"
+                    >&mdash;</span
+                  >
+                </td>
+                <td class="irc1a-rowdesc-cell">
+                  <span class="irc1a-row-desc" id="irc1a-footer-annual-desc"
+                    >&mdash;</span
+                  >
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
     </div>
-
-    <!-- Right Block (25%) -->
-    <div class="irc1a-badge-card">
-      <span class="irc1a-badge-label">Overall Performance</span>
-      <span class="irc1a-badge-score" id="irc1a-overall-avg">&mdash;</span>
-      <span class="irc1a-badge-scale">out of 4</span>
-      <span class="irc1a-badge-pill" id="irc1a-overall-desc">No data yet</span>
-
-      <div class="irc1a-badge-lowest">
-        <span class="irc1a-badge-lowest-title">Three Lowest Indicators</span>
-        <ol id="irc1a-lowest-list" class="irc1a-lowest-list">
-          <li class="irc1a-lowest-placeholder">
-            Enter ratings below to see results.
-          </li>
-        </ol>
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= 3. MIDDLE SECTION (SUMMARY INSIGHTS) ================= -->
-  <div class="irc1a-insights-row">
-    <div class="irc1a-insight-card">
-      <div class="irc1a-dark-header irc1a-insight-header">
-        <label for="irc1a-positive" class="irc1a-remarks-label"
-          >Positive Aspects</label
-        >
-        <p class="irc1a-subtitle irc1a-subtitle-dark">
-          Key strengths observed this period.
-        </p>
-      </div>
-      <div class="irc1a-card-body">
-        <textarea
-          id="irc1a-positive"
-          name="irc1a_positive"
-          class="irc1a-remarks-textarea"
-          rows="4"
-          placeholder="Describe a positive aspect observed..."
-        ></textarea>
-      </div>
-    </div>
-    <div class="irc1a-insight-card">
-      <div class="irc1a-dark-header irc1a-insight-header">
-        <label for="irc1a-ofi" class="irc1a-remarks-label"
-          >Opportunities for Improvement (OFI)</label
-        >
-        <p class="irc1a-subtitle irc1a-subtitle-dark">
-          Key areas of growth to address.
-        </p>
-      </div>
-      <div class="irc1a-card-body">
-        <textarea
-          id="irc1a-ofi"
-          name="irc1a_ofi"
-          class="irc1a-remarks-textarea"
-          rows="4"
-          placeholder="Describe an opportunity for improvement, if applicable..."
-        ></textarea>
-      </div>
-    </div>
-  </div>
-
-  <!-- ================= 4. BOTTOM SECTION (DETAILED DATA TABLE) ================= -->
-  <div class="irc1a-table-card">
-    <div class="irc1a-table-card-header irc1a-dark-header">
-      <h3>TA Indicator Ratings</h3>
-      <p class="irc1a-subtitle irc1a-subtitle-dark">
-        Enter a rating (1&ndash;5) for each indicator, per month.
-      </p>
-    </div>
-    <div class="irc1a-table-wrapper">
-      <table id="irc1a-table" class="irc1a-table">
-        <thead>
-          <tr>
-            <th class="irc1a-indicator-col">TA Indicator</th>
-            {% for key, label in irc1a_months %}
-            <th>{{ label }}</th>
-            {% endfor %}
-            <th class="irc1a-rowavg-col">Rating / Average</th>
-            <th class="irc1a-rowdesc-col">Descriptive Rating</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% for id, label in irc1a_indicators %}
-          <tr data-indicator="{{ id }}">
-            <td class="irc1a-indicator-col">{{ id }}. {{ label }}</td>
-            {% for key, month_label in irc1a_months %}
-            <td>
-              <input
-                type="number"
-                class="irc1a-rating"
-                data-month="{{ key }}"
-                min="1"
-                max="5"
-                step="0.01"
-              />
-            </td>
-            {% endfor %}
-            <td class="irc1a-rowavg-cell">
-              <span class="irc1a-row-avg" data-indicator="{{ id }}"
-                >&mdash;</span
-              >
-            </td>
-            <td class="irc1a-rowdesc-cell">
-              <span class="irc1a-row-desc" data-indicator="{{ id }}"
-                >&mdash;</span
-              >
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-
-        <tfoot>
-          <tr class="irc1a-average-row">
-            <td class="irc1a-indicator-col">Overall Average</td>
-            {% for key, label in irc1a_months %}
-            <td>
-              <span class="irc1a-avg" data-month="{{ key }}">&mdash;</span>
-            </td>
-            {% endfor %}
-            <td class="irc1a-rowavg-cell">
-              <span class="irc1a-row-avg" id="irc1a-footer-annual-avg"
-                >&mdash;</span
-              >
-            </td>
-            <td class="irc1a-rowdesc-cell">
-              <span class="irc1a-row-desc" id="irc1a-footer-annual-desc"
-                >&mdash;</span
-              >
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+    <!-- /.irc1a-flow -->
   </div>
 </section>
 

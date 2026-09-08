@@ -10,3 +10,12 @@ IRC5
 irc6:
 
 1. make irc6-col-title editable
+
+all pages:
+
+1. add date at signatory
+
+irc8c:
+
+1. Remove signatory at the bottom
+2. Make date using calendar

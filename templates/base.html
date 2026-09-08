@@ -90,7 +90,9 @@
           <i class="ti ti-clipboard-text" aria-hidden="true"></i>
           <span>Report signatories</span>
         </div>
-        <div class="report-signatory-grid">
+        <div
+          class="report-signatory-grid{% if active_tab and active_tab.id == 'irc8a' %} report-signatory-grid--three{% endif %}"
+        >
           <div class="report-signatory-block">
             <p class="report-signatory-label">Prepared by</p>
             <div class="report-signatory-person">
@@ -120,6 +122,31 @@
               </div>
             </div>
           </div>
+          <!-- IRC8A only: third signatory, name typed in directly here and
+               saved to /api/irc8a/approving-authority (see index.js).
+               Position is constant, same treatment as "Checked by" above. -->
+          {% if active_tab and active_tab.id == 'irc8a' %}
+          <div class="report-signatory-block">
+            <p class="report-signatory-label">Approving Authority</p>
+            <div class="report-signatory-person">
+              <span class="report-signatory-avatar" aria-hidden="true">
+                <i class="ti ti-user"></i>
+              </span>
+              <div class="report-signatory-info">
+                <input
+                  type="text"
+                  id="irc8aApprovingAuthorityName"
+                  class="report-signatory-name-input"
+                  placeholder="Full name"
+                  autocomplete="off"
+                />
+                <p class="report-signatory-position">
+                  Assistant Schools Division Superintendent
+                </p>
+              </div>
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
       {% endif %}

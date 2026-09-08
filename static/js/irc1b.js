@@ -38,15 +38,17 @@
     { key: "q4", label: "Q4", months: ["oct", "nov", "dec"] },
   ];
 
-  const MIN_POINTS_FOR_AVERAGE = 1; // average only shows once MORE than this many periods have data
-
   const table = document.getElementById("irc1b-table");
   if (!table) return;
 
   const totalSpan = document.getElementById("irc1b-total");
-  const totalStatValue = document.getElementById("irc1b-total-stat-value");
-  const chartEl = document.getElementById("irc1b-chart");
-  const periodToggle = document.getElementById("chartPeriodToggle");
+  const badgeTotalEl = document.getElementById("irc1b-badge-total");
+  const lowestList = document.getElementById("irc1b-lowest-list");
+
+  const trendChartWrap = document.getElementById("irc1b-trend-chart-wrap");
+  const trendToggle = document.getElementById("irc1b-trend-toggle");
+  let trendMode = "monthly";
+
   const resetAllBtn = document.getElementById("resetAllBtn");
   const resetConfirmOverlay = document.getElementById(
     "irc1b-reset-confirm-overlay",
@@ -57,9 +59,6 @@
   const resetConfirmConfirmBtn = document.getElementById(
     "irc1b-reset-confirm-confirm",
   );
-
-  // "monthly" or "quarterly" -- which view the chart currently renders.
-  let currentPeriod = "monthly";
 
   // Cached from the last recalc, so switching the toggle can redraw the
   // chart instantly without re-reading every input.
@@ -84,13 +83,13 @@
   function recalcTotal(values) {
     const total = MONTHS.reduce((sum, m) => sum + values[m], 0);
     totalSpan.textContent = total.toLocaleString();
-    totalStatValue.textContent = total.toLocaleString();
+    if (badgeTotalEl) badgeTotalEl.textContent = total.toLocaleString();
     return total;
   }
 
   // Rounds to the nearest whole number — customer counts should not show decimals
-  function formatAverage(avg) {
-    return Math.round(avg).toLocaleString();
+  function formatWhole(v) {
+    return Math.round(v).toLocaleString();
   }
 
   // Builds the ordered list of chart data points for the current period.
@@ -100,136 +99,238 @@
         key: q.key,
         label: q.label,
         value: q.months.reduce((sum, m) => sum + values[m], 0),
-        hasData: q.months.some((m) => hasData[m]),
+        hasValue: q.months.some((m) => hasData[m]),
       }));
     }
     return MONTHS.map((m) => ({
       key: m,
       label: MONTH_LABELS[m],
       value: values[m],
-      hasData: hasData[m],
+      hasValue: hasData[m],
     }));
   }
 
-  // Draws the line-chart SVG (polyline + points + optional average line)
-  // into `track`, sized to the track's actual pixel dimensions so it lines
-  // up exactly with the period labels underneath.
-  function drawLineSvg(track, points, max, avg, showAverage) {
-    const svgNS = "http://www.w3.org/2000/svg";
-    const width = Math.max(track.clientWidth, 1);
-    const height = Math.max(track.clientHeight, 1);
+  // --- Monthly / Quarterly trend chart ---
+  // Visual language matches IRC1a's trend chart: light grid + solid
+  // axis, rounded line with a soft area fill, white points with a
+  // colored ring, bold value labels above each point.
+  const CHART_VIEWBOX_WIDTH = 720;
+  const CHART_VIEWBOX_HEIGHT = 136;
+  const CHART_PLOT_LEFT = 46;
+  const CHART_PLOT_RIGHT = 708;
+  const CHART_PLOT_TOP = 18;
+  const CHART_PLOT_BOTTOM = 104;
+  const CHART_X_LABEL_Y = 124;
+  const CHART_LABEL_SCREEN_PX = 11.5;
+  const CHART_POINT_VAL_SCREEN_PX = 11.5;
 
-    const padX = 22; // keeps the first/last points' value labels on-screen
-    const padTop = 24; // room above the highest point for its value label
-    const padBottom = 4;
-    const usableWidth = Math.max(width - padX * 2, 1);
-    const usableHeight = Math.max(height - padTop - padBottom, 1);
-
-    const n = points.length;
-    const xFor = (i) =>
-      n === 1 ? width / 2 : padX + (usableWidth * i) / (n - 1);
-    const yFor = (val) => {
-      if (max <= 0) return height - padBottom;
-      const frac = Math.max(0, Math.min(1, val / max));
-      return height - padBottom - frac * usableHeight;
+  // The <svg> is stretched by CSS (width: 100%, height: 100%) to fill
+  // its wrapping element, which is now a fixed height (matching
+  // IRC1a's default chart height) rather than one locked to the
+  // viewBox's own aspect ratio -- so the X and Y axes end up scaled by
+  // two different factors. getChartScale() reports both so text/points
+  // can cancel out that distortion. Same approach as IRC1a.
+  function getChartScale() {
+    if (!trendChartWrap) return { sx: 1, sy: 1 };
+    const rect = trendChartWrap.getBoundingClientRect();
+    return {
+      sx: rect.width > 0 ? rect.width / CHART_VIEWBOX_WIDTH : 1,
+      sy: rect.height > 0 ? rect.height / CHART_VIEWBOX_HEIGHT : 1,
     };
-
-    const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("width", "100%");
-    svg.setAttribute("height", "100%");
-    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    svg.setAttribute("preserveAspectRatio", "none");
-    svg.classList.add("irc1b-chart-svg");
-
-    if (showAverage) {
-      const y = yFor(avg);
-      const line = document.createElementNS(svgNS, "line");
-      line.setAttribute("x1", "0");
-      line.setAttribute("x2", String(width));
-      line.setAttribute("y1", String(y));
-      line.setAttribute("y2", String(y));
-      line.setAttribute("class", "irc1b-chart-avg-line-svg");
-      svg.appendChild(line);
-    }
-
-    const linePoints = points
-      .map((p, i) => `${xFor(i)},${yFor(p.value)}`)
-      .join(" ");
-    const polyline = document.createElementNS(svgNS, "polyline");
-    polyline.setAttribute("points", linePoints);
-    polyline.setAttribute("class", "irc1b-chart-line-path");
-    svg.appendChild(polyline);
-
-    points.forEach((p, i) => {
-      const cx = xFor(i);
-      const cy = yFor(p.value);
-
-      if (p.value > 0) {
-        const text = document.createElementNS(svgNS, "text");
-        text.setAttribute("x", String(cx));
-        text.setAttribute("y", String(cy - 10));
-        text.setAttribute("text-anchor", "middle");
-        text.setAttribute("class", "irc1b-chart-val-text");
-        text.textContent = p.value.toLocaleString();
-        svg.appendChild(text);
-      }
-
-      const circle = document.createElementNS(svgNS, "circle");
-      circle.setAttribute("cx", String(cx));
-      circle.setAttribute("cy", String(cy));
-      circle.setAttribute("r", p.value > 0 ? "4" : "3");
-      circle.setAttribute(
-        "class",
-        "irc1b-chart-point" + (p.value > 0 ? "" : " irc1b-chart-point-empty"),
-      );
-      const titleEl = document.createElementNS(svgNS, "title");
-      titleEl.textContent = `${p.label}: ${p.value.toLocaleString()}`;
-      circle.appendChild(titleEl);
-      svg.appendChild(circle);
-    });
-
-    track.appendChild(svg);
-
-    if (showAverage) {
-      const y = yFor(avg);
-      const label = document.createElement("div");
-      label.className = "irc1b-chart-avg-label";
-      label.style.top = y + "px";
-      label.textContent = "Avg: " + formatAverage(avg);
-      track.appendChild(label);
-    }
   }
 
-  function renderChart(values, hasData) {
-    const points = buildDataPoints(values, hasData, currentPeriod);
+  // Draws a <text> anchored at (x, y) in viewBox coordinates, but
+  // pre-scaled by the inverse of the chart's X/Y stretch so the glyphs
+  // render at a true, undistorted screenPx size once the outer
+  // non-uniform scale is applied.
+  function svgText(x, y, screenPx, className, content, opts = {}) {
+    const { sx, sy } = getChartScale();
+    const invX = sx > 0 ? 1 / sx : 1;
+    const invY = sy > 0 ? 1 / sy : 1;
+    const anchorAttr = opts.anchor ? ` text-anchor="${opts.anchor}"` : "";
+    return (
+      `<g transform="translate(${x.toFixed(2)},${y.toFixed(2)}) scale(${invX.toFixed(4)},${invY.toFixed(4)})">` +
+      `<text class="${className}" x="0" y="0"${anchorAttr} style="font-size:${screenPx}px">${content}</text>` +
+      `</g>`
+    );
+  }
+
+  // Same distortion hits the point markers, but the fix goes the other
+  // way -- only cancel the x/y *mismatch* so the marker stays circular
+  // (instead of a fixed size like text), pre-scaling locally by
+  // (1, sx/sy) so the y radius matches the x radius.
+  function svgCircle(cx, cy, r, className, titleContent) {
+    const { sx, sy } = getChartScale();
+    const yAdjust = sy > 0 ? sx / sy : 1;
+    const title = titleContent ? `<title>${titleContent}</title>` : "";
+    return (
+      `<g transform="translate(${cx.toFixed(2)},${cy.toFixed(2)}) scale(1,${yAdjust.toFixed(4)})">` +
+      `<circle class="${className}" cx="0" cy="0" r="${r}">${title}</circle>` +
+      `</g>`
+    );
+  }
+
+  function renderTrendChart(values, hasData) {
+    if (!trendChartWrap) return;
+
+    const points = buildDataPoints(values, hasData, trendMode);
+
+    // Every point already carries a real value (0 when nothing has been
+    // entered for it yet), so the chart always draws, flat along the 0
+    // line until data comes in -- same behavior as IRC1a's trend chart.
+    const plotWidth = CHART_PLOT_RIGHT - CHART_PLOT_LEFT;
+    const plotHeight = CHART_PLOT_BOTTOM - CHART_PLOT_TOP;
+    const n = points.length;
+
     const max = Math.max(1, ...points.map((p) => p.value));
+    const mid = max / 2;
 
-    const filledPoints = points.filter((p) => p.hasData);
-    const showAverage = filledPoints.length > MIN_POINTS_FOR_AVERAGE;
-    const avg = showAverage
-      ? filledPoints.reduce((sum, p) => sum + p.value, 0) / filledPoints.length
-      : 0;
+    const xAt = (i) =>
+      n === 1
+        ? CHART_PLOT_LEFT + plotWidth / 2
+        : CHART_PLOT_LEFT + (i / (n - 1)) * plotWidth;
+    const yAt = (v) => CHART_PLOT_BOTTOM - (v / max) * plotHeight;
+    const yMid = (CHART_PLOT_TOP + CHART_PLOT_BOTTOM) / 2;
 
-    chartEl.innerHTML = "";
+    let svg = `<svg class="irc1b-trend-svg" viewBox="0 0 ${CHART_VIEWBOX_WIDTH} ${CHART_VIEWBOX_HEIGHT}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">`;
 
-    // Track: relative container the SVG is measured against and drawn into.
-    const track = document.createElement("div");
-    track.className = "irc1b-chart-track";
-    chartEl.appendChild(track);
+    // Grid: two light guide lines (max and mid) + a solid axis at the
+    // bottom (0), with matching y-axis labels.
+    svg += `<line class="irc1b-trend-grid" x1="${CHART_PLOT_LEFT}" y1="${CHART_PLOT_TOP}" x2="${CHART_PLOT_RIGHT}" y2="${CHART_PLOT_TOP}"></line>`;
+    svg += `<line class="irc1b-trend-grid" x1="${CHART_PLOT_LEFT}" y1="${yMid}" x2="${CHART_PLOT_RIGHT}" y2="${yMid}"></line>`;
+    svg += `<line class="irc1b-trend-axis" x1="${CHART_PLOT_LEFT}" y1="${CHART_PLOT_BOTTOM}" x2="${CHART_PLOT_RIGHT}" y2="${CHART_PLOT_BOTTOM}"></line>`;
+    svg += svgText(
+      CHART_PLOT_LEFT - 6,
+      CHART_PLOT_TOP + 4,
+      CHART_LABEL_SCREEN_PX,
+      "irc1b-trend-axis-label",
+      formatWhole(max),
+      { anchor: "end" },
+    );
+    svg += svgText(
+      CHART_PLOT_LEFT - 6,
+      yMid + 4,
+      CHART_LABEL_SCREEN_PX,
+      "irc1b-trend-axis-label",
+      formatWhole(mid),
+      { anchor: "end" },
+    );
+    svg += svgText(
+      CHART_PLOT_LEFT - 6,
+      CHART_PLOT_BOTTOM + 4,
+      CHART_LABEL_SCREEN_PX,
+      "irc1b-trend-axis-label",
+      "0",
+      { anchor: "end" },
+    );
 
-    // Period labels row, aligned under the points via matching flex/gap.
-    const labelsRow = document.createElement("div");
-    labelsRow.className = "irc1b-chart-labels";
-    points.forEach((p) => {
-      const label = document.createElement("span");
-      label.className = "irc1b-chart-label";
-      label.textContent = p.label;
-      labelsRow.appendChild(label);
+    // Line + area -- every point has a real (possibly zero) value, so
+    // the path runs continuously across all of them, no gaps.
+    const linePoints = points.map((p, i) => ({ x: xAt(i), y: yAt(p.value) }));
+    const linePath = linePoints
+      .map(
+        (p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)},${p.y.toFixed(1)}`,
+      )
+      .join(" ");
+    const areaPath =
+      `M ${linePoints[0].x.toFixed(1)},${CHART_PLOT_BOTTOM} ` +
+      linePoints.map((p) => `L ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ") +
+      ` L ${linePoints[n - 1].x.toFixed(1)},${CHART_PLOT_BOTTOM} Z`;
+    svg += `<path class="irc1b-trend-area" d="${areaPath}"></path>`;
+    svg += `<path class="irc1b-trend-path" d="${linePath}"></path>`;
+
+    // Points + value labels + x-axis labels
+    points.forEach((p, i) => {
+      const x = xAt(i);
+      const y = yAt(p.value);
+      svg += svgText(
+        x,
+        CHART_X_LABEL_Y,
+        CHART_LABEL_SCREEN_PX,
+        "irc1b-trend-x-label",
+        p.label,
+        { anchor: "middle" },
+      );
+      svg += svgCircle(
+        x,
+        y,
+        3.4,
+        `irc1b-trend-point${p.hasValue ? "" : " irc1b-point-empty"}`,
+        `${p.label}: ${p.hasValue ? p.value.toLocaleString() : "No data"}`,
+      );
+      if (p.value > 0) {
+        svg += svgText(
+          x,
+          y - 7,
+          CHART_POINT_VAL_SCREEN_PX,
+          "irc1b-trend-point-val",
+          p.value.toLocaleString(),
+          { anchor: "middle" },
+        );
+      }
     });
-    chartEl.appendChild(labelsRow);
 
-    // Drawn last, once the track has real layout dimensions to measure.
-    drawLineSvg(track, points, max, avg, showAverage);
+    svg += "</svg>";
+    trendChartWrap.innerHTML = svg;
+  }
+
+  if (trendToggle) {
+    trendToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".irc1b-toggle-btn");
+      if (!btn) return;
+      const mode = btn.dataset.mode;
+      if (!mode || mode === trendMode) return;
+      trendMode = mode;
+      trendToggle
+        .querySelectorAll(".irc1b-toggle-btn")
+        .forEach((b) => b.classList.toggle("active", b === btn));
+      if (lastValues && lastHasData) renderTrendChart(lastValues, lastHasData);
+    });
+  }
+
+  // Keep chart label sizes correct if the card's rendered width changes
+  // (window resize, sidebar toggle, etc.) -- the font-size correction
+  // in renderTrendChart depends on the wrap element's live width.
+  let trendResizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(trendResizeTimer);
+    trendResizeTimer = setTimeout(() => {
+      if (lastValues && lastHasData) renderTrendChart(lastValues, lastHasData);
+    }, 150);
+  });
+
+  // "Three Lowest Months" — mirrors IRC1a's lowest-indicators list, but
+  // over the 12 individually-entered months (not the current chart
+  // period), so switching Monthly/Quarterly doesn't change the ranking.
+  function recalcLowest(values, hasData) {
+    if (!lowestList) return;
+
+    const entries = MONTHS.filter((m) => hasData[m]).map((m) => ({
+      key: m,
+      label: MONTH_LABELS[m],
+      value: values[m],
+    }));
+
+    lowestList.innerHTML = "";
+
+    if (entries.length === 0) {
+      const li = document.createElement("li");
+      li.className = "irc1b-lowest-placeholder";
+      li.textContent = "Enter counts below to see results.";
+      lowestList.appendChild(li);
+      return;
+    }
+
+    entries.sort((a, b) => a.value - b.value);
+    const lowestThree = entries.slice(0, 3);
+
+    lowestThree.forEach((item, idx) => {
+      const rank = idx + 1;
+      const li = document.createElement("li");
+      li.className = "irc1b-lowest-item";
+      li.innerHTML = `<span class="irc1b-lowest-rank irc1b-rank-${rank}">${rank}</span><span class="irc1b-lowest-label">${item.label}</span><span class="irc1b-lowest-value">${item.value.toLocaleString()}</span>`;
+      lowestList.appendChild(li);
+    });
   }
 
   function recalcAll() {
@@ -237,7 +338,8 @@
     lastValues = values;
     lastHasData = hasData;
     recalcTotal(values);
-    renderChart(values, hasData);
+    recalcLowest(values, hasData);
+    renderTrendChart(values, hasData);
   }
 
   table.addEventListener("input", (e) => {
@@ -367,39 +469,6 @@
       performReset();
     });
   }
-
-  // --- Monthly / Quarterly chart toggle ---
-  if (periodToggle) {
-    periodToggle.addEventListener("click", (e) => {
-      const btn = e.target.closest(".irc1b-chart-toggle-btn");
-      if (!btn) return;
-      const period = btn.dataset.period;
-      if (!period || period === currentPeriod) return;
-
-      currentPeriod = period;
-      periodToggle.querySelectorAll(".irc1b-chart-toggle-btn").forEach((b) => {
-        const isActive = b === btn;
-        b.classList.toggle("active", isActive);
-        b.setAttribute("aria-selected", isActive ? "true" : "false");
-      });
-
-      if (lastValues && lastHasData) {
-        renderChart(lastValues, lastHasData);
-      }
-    });
-  }
-
-  // Redraw on resize so the SVG stays aligned to the track's actual
-  // pixel size (e.g. sidebar collapse, window resize, zoom).
-  let resizeRaf = null;
-  window.addEventListener("resize", () => {
-    if (resizeRaf) cancelAnimationFrame(resizeRaf);
-    resizeRaf = requestAnimationFrame(() => {
-      if (lastValues && lastHasData) {
-        renderChart(lastValues, lastHasData);
-      }
-    });
-  });
 
   recalcAll();
   loadPersistedCounts();

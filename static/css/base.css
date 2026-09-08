@@ -231,11 +231,17 @@ nav ul li a.active::after {
   grid-template-columns: repeat(2, minmax(220px, 1fr));
 }
 
+/* IRC8A only: a third "Approving Authority" column alongside the usual
+   "Prepared by" / "Checked by" pair (see base.html). */
+.report-signatory-grid--three {
+  grid-template-columns: repeat(3, minmax(200px, 1fr));
+}
+
 .report-signatory-block {
   padding: 18px 22px;
 }
 
-.report-signatory-block:first-child {
+.report-signatory-block:not(:last-child) {
   border-right: 1px solid var(--border);
 }
 
@@ -289,6 +295,38 @@ nav ul li a.active::after {
   margin: 2px 0 0;
 }
 
+/* IRC8A's "Approving Authority" name -- a real input instead of a plain
+   <p>, since it's typed in on this page rather than sourced from Home
+   (see #irc8aApprovingAuthorityName in base.html / index.js). Sized and
+   weighted to match .report-signatory-name so it reads the same at rest. */
+.report-signatory-name-input {
+  display: block;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  padding: 0 0 2px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+.report-signatory-name-input::placeholder {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--text-light);
+}
+
+.report-signatory-name-input:hover {
+  border-bottom-color: var(--border);
+}
+
+.report-signatory-name-input:focus {
+  outline: none;
+  border-bottom-color: var(--navy);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════════════════════════ */
@@ -319,11 +357,12 @@ nav ul li a.active::after {
     padding: 20px;
   }
 
-  .report-signatory-grid {
+  .report-signatory-grid,
+  .report-signatory-grid--three {
     grid-template-columns: 1fr;
   }
 
-  .report-signatory-block:first-child {
+  .report-signatory-block:not(:last-child) {
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
