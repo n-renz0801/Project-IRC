@@ -1,21 +1,38 @@
-# Project-IRC
+# SGOD PMES
 
-To do:
+**SGOD PMES** is a desktop-based application designed to assist with the processing, management, and generation of **School Governance and Operations Division (SGOD)** documents and reports.
 
-IRC5
+The application provides a centralized interface for working with report cards, forms, and related documents.
 
-1. line graph for overall rating with average
-2. pie graph for quantity of funded vs non-funded
+---
 
-irc6:
+## Features
 
-1. make irc6-col-title editable
+- **Individual Report Card (IRC)** processing
+- Support for multiple **IRC forms and sections**
+- **PMCF** and **TA Feedback Report** document processing
+- Upload and processing of supported documents
+- Local data storage using **SQLite**
+- Desktop application interface
+- No Python installation required when using the compiled Windows executable
 
-all pages:
+---
 
-1. add date at signatory
+## Download
 
-irc8c:
+The latest compiled version of SGOD PMES is available through the project's **GitHub Releases**.
 
-1. Remove signatory at the bottom
-2. Make date using calendar
+Download the latest:
+
+```text
+SGOD_PMES.exe
+```
+
+## Technologies
+
+- **Python**
+- **Flask**
+- **PyWebView**
+- **SQLite**
+- **HTML / CSS / JavaScript**
+- **PyInstaller**
