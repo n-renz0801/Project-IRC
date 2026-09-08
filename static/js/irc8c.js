@@ -105,6 +105,17 @@
   const criteriaStrip = document.getElementById("irc8c-criteria-strip");
   const devTableBody = document.getElementById("irc8c-dev-table-body");
 
+  const resetBtn = document.getElementById("irc8c-reset-btn");
+  const resetConfirmOverlay = document.getElementById(
+    "irc8c-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc8c-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc8c-reset-confirm-confirm",
+  );
+
   // ------------------------------------------------------------------
   // Helpers
   // ------------------------------------------------------------------
@@ -527,6 +538,41 @@
       alert(err.message);
     } finally {
       btn.disabled = false;
+    }
+  });
+
+  // ------------------------------------------------------------------
+  // Reset-page confirmation modal
+  //
+  // Single scope, no options -- IRC8c has nothing but these four fixed
+  // Development Plan rows to reset (see models.py's IRC8CRow docstring),
+  // so unlike IRC7/IRC8a there's no "values only" vs "everything" split.
+  // Mirrors IRC6's reset-confirmation modal.
+  // ------------------------------------------------------------------
+  function openResetConfirm() {
+    resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    resetConfirmOverlay.classList.remove("visible");
+  }
+
+  resetBtn.addEventListener("click", openResetConfirm);
+  resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  resetConfirmOverlay.addEventListener("click", (e) => {
+    if (e.target === resetConfirmOverlay) closeResetConfirm();
+  });
+
+  resetConfirmConfirmBtn.addEventListener("click", async () => {
+    resetConfirmConfirmBtn.disabled = true;
+    try {
+      await apiCall("DELETE", `/irc/irc8c/reset?year=${state.year}`);
+      await loadAll();
+    } catch (err) {
+      alert(err.message || "Could not reset the data. Please try again.");
+    } finally {
+      resetConfirmConfirmBtn.disabled = false;
+      closeResetConfirm();
     }
   });
 

@@ -16,6 +16,11 @@ block content %}
         <strong>Development Plans</strong> arising from the discussion below.
       </p>
     </div>
+    <div class="irc8c-header-actions">
+      <button type="button" id="irc8c-reset-btn" class="irc8c-reset-btn">
+        Reset
+      </button>
+    </div>
   </div>
 
   <!-- ================= FINAL RATING (metric cards) ================= -->
@@ -94,6 +99,38 @@ block content %}
     </div>
   </div>
 </section>
+
+<!-- ================= RESET-PAGE CONFIRMATION MODAL ================= -->
+<!-- Same visual pattern/markup as IRC6's reset-confirmation modal (see
+     irc6.html) -- single scope, no options, since IRC8c has nothing but
+     these four fixed Development Plan rows to reset. Ids are namespaced
+     to irc8c so it doesn't share state with anything else on this page. -->
+<div id="irc8c-reset-confirm-overlay" class="irc8c-confirm-overlay">
+  <div class="irc8c-confirm-box">
+    <h4>Reset the contents of this page?</h4>
+    <p>
+      This will clear every Development Plan row &mdash; Strengths, Development
+      Needs, Action Plan, Timeline, and Resources Needed &mdash; back to blank
+      and locked. This cannot be undone.
+    </p>
+    <div class="irc8c-confirm-actions">
+      <button
+        type="button"
+        id="irc8c-reset-confirm-cancel"
+        class="irc8c-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc8c-reset-confirm-confirm"
+        class="irc8c-btn-danger"
+      >
+        Yes, Reset
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/irc8c.js') }}"></script>
 
