@@ -75,7 +75,33 @@
     </nav>
 
     <!-- ===== PAGE CONTENT ===== -->
-    <main class="content">{% block content %}{% endblock %}</main>
+    <main class="content">
+      {% block content %}{% endblock %}
+
+      <!-- ===== REPORT SIGNATORY FOOTER =====
+           Shown at the bottom of every IRC1a-IRC9 page (active_tab is set
+           by view_tab()); hidden on Home, which has no report to sign.
+           "Prepared by" is populated client-side from /api/preparer (see
+           index.js) so it always reflects whatever was last saved on the
+           Home page. "Checked by" never changes, so it's hardcoded here. -->
+      {% if active_tab %}
+      <div class="report-signatory">
+        <div class="report-signatory-block">
+          <p class="report-signatory-label">Prepared by:</p>
+          <p class="report-signatory-name" id="reportPreparedByName">&nbsp;</p>
+          <p
+            class="report-signatory-position"
+            id="reportPreparedByPosition"
+          ></p>
+        </div>
+        <div class="report-signatory-block">
+          <p class="report-signatory-label">Checked by:</p>
+          <p class="report-signatory-name">DR. JONATHAN P. DOMINGO</p>
+          <p class="report-signatory-position">SGOD Chief</p>
+        </div>
+      </div>
+      {% endif %}
+    </main>
 
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
     {% block extra_js %}{% endblock %}

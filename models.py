@@ -1078,3 +1078,23 @@ class IRC9Entry(db.Model):
             "output": self.output,
             "impact": self.impact,
         }
+
+
+# ---------------------------------------------------------------------------
+# Report signatory -- "Prepared by" name/position shown at the bottom of
+# every IRC1a-IRC9 report page (see base.html's report-signatory footer).
+# Single global row (not year-scoped, no uploaded_file_id): it's set once
+# from the Home page and intentionally untouched by any tab's Reset, since
+# it's not part of any report's data -- just who's signing it.
+#
+# "Checked by" is NOT stored here -- it's a fixed name/position that never
+# changes, so it's hardcoded directly in base.html's footer instead.
+# ---------------------------------------------------------------------------
+class ReportPreparer(db.Model):
+    __tablename__ = "report_preparer"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False, default="")
+    position = db.Column(db.String(255), nullable=False, default="")
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
