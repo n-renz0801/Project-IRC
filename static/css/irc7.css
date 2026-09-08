@@ -126,6 +126,28 @@
   margin: 0 4px;
 }
 
+/* Reset button — identical appearance to IRC5's .irc5-reset-btn */
+
+.irc7-reset-btn {
+  flex-shrink: 0;
+  background: #fff;
+  color: #dc2626;
+  border: 1.5px solid #f3b4b4;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc7-reset-btn:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+
 /* ---------- Table ---------- */
 /* table-layout: fixed is required so <col> widths (percentage or px) are
    respected exactly instead of being overridden by cell content. The
@@ -177,9 +199,20 @@
   border-bottom: 3px solid #4a6fa5;
 }
 
+/* Added-column headers get a distinct blue family so they're visually
+   set apart from the six fixed reference columns (#1f2937, slate/gray)
+   at a glance. Group headers (the spanning label row) get the darker
+   shade; the individual column headers underneath (or standalone added
+   columns with no group) get the lighter shade -- .irc7-added-header is
+   applied to both by irc7.js's buildGroupHeaderCell/buildColumnHeaderCell. */
+
 .irc7-group-header {
-  background: #16202e !important;
+  background: #1e4976 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.irc7-sub-header.irc7-added-header {
+  background: #2f6690;
 }
 
 .irc7-sub-header,
@@ -234,6 +267,39 @@
 
 .irc7-table tbody td:last-child {
   border-right: none;
+}
+
+/* ---------- Totals row (tfoot) ---------- */
+/* Sits visually distinct from data rows: bold, a heavier top border tying
+   it to the header's accent color, and a light tint so it doesn't get
+   mistaken for just another data row. Only "number"-type added columns
+   get a running sum here (see updateColumnTotal in irc7.js); every other
+   column's cell is left empty by buildTotalsCell. */
+
+.irc7-table tfoot td {
+  padding: 10px 18px;
+  border-right: 1px solid #e8e8e8;
+  border-top: 2px solid #4a6fa5;
+  background: #eef2f8;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.irc7-table tfoot td:last-child {
+  border-right: none;
+}
+
+.irc7-totals-label {
+  text-align: right;
+  padding-right: 24px;
+  color: #4a6fa5;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 12px;
+}
+
+.irc7-totals-cell {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Editable cells added via "Add Column" */
@@ -634,6 +700,153 @@
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+}
+
+/* ---------- Reset confirmation modal ---------- */
+/* Identical appearance to IRC5's .irc5-confirm-* dialog. */
+
+.irc7-confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.irc7-confirm-overlay.visible {
+  display: flex;
+}
+
+.irc7-confirm-box {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 360px;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+/* The reset modal has more content (option list) than a plain Yes/No
+   confirmation, so it gets a little extra width and left-aligned body
+   text -- the heading/buttons stay centered like every other confirm box. */
+.irc7-confirm-box--reset {
+  max-width: 420px;
+}
+
+.irc7-confirm-box h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.irc7-confirm-box p {
+  margin: 0 0 20px 0;
+  font-size: 13.5px;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Reset-scope radio options */
+
+.irc7-reset-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 16px 0;
+  text-align: left;
+}
+
+.irc7-reset-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1.5px solid #e2e5ea;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.irc7-reset-option:hover {
+  background: #fafbfc;
+}
+
+.irc7-reset-option:has(input:checked) {
+  border-color: #4a6fa5;
+  background: #eef2f8;
+}
+
+.irc7-reset-option input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #4a6fa5;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.irc7-reset-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.irc7-reset-option-text strong {
+  font-size: 13.5px;
+  color: #1a1a1a;
+}
+
+.irc7-reset-option-text small {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* When "Reset entire table" is picked, the warning copy below turns red
+   to signal the heavier, structural action -- see irc7.js's radio
+   change listener. */
+#irc7-reset-confirm-warning.irc7-reset-warning--danger {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.irc7-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.irc7-btn-secondary,
+.irc7-btn-danger {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.irc7-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.irc7-btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.irc7-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.irc7-btn-danger:hover {
+  background: #b91c1c;
 }
 
 /* ---------- Responsive ---------- */

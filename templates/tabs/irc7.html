@@ -106,6 +106,9 @@ block content %}
         </svg>
       </button>
       <span class="irc7-toolbar-divider"></span>
+      <button type="button" id="irc7-reset-btn" class="irc7-reset-btn">
+        Reset
+      </button>
       <button
         type="button"
         class="irc7-add-column-toolbar-btn"
@@ -164,6 +167,17 @@ block content %}
              now live in the IRC7Row table instead of being hardcoded
              here. -->
       </tbody>
+
+      <tfoot id="irc7-tfoot">
+        <tr id="irc7-totals-row">
+          <!-- 6 = number of fixed leading columns above (School ID through
+               School Classification), same hardcoded count used by their
+               colgroup/thead entries. One totals cell per added column is
+               appended here by irc7.js (buildTotalsCell in appendCellToRows)
+               -- only "number" columns get a running sum, others stay blank. -->
+          <td class="irc7-totals-label" colspan="6">Total</td>
+        </tr>
+      </tfoot>
     </table>
   </div>
 
@@ -255,6 +269,73 @@ block content %}
     <div class="irc7-modal-overlay" id="editItemModalOverlay"></div>
   </div>
 </section>
+
+<!-- ================= RESET-PAGE CONFIRMATION MODAL ================= -->
+<!-- Same visual pattern/markup as IRC5's reset-confirmation modal (see
+     irc5.html), extended with a choice of reset scope -- ids are
+     namespaced to irc7 so it doesn't share state with anything else on
+     this page. -->
+<div id="irc7-reset-confirm-overlay" class="irc7-confirm-overlay">
+  <div class="irc7-confirm-box irc7-confirm-box--reset">
+    <h4>Reset the contents of this page?</h4>
+
+    <div class="irc7-reset-options">
+      <label class="irc7-reset-option">
+        <input
+          type="radio"
+          name="irc7-reset-scope"
+          value="values"
+          id="irc7-reset-scope-values"
+          checked
+        />
+        <span class="irc7-reset-option-text">
+          <strong>Clear entered values only</strong>
+          <small
+            >Empties every cell. Columns, groups, and their titles stay exactly
+            as they are.</small
+          >
+        </span>
+      </label>
+      <label class="irc7-reset-option">
+        <input
+          type="radio"
+          name="irc7-reset-scope"
+          value="all"
+          id="irc7-reset-scope-all"
+        />
+        <span class="irc7-reset-option-text">
+          <strong>Reset entire table</strong>
+          <small
+            >Also removes every added column and group, back to a blank
+            table.</small
+          >
+        </span>
+      </label>
+    </div>
+
+    <p id="irc7-reset-confirm-warning">
+      This will clear all entered values in every column, but keeps the columns
+      and their titles. This cannot be undone.
+    </p>
+
+    <div class="irc7-confirm-actions">
+      <button
+        type="button"
+        id="irc7-reset-confirm-cancel"
+        class="irc7-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc7-reset-confirm-confirm"
+        class="irc7-btn-danger"
+      >
+        Yes, Reset
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/irc7.js') }}"></script>
 

@@ -2368,6 +2368,37 @@ def save_irc7_cell():
     return jsonify({"rowId": row_id, "columnId": column_id, "year": year, "value": value}), 200
 
 
+@app.route("/irc/irc7/reset", methods=["DELETE"])
+def reset_irc7_data():
+    """Two reset scopes for the "Reset" button/modal, chosen via
+    ?scope=values|all (defaults to "values"):
+
+      - scope=values (default): wipes every IRC7CellValue for a given
+        year (defaults to current year) -- the "Clear entered values
+        only" option. Same as before: IRC7Row (fixed schools) and
+        IRC7Column (columns/groups, with their names and types) are left
+        completely untouched, so the table's shape survives.
+
+      - scope=all: the "Reset entire table" option. Deletes every
+        IRC7Column outright, which cascades to delete all of its cell
+        values too (see the FK relationship in models.py) -- across
+        every year, not just the one passed in, since a deleted column
+        no longer exists for any year. IRC7Row (fixed schools) is still
+        never touched; only user-added columns/groups and their data.
+    """
+    scope = request.args.get("scope", "values")
+    year = request.args.get("year", type=int) or _current_year()
+
+    if scope == "all":
+        IRC7Column.query.delete()
+        db.session.commit()
+        return jsonify({"reset": True, "scope": "all"}), 200
+
+    IRC7CellValue.query.filter_by(year=year).delete()
+    db.session.commit()
+    return jsonify({"reset": True, "scope": "values", "year": year}), 200
+
+
 # ---------------------------------------------------------------------------
 # IRC8b -- Core Behavioral Competencies and Core Skills
 #

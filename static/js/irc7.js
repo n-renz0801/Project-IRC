@@ -7,6 +7,7 @@
   const groupRow = document.getElementById("irc7-group-row");
   const colRow = document.getElementById("irc7-col-row");
   const tbody = document.getElementById("irc7-tbody");
+  const totalsRow = document.getElementById("irc7-totals-row");
 
   const addColumnBtn = document.getElementById("addColumnBtn");
   const modal = document.getElementById("addColumnModal");
@@ -31,6 +32,23 @@
   const deleteModeBtn = document.getElementById("deleteModeBtn");
   const editModeBanner = document.getElementById("editModeBanner");
   const deleteModeBanner = document.getElementById("deleteModeBanner");
+
+  const resetBtn = document.getElementById("irc7-reset-btn");
+  const resetConfirmOverlay = document.getElementById(
+    "irc7-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc7-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc7-reset-confirm-confirm",
+  );
+  const resetScopeRadios = document.querySelectorAll(
+    'input[name="irc7-reset-scope"]',
+  );
+  const resetConfirmWarning = document.getElementById(
+    "irc7-reset-confirm-warning",
+  );
 
   // Minimum pixel width for each column type. Every added column (grouped
   // or standalone) gets a <col data-min-width="..."> using one of these.
@@ -418,6 +436,11 @@
       td.appendChild(input);
       tr.appendChild(td);
     });
+
+    // One totals cell per added column, built after this column's data
+    // cells above so its initial sum (for "number" columns) reflects any
+    // values already loaded from the server.
+    totalsRow.appendChild(buildTotalsCell(colId, type));
   }
 
   function buildCellInput(type, rowId, colId, initialValue) {
@@ -432,6 +455,7 @@
 
     input.addEventListener("change", () => {
       saveCellValue(rowId, colId, input.value);
+      updateColumnTotal(colId);
     });
 
     return input;
@@ -449,6 +473,49 @@
     } catch (err) {
       console.error("Failed to save IRC7 cell:", err);
     }
+  }
+
+  // ================= TOTALS ROW (number columns only) =================
+  //
+  // Sums are computed straight from each column's <input> values already
+  // in the DOM, not from `cellValues` -- that keeps the running total in
+  // sync with whatever's currently typed the instant a "change" event
+  // fires, without waiting on saveCellValue's fetch to resolve.
+
+  function formatSum(n) {
+    // Round to 2 decimals to shake off floating-point noise (e.g.
+    // 0.1 + 0.2), then drop a trailing ".00"/".50"-style zero tail.
+    const rounded = Math.round((n + Number.EPSILON) * 100) / 100;
+    return String(rounded);
+  }
+
+  function computeColumnSum(colId) {
+    let sum = 0;
+    tbody
+      .querySelectorAll(`td[data-col-id="${colId}"] input`)
+      .forEach((input) => {
+        const v = parseFloat(input.value);
+        if (!isNaN(v)) sum += v;
+      });
+    return sum;
+  }
+
+  function buildTotalsCell(colId, type) {
+    const td = document.createElement("td");
+    td.className = "irc7-totals-cell";
+    td.dataset.colId = colId;
+    if (type === "number") {
+      td.textContent = formatSum(computeColumnSum(colId));
+    }
+    return td;
+  }
+
+  function updateColumnTotal(colId) {
+    const col = columns.find((c) => c.id === colId);
+    if (!col || col.type !== "number") return;
+    const cell = totalsRow.querySelector(`td[data-col-id="${colId}"]`);
+    if (!cell) return;
+    cell.textContent = formatSum(computeColumnSum(colId));
   }
 
   // ================= EDIT / DELETE MODE: header clicks =================
@@ -594,6 +661,17 @@
               td.appendChild(input);
             });
 
+          // Type changed -- refresh the totals cell in place (never
+          // remove/re-append it, since that would shift its position out
+          // of alignment with this column's <col>/header).
+          const totalsCell = totalsRow.querySelector(
+            `td[data-col-id="${col.id}"]`,
+          );
+          if (totalsCell) {
+            totalsCell.textContent =
+              newType === "number" ? formatSum(computeColumnSum(col.id)) : "";
+          }
+
           recalcLayout();
         }
       }
@@ -658,6 +736,9 @@
       .querySelectorAll(`td[data-col-id="${colId}"]`)
       .forEach((td) => td.remove());
 
+    const totalsCell = totalsRow.querySelector(`td[data-col-id="${colId}"]`);
+    if (totalsCell) totalsCell.remove();
+
     const blockToken = colIdToBlock.get(colId);
     if (blockToken) {
       const block = columnBlocks.get(blockToken);
@@ -719,6 +800,10 @@
         tbody
           .querySelectorAll(`td[data-col-id="${colId}"]`)
           .forEach((td) => td.remove());
+        const totalsCell = totalsRow.querySelector(
+          `td[data-col-id="${colId}"]`,
+        );
+        if (totalsCell) totalsCell.remove();
         colIdToBlock.delete(colId);
       });
 
@@ -728,6 +813,133 @@
     columns = columns.filter((c) => c.groupName !== groupName);
     recalcLayout();
   }
+
+  // ================= RESET: VALUES ONLY, OR ENTIRE TABLE =================
+  //
+  // Two scopes, chosen via the modal's radio buttons and sent as
+  // ?scope=values|all to the shared /irc/irc7/reset endpoint:
+  //
+  //  - "values" (default): only IRC7CellValue rows are wiped server-side.
+  //    IRC7's added-column *values* live in their own table separate
+  //    from the columns/groups themselves (IRC7Column), so columns,
+  //    groups, and their titles are never touched -- only what's typed
+  //    into each cell disappears.
+  //  - "all": every IRC7Column is deleted outright, which cascades to
+  //    its cell values too (see reset_irc7_data() in app.py) -- the
+  //    table goes back to just its 6 fixed reference columns.
+  const RESET_WARNINGS = {
+    values:
+      "This will clear all entered values in every column, but keeps the columns and their titles. This cannot be undone.",
+    all: "This will remove every added column and group, along with everything typed into them. This cannot be undone.",
+  };
+
+  function getSelectedResetScope() {
+    const checked = document.querySelector(
+      'input[name="irc7-reset-scope"]:checked',
+    );
+    return checked ? checked.value : "values";
+  }
+
+  function updateResetWarning() {
+    const scope = getSelectedResetScope();
+    resetConfirmWarning.textContent =
+      RESET_WARNINGS[scope] || RESET_WARNINGS.values;
+    resetConfirmWarning.classList.toggle(
+      "irc7-reset-warning--danger",
+      scope === "all",
+    );
+  }
+
+  resetScopeRadios.forEach((radio) => {
+    radio.addEventListener("change", updateResetWarning);
+  });
+
+  function openResetConfirm() {
+    // Always reopen on the safer "values only" option rather than
+    // remembering whatever was picked last time.
+    const valuesRadio = document.getElementById("irc7-reset-scope-values");
+    if (valuesRadio) valuesRadio.checked = true;
+    updateResetWarning();
+    resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    resetConfirmOverlay.classList.remove("visible");
+  }
+
+  function clearAllCellValuesInPlace() {
+    // Clear every cell input in place -- columns/headers already in the
+    // DOM are left completely alone.
+    cellValues = {};
+    tbody.querySelectorAll(".irc7-cell-input").forEach((input) => {
+      input.value = "";
+    });
+
+    // Every number column's sum drops to 0 now that its inputs are
+    // empty -- recompute in place rather than assuming "0" everywhere,
+    // in case a future change makes the sum ignore truly-empty cells.
+    columns.forEach((col) => {
+      if (col.type === "number") updateColumnTotal(col.id);
+    });
+  }
+
+  function removeAllAddedColumnsInPlace() {
+    // Group-spanning headers and standalone column headers both carry
+    // "irc7-added-header" and both live in groupRow; grouped sub-headers
+    // (colRow) are always 100% added, so it's cleared outright.
+    groupRow
+      .querySelectorAll(".irc7-added-header")
+      .forEach((th) => th.remove());
+    colRow.innerHTML = "";
+
+    // Remove every added <col>, leaving the 6 fixed ones (they carry no
+    // data-col-id) untouched.
+    colgroup
+      .querySelectorAll("col[data-col-id]")
+      .forEach((col) => col.remove());
+
+    // Remove every added data cell from each row, leaving the 6 fixed tds.
+    tbody.querySelectorAll("td[data-col-id]").forEach((td) => td.remove());
+
+    // Remove every totals cell, leaving only the "Total" label cell.
+    totalsRow.querySelectorAll("td[data-col-id]").forEach((td) => td.remove());
+
+    columns = [];
+    columnBlocks.clear();
+    colIdToBlock.clear();
+    cellValues = {};
+    deactivateModes();
+  }
+
+  resetBtn.addEventListener("click", openResetConfirm);
+  resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  resetConfirmOverlay.addEventListener("click", (e) => {
+    if (e.target === resetConfirmOverlay) closeResetConfirm();
+  });
+
+  resetConfirmConfirmBtn.addEventListener("click", async () => {
+    const scope = getSelectedResetScope();
+    resetConfirmConfirmBtn.disabled = true;
+    try {
+      const res = await fetch(`/irc/irc7/reset?scope=${scope}&year=${YEAR}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Reset failed");
+
+      if (scope === "all") {
+        removeAllAddedColumnsInPlace();
+        recalcLayout();
+      } else {
+        clearAllCellValuesInPlace();
+      }
+    } catch (err) {
+      console.error("Failed to reset IRC7 data:", err);
+      alert("Could not reset the data. Please try again.");
+    } finally {
+      resetConfirmConfirmBtn.disabled = false;
+      closeResetConfirm();
+    }
+  });
 
   // ---------- Initial load ----------
   loadData();
