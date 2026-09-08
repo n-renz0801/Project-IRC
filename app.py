@@ -30,6 +30,7 @@ from models import (
     IRC8CRow,
     IRC8C_SLOTS,
     IRC9Entry,
+    ReportPreparer,
     MONTH_KEYS,
     TA_STATUS_PROVIDED,
     TA_STATUS_UNPROVIDED,
@@ -578,6 +579,18 @@ def _current_year():
     return datetime.now().year
 
 
+def _get_preparer():
+    """Single global row holding the 'Prepared by' name/position (see
+    ReportPreparer in models.py). Created lazily with blank fields on
+    first access so callers never have to special-case "no row yet"."""
+    preparer = ReportPreparer.query.first()
+    if preparer is None:
+        preparer = ReportPreparer(name="", position="")
+        db.session.add(preparer)
+        db.session.commit()
+    return preparer
+
+
 def _upsert_irc1a_ratings(year, month_key, ratings_by_indicator, uploaded_file):
     """ratings_by_indicator: { indicator_id (int): rating (float) }"""
     for indicator_id, rating in ratings_by_indicator.items():
@@ -718,7 +731,33 @@ def home():
         active_tab=None,
         month_grid=month_grid,
         current_year=year,
+        preparer=_get_preparer(),
     )
+
+
+@app.route("/api/preparer", methods=["GET"])
+def get_preparer():
+    """Read-only fetch used by base.html's report-signatory footer on every
+    IRC1a-IRC9 page to fill in the current 'Prepared by' name/position."""
+    preparer = _get_preparer()
+    return jsonify({"name": preparer.name, "position": preparer.position}), 200
+
+
+@app.route("/api/preparer", methods=["POST"])
+def save_preparer():
+    """Saves the 'Prepared by' name/position typed on the Home page. Single
+    global row -- intentionally not year-scoped and never touched by any
+    tab's Reset (see ReportPreparer in models.py)."""
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    position = (data.get("position") or "").strip()
+
+    preparer = _get_preparer()
+    preparer.name = name
+    preparer.position = position
+    db.session.commit()
+
+    return jsonify({"name": preparer.name, "position": preparer.position}), 200
 
 
 @app.route("/irc/<tab_id>")

@@ -194,6 +194,44 @@ nav ul li a.active::after {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   REPORT SIGNATORY FOOTER — "Prepared by / Checked by", shown at the
+   bottom of every IRC1a-IRC9 page (see base.html). Not shown on Home.
+═══════════════════════════════════════════════════════════════════════════ */
+
+.report-signatory {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 24px;
+  margin-top: 48px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.report-signatory-label {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin: 0 0 18px;
+}
+
+.report-signatory-name {
+  display: inline-block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  min-width: 240px;
+  border-bottom: 1px solid var(--text);
+  padding-bottom: 4px;
+  margin: 0;
+}
+
+.report-signatory-position {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  margin: 4px 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -221,6 +259,11 @@ nav ul li a.active::after {
 
   .content {
     padding: 20px;
+  }
+
+  .report-signatory {
+    grid-template-columns: 1fr;
+    gap: 28px;
   }
 }
 
