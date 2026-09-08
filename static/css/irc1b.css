@@ -1,4 +1,5 @@
 /* IRC1b - Number of Customers Served - CSS Stylesheet */
+/* Analytics-first layout, matching IRC1a's guided-flow design language */
 
 html {
   scrollbar-width: none;
@@ -13,14 +14,18 @@ html::-webkit-scrollbar {
   padding: 24px 0;
 }
 
+/* ------------------------------------------------------------------
+   1. Page Header
+------------------------------------------------------------------ */
+
 .irc1b-header {
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 
 .irc1b-header-top {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 16px;
   flex-wrap: wrap;
 }
@@ -39,7 +44,14 @@ html::-webkit-scrollbar {
   line-height: 1.5;
 }
 
-/* Reset-all-data button — same design as IRC2b's reset button */
+.irc1b-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Reset-all-data button */
 .irc1b-reset-btn {
   display: flex;
   align-items: center;
@@ -75,7 +87,7 @@ html::-webkit-scrollbar {
 }
 
 /* ------------------------------------------------------------------
-   Reset confirmation modal — same look as IRC6's confirm dialog
+   Reset confirmation modal
 ------------------------------------------------------------------ */
 
 .irc1b-confirm-overlay {
@@ -152,17 +164,287 @@ html::-webkit-scrollbar {
 }
 
 /* ------------------------------------------------------------------
-   Main Table — Refined Corporate, dark header
+   Guided Flow — numbered rail (1-2) tying the hero and table
+   sections together as a top-to-bottom sequence.
 ------------------------------------------------------------------ */
 
-.irc1b-table-wrapper {
+.irc1b-flow {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 20px;
+  row-gap: 1.25rem;
+}
+
+.irc1b-flow-rail {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  display: grid;
+  grid-template-rows: subgrid;
+  position: relative;
+}
+
+.irc1b-flow-rail::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  background: var(--border-strong, #d0d5dd);
+  transform: translateX(-50%);
+}
+
+.irc1b-flow-badge {
+  align-self: start;
+  justify-self: center;
+  margin-top: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1f2937;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.irc1b-flow-section-1 {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.irc1b-flow-section-2 {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.irc1b-flow-label {
+  margin: 20px 0 10px 2px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------
+   2. Top Analytics Section (Hero Block - 2 Column Split)
+------------------------------------------------------------------ */
+
+.irc1b-hero-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.irc1b-trend-card {
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------------
+   Shared dark analytics header band — marks a card as
+   "analytics/summary" (as opposed to the light data-entry table below).
+------------------------------------------------------------------ */
+
+.irc1b-dark-header {
+  background: linear-gradient(160deg, #1f2937 0%, #2d3f57 100%);
+  padding: 16px 20px;
+  box-sizing: border-box;
+}
+
+.irc1b-card-body {
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* The trend card's own body grows to fill whatever height the card
+   ends up with, so the chart wrap below can claim the remaining
+   vertical space -- same treatment as IRC1a's trend card. */
+.irc1b-trend-card > .irc1b-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.irc1b-subtitle-dark {
+  color: #9aa7b8;
+}
+
+.irc1b-trend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Shared "section header" style — dark-header titles must stay
+   visually consistent. Change the look of any of them here, in one
+   place. */
+.irc1b-trend-header h3,
+.irc1b-table-card-header h3 {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #fff;
+}
+
+.irc1b-trend-toggle {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.irc1b-toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.irc1b-toggle-btn:hover {
+  color: #333;
+}
+
+.irc1b-toggle-btn.active {
+  background: white;
+  color: #185fa5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.irc1b-trend-chart-wrap {
+  width: 100%;
+  flex: 1;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+}
+
+.irc1b-trend-chart-wrap svg {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  display: block;
+  overflow: visible;
+}
+
+/* ------------------------------------------------------------------
+   Trend chart — light grid + solid axis, rounded line with a soft
+   area fill under it, white points with a colored ring, bold value
+   labels above each point.
+------------------------------------------------------------------ */
+
+.irc1b-trend-grid {
+  stroke: #eef0f2;
+  stroke-width: 1;
+}
+
+.irc1b-trend-axis {
+  stroke: #d6dbe1;
+  stroke-width: 1.2;
+}
+
+.irc1b-trend-axis-label {
+  font-size: 11.5px;
+  fill: #9aa5b1;
+}
+
+.irc1b-trend-x-label {
+  font-size: 11.5px;
+  fill: #8a93a0;
+  text-anchor: middle;
+}
+
+.irc1b-trend-path {
+  fill: none;
+  stroke: #4a6fa5;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: d 0.25s ease;
+}
+
+.irc1b-trend-area {
+  fill: rgba(74, 111, 165, 0.09);
+  stroke: none;
+}
+
+.irc1b-trend-point {
+  fill: #fff;
+  stroke: #4a6fa5;
+  stroke-width: 2.1;
+}
+
+.irc1b-trend-point.irc1b-point-empty {
+  stroke: #9ca3af;
+}
+
+.irc1b-trend-point:hover {
+  r: 4.5;
+}
+
+.irc1b-trend-point-val {
+  font-size: 11.5px;
+  font-weight: 700;
+  fill: #4a6fa5;
+  text-anchor: middle;
+}
+
+/* Empty-state placeholder text for the trend chart (badge-card removed) */
+.irc1b-lowest-placeholder {
+  font-size: 12.5px;
+  color: #9aa7b8;
+}
+
+/* ------------------------------------------------------------------
+   3. Bottom Section — Data Entry Table
+------------------------------------------------------------------ */
+
+.irc1b-table-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
+.irc1b-table-wrapper {
+  background: white;
+  border: none;
+  border-radius: 0;
   overflow-x: auto;
   overflow-y: visible;
-  margin-bottom: 32px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .irc1b-table {
@@ -179,7 +461,7 @@ html::-webkit-scrollbar {
 
 .irc1b-table thead th {
   padding: 13px 8px;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
   color: #f3f4f6;
   white-space: nowrap;
@@ -283,195 +565,28 @@ html::-webkit-scrollbar {
   border-radius: 999px;
 }
 
-/* Chart Section */
-.irc1b-chart-section {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  box-sizing: border-box;
-  margin-bottom: 32px;
-}
-
-.irc1b-chart-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.irc1b-chart-section h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-  color: #1a1a1a;
-}
-
-/* Monthly / Quarterly toggle */
-.irc1b-chart-toggle {
-  display: inline-flex;
-  background: #eef2f7;
-  border-radius: 8px;
-  padding: 3px;
-  gap: 2px;
-}
-
-.irc1b-chart-toggle-btn {
-  border: none;
-  background: transparent;
-  color: #5a6473;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.irc1b-chart-toggle-btn:hover {
-  color: #1a1a1a;
-}
-
-.irc1b-chart-toggle-btn.active {
-  background: #4a6fa5;
-  color: white;
-  box-shadow: 0 1px 3px rgba(74, 111, 165, 0.35);
-}
-
-.irc1b-chart-wrapper {
-  margin-top: 16px;
-}
-
 /* ------------------------------------------------------------------
-   Chart — line graph. The track is a relative container sized in real
-   pixels; the JS measures it and draws an inline SVG (polyline +
-   points + average line) sized to match exactly, so everything lines
-   up with the month/quarter labels below it.
+   Responsive adjustments
 ------------------------------------------------------------------ */
 
-.irc1b-chart {
-  display: flex;
-  flex-direction: column;
-  height: 220px;
-}
-
-.irc1b-chart-track {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  border-bottom: 1px solid #e8e8e8;
-  padding-bottom: 2px;
-}
-
-.irc1b-chart-svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  display: block;
-}
-
-.irc1b-chart-line-path {
-  fill: none;
-  stroke: #4a6fa5;
-  stroke-width: 2.5;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.irc1b-chart-point {
-  fill: #4a6fa5;
-  stroke: #ffffff;
-  stroke-width: 2;
-}
-
-.irc1b-chart-point-empty {
-  fill: #cbd5e1;
-  stroke: #ffffff;
-  stroke-width: 1.5;
-}
-
-.irc1b-chart-val-text {
-  font-size: 11px;
-  font-weight: 500;
-  fill: #666;
-}
-
-/* Average indicator line, drawn inside the SVG */
-.irc1b-chart-avg-line-svg {
-  stroke: #e2635a;
-  stroke-width: 2;
-  stroke-dasharray: 6, 4;
-}
-
-/* Average label — enlarged per request (was 10px) */
-.irc1b-chart-avg-label {
-  position: absolute;
-  right: 2px;
-  transform: translateY(-100%);
-  font-size: 15px;
-  font-weight: 700;
-  color: #e2635a;
-  background: white;
-  padding: 4px 10px;
-  border: 1.5px solid #e2635a;
-  border-radius: 6px;
-  white-space: nowrap;
-  z-index: 3;
-  pointer-events: none;
-  box-shadow: 0 1px 4px rgba(226, 99, 90, 0.2);
-}
-
-.irc1b-chart-labels {
-  display: flex;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.irc1b-chart-label {
-  flex: 1;
-  text-align: center;
-  font-size: 12px;
-  color: #666;
-}
-
-.irc1b-total-stat {
-  margin-top: 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: #eff4f9;
-  border-radius: 8px;
-}
-
-.irc1b-total-stat-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-}
-
-.irc1b-total-stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #185fa5;
-}
-
-/* Responsive adjustments */
 @media (max-width: 1200px) {
   .irc1b-label-col {
-    width: 180px;
+    width: 150px;
   }
 }
 
 @media (max-width: 768px) {
   .irc1b-header h2 {
     font-size: 22px;
+  }
+
+  .irc1b-header-actions {
+    width: 100%;
+  }
+
+  .irc1b-reset-btn {
+    flex: 1;
+    justify-content: center;
   }
 
   .irc1b-table-wrapper {
@@ -483,16 +598,8 @@ html::-webkit-scrollbar {
     padding: 8px 6px;
   }
 
-  .irc1b-chart-section {
-    padding: 16px;
-  }
-
-  .irc1b-chart {
-    height: 180px;
-  }
-
-  .irc1b-chart-avg-label {
-    font-size: 13px;
-    padding: 3px 8px;
+  .irc1b-dark-header,
+  .irc1b-card-body {
+    padding: 14px 16px;
   }
 }

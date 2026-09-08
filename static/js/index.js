@@ -144,4 +144,58 @@ document.addEventListener("DOMContentLoaded", function () {
         preparedByPositionEl.textContent = "";
       });
   }
+
+  // ---------- IRC8A: "Approving Authority" name (footer, IRC8A page only) ----------
+  // Only present on the IRC8A page (see base.html's active_tab.id == 'irc8a'
+  // check), so this whole block is a no-op everywhere else. Same debounce-
+  // on-input / flush-on-blur convention as the Home page preparer fields
+  // above, just saved to its own endpoint since this name is scoped to
+  // IRC8A rather than shared across every report.
+  var approvingAuthorityInput = document.getElementById(
+    "irc8aApprovingAuthorityName",
+  );
+
+  if (approvingAuthorityInput) {
+    var approvingAuthoritySaveTimer = null;
+
+    function saveApprovingAuthority() {
+      fetch("/api/irc8a/approving-authority", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: approvingAuthorityInput.value.trim() }),
+      }).catch(() => {
+        /* Best-effort, same convention as the preparer autosave above. */
+      });
+    }
+
+    function scheduleApprovingAuthoritySave() {
+      clearTimeout(approvingAuthoritySaveTimer);
+      approvingAuthoritySaveTimer = setTimeout(saveApprovingAuthority, 600);
+    }
+
+    function flushApprovingAuthoritySave() {
+      clearTimeout(approvingAuthoritySaveTimer);
+      saveApprovingAuthority();
+    }
+
+    approvingAuthorityInput.addEventListener(
+      "input",
+      scheduleApprovingAuthoritySave,
+    );
+    approvingAuthorityInput.addEventListener(
+      "blur",
+      flushApprovingAuthoritySave,
+    );
+
+    fetch("/api/irc8a/approving-authority")
+      .then(function (res) {
+        return res.json();
+      })
+      .then(function (data) {
+        approvingAuthorityInput.value = data.name || "";
+      })
+      .catch(function () {
+        /* leave the field blank on failure */
+      });
+  }
 });

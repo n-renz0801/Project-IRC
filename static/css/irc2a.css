@@ -384,7 +384,7 @@ html::-webkit-scrollbar {
   list-style: none;
   margin: 0;
   padding: 10px;
-  max-height: 170px;
+  max-height: 235px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

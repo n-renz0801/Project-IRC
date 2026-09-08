@@ -31,6 +31,7 @@ from models import (
     IRC8C_SLOTS,
     IRC9Entry,
     ReportPreparer,
+    IRC8AApprovingAuthority,
     MONTH_KEYS,
     TA_STATUS_PROVIDED,
     TA_STATUS_UNPROVIDED,
@@ -591,6 +592,18 @@ def _get_preparer():
     return preparer
 
 
+def _get_irc8a_approving_authority():
+    """Single global row holding IRC8A's 'Approving Authority' name (see
+    IRC8AApprovingAuthority in models.py). Created lazily with a blank name
+    on first access, same convention as _get_preparer() above."""
+    authority = IRC8AApprovingAuthority.query.first()
+    if authority is None:
+        authority = IRC8AApprovingAuthority(name="")
+        db.session.add(authority)
+        db.session.commit()
+    return authority
+
+
 def _upsert_irc1a_ratings(year, month_key, ratings_by_indicator, uploaded_file):
     """ratings_by_indicator: { indicator_id (int): rating (float) }"""
     for indicator_id, rating in ratings_by_indicator.items():
@@ -758,6 +771,30 @@ def save_preparer():
     db.session.commit()
 
     return jsonify({"name": preparer.name, "position": preparer.position}), 200
+
+
+@app.route("/api/irc8a/approving-authority", methods=["GET"])
+def get_irc8a_approving_authority():
+    """Read-only fetch used by base.html's report-signatory footer, on the
+    IRC8A page only, to fill in the current 'Approving Authority' name."""
+    authority = _get_irc8a_approving_authority()
+    return jsonify({"name": authority.name}), 200
+
+
+@app.route("/api/irc8a/approving-authority", methods=["POST"])
+def save_irc8a_approving_authority():
+    """Saves the 'Approving Authority' name typed directly in IRC8A's
+    report-signatory footer. Single global row -- not year-scoped and
+    intentionally untouched by IRC8A's Reset (see ReportPreparer's own
+    docstring in models.py for why 'Prepared by' follows the same rule)."""
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+
+    authority = _get_irc8a_approving_authority()
+    authority.name = name
+    db.session.commit()
+
+    return jsonify({"name": authority.name}), 200
 
 
 @app.route("/irc/<tab_id>")

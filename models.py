@@ -1098,3 +1098,23 @@ class ReportPreparer(db.Model):
     position = db.Column(db.String(255), nullable=False, default="")
 
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# IRC8A's own third signatory -- "Approving Authority" name shown alongside
+# "Prepared by"/"Checked by" in the report-signatory footer, but only on the
+# IRC8A page itself (see base.html's active_tab.id == 'irc8a' check).
+# Single global row, same pattern as ReportPreparer above: not year-scoped,
+# and never touched by IRC8A's own Reset (see reset_irc8a_data in app.py),
+# since it's a signatory identity, not report data.
+#
+# Position ("Assistant Schools Division Superintendent") is NOT stored here
+# -- like "Checked by", it's a fixed value hardcoded directly in base.html.
+# ---------------------------------------------------------------------------
+class IRC8AApprovingAuthority(db.Model):
+    __tablename__ = "irc8a_approving_authority"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False, default="")
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
