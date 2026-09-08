@@ -5,13 +5,17 @@
 }
 
 .irc8a-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 20px;
 }
 
 .irc8a-header h2 {
   font-size: 26px;
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0;
   color: #1a1a1a;
 }
 
@@ -48,6 +52,30 @@
 .irc8a-mfo-banner .irc8a-add-btn--banner {
   margin-left: auto;
   flex-shrink: 0;
+}
+
+/* Reset button — sits in .irc8a-header, on the page's plain white
+   background, so it uses the same appearance as IRC7's .irc7-reset-btn. */
+
+.irc8a-reset-btn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  background: #fff;
+  color: #dc2626;
+  border: 1.5px solid #f3b4b4;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc8a-reset-btn:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
 }
 
 /* ---------- Weight warning banners ---------- */
@@ -1080,6 +1108,153 @@
   border-color: #3d5a8a;
 }
 
+/* ---------- Reset confirmation modal ---------- */
+/* Same visual pattern as IRC7's .irc7-confirm-* dialog. */
+
+.irc8a-confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.irc8a-confirm-overlay.visible {
+  display: flex;
+}
+
+.irc8a-confirm-box {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 360px;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+/* The reset modal has more content (option list) than a plain Yes/No
+   confirmation, so it gets a little extra width and left-aligned body
+   text -- the heading/buttons stay centered like every other confirm box. */
+.irc8a-confirm-box--reset {
+  max-width: 420px;
+}
+
+.irc8a-confirm-box h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.irc8a-confirm-box p {
+  margin: 0 0 20px 0;
+  font-size: 13.5px;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Reset-scope radio options */
+
+.irc8a-reset-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 16px 0;
+  text-align: left;
+}
+
+.irc8a-reset-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1.5px solid #e2e5ea;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.irc8a-reset-option:hover {
+  background: #fafbfc;
+}
+
+.irc8a-reset-option:has(input:checked) {
+  border-color: #4a6fa5;
+  background: #eef2f8;
+}
+
+.irc8a-reset-option input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #4a6fa5;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.irc8a-reset-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.irc8a-reset-option-text strong {
+  font-size: 13.5px;
+  color: #1a1a1a;
+}
+
+.irc8a-reset-option-text small {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* When "Reset entire form" is picked, the warning copy below turns red to
+   signal the heavier, structural action -- see irc8a.js's radio change
+   listener. */
+#irc8a-reset-confirm-warning.irc8a-reset-warning--danger {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.irc8a-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.irc8a-btn-secondary,
+.irc8a-btn-danger {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.irc8a-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.irc8a-btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.irc8a-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.irc8a-btn-danger:hover {
+  background: #b91c1c;
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 900px) {
@@ -1098,8 +1273,18 @@
 }
 
 @media (max-width: 640px) {
+  .irc8a-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
   .irc8a-header h2 {
     font-size: 21px;
+  }
+
+  .irc8a-reset-btn {
+    align-self: flex-end;
   }
 
   .irc8a-mfo-banner {

@@ -11,6 +11,24 @@
   const summaryRatingEl = document.getElementById("irc8a-summary-rating");
   const addKraBtn = document.getElementById("addKraBtn");
 
+  // ================= Reset button + confirmation modal =================
+  const resetBtn = document.getElementById("irc8a-reset-btn");
+  const resetConfirmOverlay = document.getElementById(
+    "irc8a-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc8a-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc8a-reset-confirm-confirm",
+  );
+  const resetScopeRadios = document.querySelectorAll(
+    'input[name="irc8a-reset-scope"]',
+  );
+  const resetConfirmWarning = document.getElementById(
+    "irc8a-reset-confirm-warning",
+  );
+
   // ================= Modal elements =================
   const modal = document.getElementById("irc8a-entry-modal");
   const modalTitle = document.getElementById("irc8a-entry-modal-title");
@@ -725,6 +743,102 @@
 
   // ================= Add KRA button =================
   addKraBtn.addEventListener("click", () => openModal({ mode: "add-kra" }));
+
+  // ================= RESET: RATINGS & MOV ONLY, OR ENTIRE FORM =================
+  //
+  // Two scopes, chosen via the modal's radio buttons and sent as
+  // ?scope=ratings_mov|all to /irc/irc8a/reset:
+  //
+  //  - "ratings_mov" (default): only each objective's three ratings
+  //    (quality/efficiency/timeliness) and its MOV link are cleared
+  //    server-side. KRAs, objectives, weights, rubric indicators,
+  //    timeline, and actual results are never touched.
+  //  - "all": every KRA for this year is deleted outright, which cascades
+  //    to its objectives and their rubric indicators too (see
+  //    reset_irc8a_data() in app.py) -- the form goes back to empty.
+  const RESET_WARNINGS = {
+    ratings_mov:
+      "This will clear every rating and MOV link, but keeps your KRAs, objectives, and their weights. This cannot be undone.",
+    all: "This will remove every KRA, objective, and rubric indicator, along with everything typed into them. This cannot be undone.",
+  };
+
+  function getSelectedResetScope() {
+    const checked = document.querySelector(
+      'input[name="irc8a-reset-scope"]:checked',
+    );
+    return checked ? checked.value : "ratings_mov";
+  }
+
+  function updateResetWarning() {
+    const scope = getSelectedResetScope();
+    resetConfirmWarning.textContent =
+      RESET_WARNINGS[scope] || RESET_WARNINGS.ratings_mov;
+    resetConfirmWarning.classList.toggle(
+      "irc8a-reset-warning--danger",
+      scope === "all",
+    );
+  }
+
+  resetScopeRadios.forEach((radio) => {
+    radio.addEventListener("change", updateResetWarning);
+  });
+
+  function openResetConfirm() {
+    // Always reopen on the safer "ratings & MOV only" option rather than
+    // remembering whatever was picked last time.
+    const ratingsRadio = document.getElementById("irc8a-reset-scope-ratings");
+    if (ratingsRadio) ratingsRadio.checked = true;
+    updateResetWarning();
+    resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    resetConfirmOverlay.classList.remove("visible");
+  }
+
+  function clearAllRatingsAndMovInPlace() {
+    state.kras.forEach((kra) => {
+      kra.objectives.forEach((obj) => {
+        obj.ratings = { quality: null, efficiency: null, timeliness: null };
+        obj.mov = null;
+      });
+    });
+    render();
+  }
+
+  function removeAllKrasInPlace() {
+    state.kras = [];
+    openKras.clear();
+    openObjectives.clear();
+    render();
+  }
+
+  resetBtn.addEventListener("click", openResetConfirm);
+  resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  resetConfirmOverlay.addEventListener("click", (e) => {
+    if (e.target === resetConfirmOverlay) closeResetConfirm();
+  });
+
+  resetConfirmConfirmBtn.addEventListener("click", async () => {
+    const scope = getSelectedResetScope();
+    resetConfirmConfirmBtn.disabled = true;
+    try {
+      const data = await apiCall(
+        "DELETE",
+        `/irc/irc8a/reset?scope=${scope}&year=${state.year}`,
+      );
+      if (data && data.scope === "all") {
+        removeAllKrasInPlace();
+      } else {
+        clearAllRatingsAndMovInPlace();
+      }
+    } catch (err) {
+      alert(err.message || "Could not reset the data. Please try again.");
+    } finally {
+      resetConfirmConfirmBtn.disabled = false;
+      closeResetConfirm();
+    }
+  });
 
   // ================= Delegated clicks =================
   listEl.addEventListener("click", async (e) => {
