@@ -11,6 +11,9 @@ block content %}
     <h2>
       IRC8A &mdash; Individual Performance Commitment and Review Form (IPCRF)
     </h2>
+    <button type="button" class="irc8a-reset-btn" id="irc8a-reset-btn">
+      Reset
+    </button>
   </div>
 
   <!-- MFO banner (constant, uneditable) — reads as the main title for the
@@ -174,6 +177,73 @@ block content %}
     <div class="irc8a-modal-overlay" id="irc8aEntryModalOverlay"></div>
   </div>
 </section>
+
+<!-- ================= RESET-PAGE CONFIRMATION MODAL ================= -->
+<!-- Same visual pattern/markup as IRC7's reset-confirmation modal (see
+     irc7.html), adapted to IRC8A's own reset scopes -- ids are namespaced
+     to irc8a so it doesn't share state with anything else on this page. -->
+<div id="irc8a-reset-confirm-overlay" class="irc8a-confirm-overlay">
+  <div class="irc8a-confirm-box irc8a-confirm-box--reset">
+    <h4>Reset this IPCRF form?</h4>
+
+    <div class="irc8a-reset-options">
+      <label class="irc8a-reset-option">
+        <input
+          type="radio"
+          name="irc8a-reset-scope"
+          value="ratings_mov"
+          id="irc8a-reset-scope-ratings"
+          checked
+        />
+        <span class="irc8a-reset-option-text">
+          <strong>Clear ratings &amp; MOV links only</strong>
+          <small
+            >Clears every Quality/Efficiency/Timeliness rating and MOV link.
+            KRAs, objectives, weights, indicators, timeline, and actual results
+            stay exactly as they are.</small
+          >
+        </span>
+      </label>
+      <label class="irc8a-reset-option">
+        <input
+          type="radio"
+          name="irc8a-reset-scope"
+          value="all"
+          id="irc8a-reset-scope-all"
+        />
+        <span class="irc8a-reset-option-text">
+          <strong>Reset entire form</strong>
+          <small
+            >Also removes every KRA, objective, and rubric indicator, back to a
+            blank form.</small
+          >
+        </span>
+      </label>
+    </div>
+
+    <p id="irc8a-reset-confirm-warning">
+      This will clear every rating and MOV link, but keeps your KRAs,
+      objectives, and their weights. This cannot be undone.
+    </p>
+
+    <div class="irc8a-confirm-actions">
+      <button
+        type="button"
+        id="irc8a-reset-confirm-cancel"
+        class="irc8a-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc8a-reset-confirm-confirm"
+        class="irc8a-btn-danger"
+      >
+        Yes, Reset
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/irc8a.js') }}"></script>
 
