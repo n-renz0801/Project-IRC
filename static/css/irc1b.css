@@ -39,30 +39,116 @@ html::-webkit-scrollbar {
   line-height: 1.5;
 }
 
-/* Reset-all-data button */
+/* Reset-all-data button — same design as IRC2b's reset button */
 .irc1b-reset-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  gap: 7px;
   flex-shrink: 0;
-  background: white;
-  color: #c0392b;
-  border: 1px solid #e3b3ae;
-  padding: 9px 16px;
+  appearance: none;
+  background: #fff;
+  color: #dc2626;
+  border: 1.5px solid #f3b4b4;
+  padding: 10px 18px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
   white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc1b-reset-btn i {
+  font-size: 15px;
 }
 
 .irc1b-reset-btn:hover {
-  background: #fdecea;
-  border-color: #c0392b;
+  background: #fee2e2;
+  border-color: #dc2626;
 }
 
-.irc1b-reset-btn:active {
-  background: #fbdedb;
+.irc1b-reset-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------------------
+   Reset confirmation modal — same look as IRC6's confirm dialog
+------------------------------------------------------------------ */
+
+.irc1b-confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.irc1b-confirm-overlay.visible {
+  display: flex;
+}
+
+.irc1b-confirm-box {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 380px;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.irc1b-confirm-box h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.irc1b-confirm-box p {
+  margin: 0 0 20px 0;
+  font-size: 13.5px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.irc1b-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.irc1b-btn-secondary,
+.irc1b-btn-danger {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.irc1b-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.irc1b-btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.irc1b-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.irc1b-btn-danger:hover {
+  background: #b91c1c;
 }
 
 /* ------------------------------------------------------------------

@@ -78,6 +78,15 @@
   let trendMode = "monthly";
 
   const resetBtn = document.getElementById("irc1a-reset-btn");
+  const resetConfirmOverlay = document.getElementById(
+    "irc1a-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc1a-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc1a-reset-confirm-confirm",
+  );
 
   function descriptiveValue(avg) {
     if (avg === null) return "—";
@@ -475,12 +484,18 @@
   }
 
   // --- Reset All Data ---
-  function resetAllData() {
-    const confirmed = confirm(
-      "This will permanently delete every saved IRC1a rating for this year. This cannot be undone. Continue?",
-    );
-    if (!confirmed) return;
+  // Clicking the reset button opens the confirmation modal (see
+  // irc1a-reset-confirm-overlay in irc1a.html); the actual wipe only
+  // happens once the user confirms inside that modal.
+  function openResetConfirm() {
+    if (resetConfirmOverlay) resetConfirmOverlay.classList.add("visible");
+  }
 
+  function closeResetConfirm() {
+    if (resetConfirmOverlay) resetConfirmOverlay.classList.remove("visible");
+  }
+
+  function performReset() {
     if (resetBtn) resetBtn.disabled = true;
 
     fetch("/irc/irc1a/reset", { method: "DELETE" })
@@ -513,7 +528,21 @@
   }
 
   if (resetBtn) {
-    resetBtn.addEventListener("click", resetAllData);
+    resetBtn.addEventListener("click", openResetConfirm);
+  }
+  if (resetConfirmCancelBtn) {
+    resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  }
+  if (resetConfirmOverlay) {
+    resetConfirmOverlay.addEventListener("click", (e) => {
+      if (e.target === resetConfirmOverlay) closeResetConfirm();
+    });
+  }
+  if (resetConfirmConfirmBtn) {
+    resetConfirmConfirmBtn.addEventListener("click", () => {
+      closeResetConfirm();
+      performReset();
+    });
   }
 
   recalcAll();

@@ -141,6 +141,15 @@
     els.levelFilterGroup = document.getElementById("irc2a-level-filters");
     els.dedpToggle = document.getElementById("dedp-filter-toggle");
     els.resetAllBtn = document.getElementById("irc2aResetAllBtn");
+    els.resetConfirmOverlay = document.getElementById(
+      "irc2a-reset-confirm-overlay",
+    );
+    els.resetConfirmCancelBtn = document.getElementById(
+      "irc2a-reset-confirm-cancel",
+    );
+    els.resetConfirmConfirmBtn = document.getElementById(
+      "irc2a-reset-confirm-confirm",
+    );
 
     els.stats = {
       dedpElementary: document.getElementById("stat-dedp-elementary"),
@@ -486,15 +495,22 @@
   }
 
   // --- Reset All Data --------------------------------------------------
+  // Clicking the reset button opens the confirmation modal (see
+  // irc2a-reset-confirm-overlay in irc2a.html); the actual wipe only
+  // happens once the user confirms inside that modal.
 
-  function resetAllData() {
+  function openResetConfirm() {
+    if (els.resetConfirmOverlay)
+      els.resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    if (els.resetConfirmOverlay)
+      els.resetConfirmOverlay.classList.remove("visible");
+  }
+
+  function performReset() {
     if (!els.resetAllBtn) return;
-
-    const confirmed = window.confirm(
-      'This will permanently move every school back to "Not Yet Provided ' +
-        'with TA" for this year. This cannot be undone. Continue?',
-    );
-    if (!confirmed) return;
 
     els.resetAllBtn.disabled = true;
     const originalLabel = els.resetAllBtn.innerHTML;
@@ -529,7 +545,21 @@
     updatePanelHeight();
 
     if (els.resetAllBtn) {
-      els.resetAllBtn.addEventListener("click", resetAllData);
+      els.resetAllBtn.addEventListener("click", openResetConfirm);
+    }
+    if (els.resetConfirmCancelBtn) {
+      els.resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+    }
+    if (els.resetConfirmOverlay) {
+      els.resetConfirmOverlay.addEventListener("click", (e) => {
+        if (e.target === els.resetConfirmOverlay) closeResetConfirm();
+      });
+    }
+    if (els.resetConfirmConfirmBtn) {
+      els.resetConfirmConfirmBtn.addEventListener("click", () => {
+        closeResetConfirm();
+        performReset();
+      });
     }
 
     els.lists.unprovided.addEventListener("click", onListClick);

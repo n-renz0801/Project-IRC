@@ -16,7 +16,7 @@ block content %}
         </p>
       </div>
       <button type="button" id="irc1a-reset-btn" class="irc1a-reset-btn">
-        <i class="ti ti-refresh" style="margin-right: 6px"></i> Reset All Data
+        <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
       </button>
     </div>
 
@@ -1570,6 +1570,33 @@ block content %}
   </div>
   <!-- /.irc1a-bottom-row -->
 </section>
+
+<!-- ================= RESET CONFIRMATION MODAL ================= -->
+<div id="irc1a-reset-confirm-overlay" class="irc1a-confirm-overlay">
+  <div class="irc1a-confirm-box">
+    <h4>Reset all data?</h4>
+    <p>
+      This will permanently delete every saved IRC1a rating for this year. This
+      cannot be undone.
+    </p>
+    <div class="irc1a-confirm-actions">
+      <button
+        type="button"
+        id="irc1a-reset-confirm-cancel"
+        class="irc1a-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc1a-reset-confirm-confirm"
+        class="irc1a-btn-danger"
+      >
+        Yes, Reset
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/irc1a.js') }}"></script>
 

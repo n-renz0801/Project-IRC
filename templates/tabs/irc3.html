@@ -21,6 +21,9 @@ block content %}
         TA, and Total row are computed automatically.
       </p>
     </div>
+    <button type="button" id="irc3-reset-btn" class="irc3-reset-btn">
+      <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
+    </button>
   </div>
 
   <!-- ================= RATING BASIS (Option B: score cards) ================= -->
@@ -256,6 +259,33 @@ block content %}
     </table>
   </div>
 </section>
+
+<!-- ================= RESET CONFIRMATION MODAL ================= -->
+<div id="irc3-reset-confirm-overlay" class="irc3-confirm-overlay">
+  <div class="irc3-confirm-box">
+    <h4>Reset all data?</h4>
+    <p>
+      This will permanently clear the Target Number of Schools for both DEDP and
+      Non-DEDP categories for this year. This cannot be undone.
+    </p>
+    <div class="irc3-confirm-actions">
+      <button
+        type="button"
+        id="irc3-reset-confirm-cancel"
+        class="irc3-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc3-reset-confirm-confirm"
+        class="irc3-btn-danger"
+      >
+        Yes, Reset
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/irc3.js') }}"></script>
 

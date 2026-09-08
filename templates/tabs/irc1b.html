@@ -16,7 +16,7 @@ block content %}
         </p>
       </div>
       <button type="button" class="irc1b-reset-btn" id="resetAllBtn">
-        <i class="ti ti-trash" style="margin-right: 6px"></i> Reset All Data
+        <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
       </button>
     </div>
   </div>
@@ -197,6 +197,33 @@ block content %}
     </div>
   </div>
 </section>
+
+<!-- ================= RESET CONFIRMATION MODAL ================= -->
+<div id="irc1b-reset-confirm-overlay" class="irc1b-confirm-overlay">
+  <div class="irc1b-confirm-box">
+    <h4>Reset all data?</h4>
+    <p>
+      This will permanently delete every month's customer count for this year.
+      This cannot be undone.
+    </p>
+    <div class="irc1b-confirm-actions">
+      <button
+        type="button"
+        id="irc1b-reset-confirm-cancel"
+        class="irc1b-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc1b-reset-confirm-confirm"
+        class="irc1b-btn-danger"
+      >
+        Yes, Reset
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/irc1b.js') }}"></script>
 

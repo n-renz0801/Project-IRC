@@ -14,7 +14,7 @@ block content %}
         <p class="irc2a-subtitle">Click a school to move it between columns.</p>
       </div>
       <button type="button" class="irc2a-reset-btn" id="irc2aResetAllBtn">
-        <i class="ti ti-trash" style="margin-right: 6px"></i> Reset All Data
+        <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
       </button>
     </div>
   </div>
@@ -188,6 +188,33 @@ block content %}
   </div>
   <!-- /.irc2a-panel-row -->
 </section>
+
+<!-- ================= RESET CONFIRMATION MODAL ================= -->
+<div id="irc2a-reset-confirm-overlay" class="irc2a-confirm-overlay">
+  <div class="irc2a-confirm-box">
+    <h4>Reset all data?</h4>
+    <p>
+      This will permanently move every school back to "Not Yet Provided with TA"
+      for this year. This cannot be undone.
+    </p>
+    <div class="irc2a-confirm-actions">
+      <button
+        type="button"
+        id="irc2a-reset-confirm-cancel"
+        class="irc2a-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc2a-reset-confirm-confirm"
+        class="irc2a-btn-danger"
+      >
+        Yes, Reset
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/irc2a.js') }}"></script>
 
