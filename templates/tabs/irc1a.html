@@ -6,7 +6,22 @@ block content %}
   href="{{ url_for('static', filename='css/irc1a.css') }}"
 />
 
+{% set irc1a_months = [ ("jan", "Jan"), ("feb", "Feb"), ("mar", "Mar"), ("apr",
+"Apr"), ("may", "May"), ("jun", "Jun"), ("jul", "Jul"), ("aug", "Aug"), ("sep",
+"Sep"), ("oct", "Oct"), ("nov", "Nov"), ("dec", "Dec") ] %} {% set
+irc1a_indicators = [ (1, "Observes the schedule."), (2, "Establishes the
+objectives of the Technical Assistance."), (3, "Uses necessary
+tools/process/procedure for the conduct of TA."), (4, "Provide relevant, timely
+and appropriate Technical Assistance."), (5, "Understand the situation of
+schools in case may be, their needs, aspirations, plans, strength and
+weaknesses."), (6, "Recommends/suggests points for improvement."), (7, "Provides
+constructive feedback and establishes a cordial atmosphere in giving of
+feedback."), (8, "Skills and competencies of the TA provider."), (9, "Processes
+the results of the Technical Assistance."), (10, "General view of the provision
+of the Technical Assistance.") ] %}
+
 <section id="irc1a-tab" class="tab-panel irc1a-panel">
+  <!-- ================= 1. PAGE HEADER ================= -->
   <div class="irc1a-header">
     <div class="irc1a-header-top">
       <div>
@@ -15,1561 +30,215 @@ block content %}
           Rate each Technical Assistance (TA) indicator for every month.
         </p>
       </div>
-      <button type="button" id="irc1a-reset-btn" class="irc1a-reset-btn">
-        <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
-      </button>
+      <div class="irc1a-header-actions">
+        <button type="button" id="irc1a-legend-btn" class="irc1a-legend-btn">
+          <i class="ti ti-info-circle" aria-hidden="true"></i> Legend
+        </button>
+        <button type="button" id="irc1a-reset-btn" class="irc1a-reset-btn">
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 2. TOP ANALYTICS SECTION (HERO) ================= -->
+  <div class="irc1a-hero-row">
+    <!-- Left Block (75%) -->
+    <div class="irc1a-trend-card">
+      <div class="irc1a-trend-header irc1a-dark-header">
+        <div>
+          <h3>Monthly Rating Trend</h3>
+          <p class="irc1a-subtitle irc1a-subtitle-dark">
+            Overall average rating over time.
+          </p>
+        </div>
+        <div class="irc1a-trend-toggle" id="irc1a-trend-toggle">
+          <button
+            type="button"
+            class="irc1a-toggle-btn active"
+            data-mode="monthly"
+          >
+            Monthly
+          </button>
+          <button type="button" class="irc1a-toggle-btn" data-mode="quarterly">
+            Quarterly
+          </button>
+        </div>
+      </div>
+      <div class="irc1a-card-body">
+        <div class="irc1a-trend-chart-wrap" id="irc1a-trend-chart-wrap">
+          <p class="irc1a-lowest-placeholder" id="irc1a-trend-placeholder">
+            Enter ratings below to see the trend.
+          </p>
+        </div>
+      </div>
     </div>
 
-    <!-- Descriptive Rating Legend -->
-    <div class="irc1a-legend">
-      <span class="irc1a-legend-title">Rating Scale:</span>
-      <span class="irc1a-legend-item">
+    <!-- Right Block (25%) -->
+    <div class="irc1a-badge-card">
+      <span class="irc1a-badge-label">Overall Performance</span>
+      <span class="irc1a-badge-score" id="irc1a-overall-avg">&mdash;</span>
+      <span class="irc1a-badge-scale">out of 4</span>
+      <span class="irc1a-badge-pill" id="irc1a-overall-desc">No data yet</span>
+
+      <div class="irc1a-badge-lowest">
+        <span class="irc1a-badge-lowest-title">Three Lowest Indicators</span>
+        <ol id="irc1a-lowest-list" class="irc1a-lowest-list">
+          <li class="irc1a-lowest-placeholder">
+            Enter ratings below to see results.
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 3. MIDDLE SECTION (SUMMARY INSIGHTS) ================= -->
+  <div class="irc1a-insights-row">
+    <div class="irc1a-insight-card">
+      <div class="irc1a-dark-header irc1a-insight-header">
+        <label for="irc1a-positive" class="irc1a-remarks-label"
+          >Positive Aspects</label
+        >
+        <p class="irc1a-subtitle irc1a-subtitle-dark">
+          Key strengths observed this period.
+        </p>
+      </div>
+      <div class="irc1a-card-body">
+        <textarea
+          id="irc1a-positive"
+          name="irc1a_positive"
+          class="irc1a-remarks-textarea"
+          rows="4"
+          placeholder="Describe a positive aspect observed..."
+        ></textarea>
+      </div>
+    </div>
+    <div class="irc1a-insight-card">
+      <div class="irc1a-dark-header irc1a-insight-header">
+        <label for="irc1a-ofi" class="irc1a-remarks-label"
+          >Opportunities for Improvement (OFI)</label
+        >
+        <p class="irc1a-subtitle irc1a-subtitle-dark">
+          Key areas of growth to address.
+        </p>
+      </div>
+      <div class="irc1a-card-body">
+        <textarea
+          id="irc1a-ofi"
+          name="irc1a_ofi"
+          class="irc1a-remarks-textarea"
+          rows="4"
+          placeholder="Describe an opportunity for improvement, if applicable..."
+        ></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 4. BOTTOM SECTION (DETAILED DATA TABLE) ================= -->
+  <div class="irc1a-table-card">
+    <div class="irc1a-table-card-header irc1a-dark-header">
+      <h3>TA Indicator Ratings</h3>
+      <p class="irc1a-subtitle irc1a-subtitle-dark">
+        Enter a rating (1&ndash;5) for each indicator, per month.
+      </p>
+    </div>
+    <div class="irc1a-table-wrapper">
+      <table id="irc1a-table" class="irc1a-table">
+        <thead>
+          <tr>
+            <th class="irc1a-indicator-col">TA Indicator</th>
+            {% for key, label in irc1a_months %}
+            <th>{{ label }}</th>
+            {% endfor %}
+            <th class="irc1a-rowavg-col">Rating / Average</th>
+            <th class="irc1a-rowdesc-col">Descriptive Rating</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for id, label in irc1a_indicators %}
+          <tr data-indicator="{{ id }}">
+            <td class="irc1a-indicator-col">{{ id }}. {{ label }}</td>
+            {% for key, month_label in irc1a_months %}
+            <td>
+              <input
+                type="number"
+                class="irc1a-rating"
+                data-month="{{ key }}"
+                min="1"
+                max="5"
+                step="0.01"
+              />
+            </td>
+            {% endfor %}
+            <td class="irc1a-rowavg-cell">
+              <span class="irc1a-row-avg" data-indicator="{{ id }}"
+                >&mdash;</span
+              >
+            </td>
+            <td class="irc1a-rowdesc-cell">
+              <span class="irc1a-row-desc" data-indicator="{{ id }}"
+                >&mdash;</span
+              >
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+
+        <tfoot>
+          <tr class="irc1a-average-row">
+            <td class="irc1a-indicator-col">Overall Average</td>
+            {% for key, label in irc1a_months %}
+            <td>
+              <span class="irc1a-avg" data-month="{{ key }}">&mdash;</span>
+            </td>
+            {% endfor %}
+            <td class="irc1a-rowavg-cell">
+              <span class="irc1a-row-avg" id="irc1a-footer-annual-avg"
+                >&mdash;</span
+              >
+            </td>
+            <td class="irc1a-rowdesc-cell">
+              <span class="irc1a-row-desc" id="irc1a-footer-annual-desc"
+                >&mdash;</span
+              >
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LEGEND MODAL ================= -->
+<div id="irc1a-legend-overlay" class="irc1a-confirm-overlay">
+  <div class="irc1a-confirm-box irc1a-legend-box">
+    <h4>Descriptive Rating Scale</h4>
+    <ul class="irc1a-legend-list">
+      <li class="irc1a-legend-item">
         <span class="irc1a-legend-dot irc1a-band-poor"></span>
         Poor (1.00&ndash;1.50)
-      </span>
-      <span class="irc1a-legend-item">
+      </li>
+      <li class="irc1a-legend-item">
         <span class="irc1a-legend-dot irc1a-band-fair"></span>
         Fair (1.51&ndash;2.50)
-      </span>
-      <span class="irc1a-legend-item">
+      </li>
+      <li class="irc1a-legend-item">
         <span class="irc1a-legend-dot irc1a-band-satisfactory"></span>
         Satisfactory (2.51&ndash;3.50)
-      </span>
-      <span class="irc1a-legend-item">
+      </li>
+      <li class="irc1a-legend-item">
         <span class="irc1a-legend-dot irc1a-band-very-satisfactory"></span>
-        Very Satisfactory (3.51&ndash;5.00)
-      </span>
+        Very Satisfactory (3.51 and above)
+      </li>
+    </ul>
+    <div class="irc1a-confirm-actions">
+      <button type="button" id="irc1a-legend-close" class="irc1a-btn-secondary">
+        Close
+      </button>
     </div>
   </div>
-
-  <!-- Main Table -->
-  <div class="irc1a-table-wrapper">
-    <table id="irc1a-table" class="irc1a-table">
-      <thead>
-        <tr>
-          <th class="irc1a-indicator-col">TA Indicator</th>
-          <th>Jan</th>
-          <th>Feb</th>
-          <th>Mar</th>
-          <th>Apr</th>
-          <th>May</th>
-          <th>Jun</th>
-          <th>Jul</th>
-          <th>Aug</th>
-          <th>Sep</th>
-          <th>Oct</th>
-          <th>Nov</th>
-          <th>Dec</th>
-          <th class="irc1a-rowavg-col">Average</th>
-          <th class="irc1a-rowbar-col">Plot</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        <tr data-indicator="1">
-          <td class="irc1a-indicator-col">1. Observes the schedule.</td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jan"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="feb"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="mar"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="apr"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="may"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jun"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jul"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="aug"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="sep"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="oct"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="nov"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="dec"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" data-indicator="1">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" data-indicator="1">
-              <div
-                class="irc1a-bar-fill"
-                data-indicator="1"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-
-        <tr data-indicator="2">
-          <td class="irc1a-indicator-col">
-            2. Establishes the objectives of the Technical Assistance.
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jan"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="feb"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="mar"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="apr"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="may"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jun"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jul"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="aug"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="sep"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="oct"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="nov"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="dec"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" data-indicator="2">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" data-indicator="2">
-              <div
-                class="irc1a-bar-fill"
-                data-indicator="2"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-
-        <tr data-indicator="3">
-          <td class="irc1a-indicator-col">
-            3. Uses necessary tools/process/procedure for the conduct of TA.
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jan"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="feb"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="mar"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="apr"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="may"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jun"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jul"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="aug"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="sep"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="oct"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="nov"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="dec"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" data-indicator="3">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" data-indicator="3">
-              <div
-                class="irc1a-bar-fill"
-                data-indicator="3"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-
-        <tr data-indicator="4">
-          <td class="irc1a-indicator-col">
-            4. Provide relevant, timely and appropriate Technical Assistance.
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jan"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="feb"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="mar"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="apr"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="may"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jun"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jul"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="aug"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="sep"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="oct"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="nov"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="dec"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" data-indicator="4">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" data-indicator="4">
-              <div
-                class="irc1a-bar-fill"
-                data-indicator="4"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-
-        <tr data-indicator="5">
-          <td class="irc1a-indicator-col">
-            5. Understand the situation of schools in case may be, their needs,
-            aspirations, plans, strength and weaknesses.
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jan"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="feb"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="mar"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="apr"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="may"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jun"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jul"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="aug"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="sep"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="oct"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="nov"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="dec"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" data-indicator="5">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" data-indicator="5">
-              <div
-                class="irc1a-bar-fill"
-                data-indicator="5"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-
-        <tr data-indicator="6">
-          <td class="irc1a-indicator-col">
-            6. Recommends/suggests points for improvement.
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jan"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="feb"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="mar"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="apr"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="may"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jun"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jul"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="aug"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="sep"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="oct"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="nov"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="dec"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" data-indicator="6">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" data-indicator="6">
-              <div
-                class="irc1a-bar-fill"
-                data-indicator="6"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-
-        <tr data-indicator="7">
-          <td class="irc1a-indicator-col">
-            7. Provides constructive feedback and establishes a cordial
-            atmosphere in giving of feedback.
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jan"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="feb"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="mar"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="apr"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="may"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jun"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jul"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="aug"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="sep"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="oct"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="nov"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="dec"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" data-indicator="7">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" data-indicator="7">
-              <div
-                class="irc1a-bar-fill"
-                data-indicator="7"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-
-        <tr data-indicator="8">
-          <td class="irc1a-indicator-col">
-            8. Skills and competencies of the TA provider.
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jan"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="feb"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="mar"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="apr"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="may"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jun"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jul"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="aug"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="sep"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="oct"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="nov"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="dec"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" data-indicator="8">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" data-indicator="8">
-              <div
-                class="irc1a-bar-fill"
-                data-indicator="8"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-
-        <tr data-indicator="9">
-          <td class="irc1a-indicator-col">
-            9. Processes the results of the Technical Assistance.
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jan"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="feb"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="mar"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="apr"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="may"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jun"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jul"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="aug"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="sep"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="oct"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="nov"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="dec"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" data-indicator="9">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" data-indicator="9">
-              <div
-                class="irc1a-bar-fill"
-                data-indicator="9"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-
-        <tr data-indicator="10">
-          <td class="irc1a-indicator-col">
-            10. General view of the provision of the Technical Assistance.
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jan"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="feb"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="mar"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="apr"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="may"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jun"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="jul"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="aug"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="sep"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="oct"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="nov"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td>
-            <input
-              type="number"
-              class="irc1a-rating"
-              data-month="dec"
-              min="1"
-              max="5"
-              step="0.01"
-            />
-          </td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" data-indicator="10">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" data-indicator="10">
-              <div
-                class="irc1a-bar-fill"
-                data-indicator="10"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-
-      <tfoot>
-        <tr class="irc1a-average-row">
-          <td class="irc1a-indicator-col">Average</td>
-          <td><span class="irc1a-avg" data-month="jan">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="feb">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="mar">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="apr">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="may">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="jun">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="jul">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="aug">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="sep">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="oct">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="nov">&mdash;</span></td>
-          <td><span class="irc1a-avg" data-month="dec">&mdash;</span></td>
-          <td class="irc1a-rowavg-cell">
-            <span class="irc1a-row-avg" id="irc1a-overall-avg">&mdash;</span>
-          </td>
-          <td class="irc1a-rowbar-cell">
-            <div class="irc1a-bar" id="irc1a-overall-bar">
-              <div
-                class="irc1a-bar-fill"
-                id="irc1a-overall-bar-fill"
-                style="width: 0%"
-              ></div>
-            </div>
-          </td>
-        </tr>
-        <tr class="irc1a-descriptive-row">
-          <td class="irc1a-indicator-col">Descriptive Value</td>
-          <td><span class="irc1a-desc" data-month="jan">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="feb">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="mar">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="apr">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="may">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="jun">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="jul">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="aug">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="sep">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="oct">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="nov">&mdash;</span></td>
-          <td><span class="irc1a-desc" data-month="dec">&mdash;</span></td>
-          <td class="irc1a-rowavg-cell">&mdash;</td>
-          <td class="irc1a-rowbar-cell">&mdash;</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-
-  <!-- Rating Trend — full-width row -->
-  <div class="irc1a-trend-section">
-    <div class="irc1a-trend-header">
-      <div>
-        <h3>Rating Trend</h3>
-        <p class="irc1a-subtitle">Overall average rating over time.</p>
-      </div>
-      <div class="irc1a-trend-toggle" id="irc1a-trend-toggle">
-        <button
-          type="button"
-          class="irc1a-toggle-btn active"
-          data-mode="monthly"
-        >
-          Monthly
-        </button>
-        <button type="button" class="irc1a-toggle-btn" data-mode="quarterly">
-          Quarterly
-        </button>
-      </div>
-    </div>
-    <div class="irc1a-trend-chart-wrap" id="irc1a-trend-chart-wrap">
-      <p class="irc1a-lowest-placeholder" id="irc1a-trend-placeholder">
-        Enter ratings above to see the trend.
-      </p>
-    </div>
-  </div>
-
-  <!-- Bottom row: Three Lowest | Remarks — two columns side by side -->
-  <div class="irc1a-bottom-row">
-    <!-- Three Lowest TA Indicators Section -->
-    <div class="irc1a-lowest-section">
-      <h3>Three Lowest TA Indicators</h3>
-      <p class="irc1a-subtitle">
-        Based on each indicator's average rating across all months.
-      </p>
-      <ol id="irc1a-lowest-list" class="irc1a-lowest-list">
-        <li class="irc1a-lowest-placeholder">
-          Enter ratings above to see results.
-        </li>
-      </ol>
-    </div>
-
-    <!-- Remarks Section -->
-    <div class="irc1a-remarks-section">
-      <div class="irc1a-remarks-grid">
-        <div class="irc1a-remarks-field">
-          <label for="irc1a-positive" class="irc1a-remarks-label"
-            >Positive Aspect</label
-          >
-          <textarea
-            id="irc1a-positive"
-            name="irc1a_positive"
-            class="irc1a-remarks-textarea"
-            rows="4"
-            placeholder="Describe a positive aspect observed..."
-          ></textarea>
-        </div>
-        <div class="irc1a-remarks-field">
-          <label for="irc1a-ofi" class="irc1a-remarks-label"
-            >Opportunity for Improvement (OFI)</label
-          >
-          <textarea
-            id="irc1a-ofi"
-            name="irc1a_ofi"
-            class="irc1a-remarks-textarea"
-            rows="4"
-            placeholder="Describe an opportunity for improvement, if applicable..."
-          ></textarea>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- /.irc1a-bottom-row -->
-</section>
+</div>
 
 <!-- ================= RESET CONFIRMATION MODAL ================= -->
 <div id="irc1a-reset-confirm-overlay" class="irc1a-confirm-overlay">

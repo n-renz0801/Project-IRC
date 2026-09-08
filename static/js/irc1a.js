@@ -36,10 +36,6 @@
     10: "General view of the provision of the Technical Assistance.",
   };
 
-  const ABSOLUTE_WEIGHT = 85;
-  const RELATIVE_WEIGHT = 15;
-  const FLAT_EPSILON = 0.0001;
-
   const MONTH_LABELS = {
     jan: "Jan",
     feb: "Feb",
@@ -62,6 +58,13 @@
     { label: "Q4", months: ["oct", "nov", "dec"] },
   ];
 
+  const BAND_CLASSES = [
+    "irc1a-band-poor",
+    "irc1a-band-fair",
+    "irc1a-band-satisfactory",
+    "irc1a-band-very-satisfactory",
+  ];
+
   const table = document.getElementById("irc1a-table");
   if (!table) return;
 
@@ -70,8 +73,11 @@
   const monthAverages = {};
 
   const overallAvgEl = document.getElementById("irc1a-overall-avg");
-  const overallBarEl = document.getElementById("irc1a-overall-bar");
-  const overallBarFillEl = document.getElementById("irc1a-overall-bar-fill");
+  const overallDescEl = document.getElementById("irc1a-overall-desc");
+  const footerAnnualAvgEl = document.getElementById("irc1a-footer-annual-avg");
+  const footerAnnualDescEl = document.getElementById(
+    "irc1a-footer-annual-desc",
+  );
 
   const trendChartWrap = document.getElementById("irc1a-trend-chart-wrap");
   const trendToggle = document.getElementById("irc1a-trend-toggle");
@@ -87,6 +93,10 @@
   const resetConfirmConfirmBtn = document.getElementById(
     "irc1a-reset-confirm-confirm",
   );
+
+  const legendBtn = document.getElementById("irc1a-legend-btn");
+  const legendOverlay = document.getElementById("irc1a-legend-overlay");
+  const legendCloseBtn = document.getElementById("irc1a-legend-close");
 
   function descriptiveValue(avg) {
     if (avg === null) return "—";
@@ -104,6 +114,17 @@
     return "irc1a-band-poor";
   }
 
+  // Applies the descriptive text + color-coded band class to a badge/pill
+  // element (used for per-row badges, the footer annual badge, and the
+  // hero "Overall Performance" pill).
+  function paintDescriptiveBadge(el, avg) {
+    if (!el) return;
+    el.textContent = avg === null ? "—" : descriptiveValue(avg);
+    el.classList.remove(...BAND_CLASSES);
+    const cls = bandClass(avg);
+    if (cls) el.classList.add(cls);
+  }
+
   function average(values) {
     const nums = values.filter((v) => !Number.isNaN(v));
     if (nums.length === 0) return null;
@@ -118,10 +139,7 @@
     const avg = average(values);
 
     const avgSpan = table.querySelector(`.irc1a-avg[data-month="${month}"]`);
-    const descSpan = table.querySelector(`.irc1a-desc[data-month="${month}"]`);
-
-    avgSpan.textContent = avg === null ? "—" : avg.toFixed(3);
-    descSpan.textContent = descriptiveValue(avg);
+    if (avgSpan) avgSpan.textContent = avg === null ? "—" : avg.toFixed(3);
 
     monthAverages[month] = avg;
   }
@@ -136,58 +154,16 @@
     const rowAvgSpan = table.querySelector(
       `.irc1a-row-avg[data-indicator="${indicatorId}"]`,
     );
-    rowAvgSpan.textContent = avg === null ? "—" : avg.toFixed(3);
+    if (rowAvgSpan)
+      rowAvgSpan.textContent = avg === null ? "—" : avg.toFixed(3);
+
+    const rowDescSpan = table.querySelector(
+      `.irc1a-row-desc[data-indicator="${indicatorId}"]`,
+    );
+    paintDescriptiveBadge(rowDescSpan, avg);
 
     rowAverages[indicatorId] = avg;
     return avg;
-  }
-
-  function recalcBars() {
-    const entries = Object.entries(rowAverages).filter(
-      ([, avg]) => avg !== null && avg !== undefined,
-    );
-    const minV = entries.length ? Math.min(...entries.map(([, v]) => v)) : null;
-    const maxV = entries.length ? Math.max(...entries.map(([, v]) => v)) : null;
-    const flat = minV === null || maxV === null || maxV - minV < FLAT_EPSILON;
-
-    for (let i = 1; i <= INDICATOR_COUNT; i++) {
-      const avg = rowAverages[i];
-      const fill = table.querySelector(
-        `.irc1a-bar-fill[data-indicator="${i}"]`,
-      );
-      const bar = table.querySelector(`.irc1a-bar[data-indicator="${i}"]`);
-      if (!fill) continue;
-
-      let pct = 0;
-      if (avg !== null && avg !== undefined) {
-        if (flat) {
-          pct = 100;
-        } else {
-          const absolutePct = ((avg - 1) / 4) * ABSOLUTE_WEIGHT;
-          const relativePct = ((avg - minV) / (maxV - minV)) * RELATIVE_WEIGHT;
-          pct = absolutePct + relativePct;
-        }
-      }
-      fill.style.width = Math.max(2, Math.min(100, pct)) + "%";
-
-      fill.classList.remove(
-        "irc1a-band-poor",
-        "irc1a-band-fair",
-        "irc1a-band-satisfactory",
-        "irc1a-band-very-satisfactory",
-      );
-      const cls = bandClass(avg === undefined ? null : avg);
-      if (cls) fill.classList.add(cls);
-
-      if (bar) {
-        bar.setAttribute(
-          "title",
-          avg === null || avg === undefined
-            ? "No data yet"
-            : `${avg.toFixed(3)} / 5 (${descriptiveValue(avg)})`,
-        );
-      }
-    }
   }
 
   // Overall average across ALL entered cells (every indicator, every
@@ -195,36 +171,19 @@
   // available raw data points, so it isn't skewed by how many months a
   // given indicator happens to have.
   function recalcOverall() {
-    if (!overallAvgEl) return;
-
     const inputs = table.querySelectorAll("tbody input.irc1a-rating");
     const values = Array.from(inputs).map((input) => parseFloat(input.value));
     const avg = average(values);
 
-    overallAvgEl.textContent = avg === null ? "—" : avg.toFixed(3);
+    if (overallAvgEl)
+      overallAvgEl.textContent = avg === null ? "—" : avg.toFixed(3);
+    paintDescriptiveBadge(overallDescEl, avg);
+    if (overallDescEl && avg === null)
+      overallDescEl.textContent = "No data yet";
 
-    if (overallBarFillEl) {
-      const pct = avg === null ? 0 : ((avg - 1) / 4) * 100;
-      overallBarFillEl.style.width = Math.max(2, Math.min(100, pct)) + "%";
-
-      overallBarFillEl.classList.remove(
-        "irc1a-band-poor",
-        "irc1a-band-fair",
-        "irc1a-band-satisfactory",
-        "irc1a-band-very-satisfactory",
-      );
-      const cls = bandClass(avg);
-      if (cls) overallBarFillEl.classList.add(cls);
-    }
-
-    if (overallBarEl) {
-      overallBarEl.setAttribute(
-        "title",
-        avg === null
-          ? "No data yet"
-          : `${avg.toFixed(3)} / 5 (${descriptiveValue(avg)})`,
-      );
-    }
+    if (footerAnnualAvgEl)
+      footerAnnualAvgEl.textContent = avg === null ? "—" : avg.toFixed(3);
+    paintDescriptiveBadge(footerAnnualDescEl, avg);
   }
 
   // --- Monthly / Quarterly trend chart ---
@@ -269,16 +228,16 @@
     const hasData = points.some((p) => p.avg !== null);
     if (!hasData) {
       trendChartWrap.innerHTML =
-        '<p class="irc1a-lowest-placeholder">Enter ratings above to see the trend.</p>';
+        '<p class="irc1a-lowest-placeholder">Enter ratings below to see the trend.</p>';
       return;
     }
 
-    const width = 560;
-    const height = 130;
-    const marginLeft = 26;
-    const marginRight = 10;
-    const marginTop = 10;
-    const marginBottom = 18;
+    const width = 720;
+    const height = 180;
+    const marginLeft = 30;
+    const marginRight = 12;
+    const marginTop = 12;
+    const marginBottom = 22;
     const plotWidth = width - marginLeft - marginRight;
     const plotHeight = height - marginTop - marginBottom;
     const n = points.length;
@@ -295,7 +254,7 @@
     for (let v = 1; v <= 5; v++) {
       const y = yAt(v);
       svg += `<line x1="${marginLeft}" y1="${y}" x2="${width - marginRight}" y2="${y}" stroke="#eef1f5" stroke-width="1" />`;
-      svg += `<text x="${marginLeft - 6}" y="${y + 2.5}" text-anchor="end" font-size="6" fill="#999">${v}</text>`;
+      svg += `<text x="${marginLeft - 6}" y="${y + 2.5}" text-anchor="end" font-size="7" fill="#999">${v}</text>`;
     }
 
     // Line segments -- broken at gaps so missing months/quarters don't
@@ -317,17 +276,17 @@
       const d = seg
         .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`)
         .join(" ");
-      svg += `<path d="${d}" fill="none" stroke="#4a6fa5" stroke-width="1.25" />`;
+      svg += `<path d="${d}" fill="none" stroke="#4a6fa5" stroke-width="1.5" />`;
     });
 
     // Points + x-axis labels
     points.forEach((p, i) => {
       const x = xAt(i);
-      svg += `<text x="${x}" y="${height - 4}" text-anchor="middle" font-size="6" fill="#666">${p.label}</text>`;
+      svg += `<text x="${x}" y="${height - 4}" text-anchor="middle" font-size="7" fill="#666">${p.label}</text>`;
       if (p.avg !== null) {
         const y = yAt(p.avg);
         const color = bandColor(p.avg);
-        svg += `<circle class="irc1a-trend-point" cx="${x}" cy="${y}" r="2.5" style="fill:${color}"><title>${p.tooltip}: ${p.avg.toFixed(3)} (${descriptiveValue(p.avg)})</title></circle>`;
+        svg += `<circle class="irc1a-trend-point" cx="${x}" cy="${y}" r="3" style="fill:${color}"><title>${p.tooltip}: ${p.avg.toFixed(3)} (${descriptiveValue(p.avg)})</title></circle>`;
       }
     });
 
@@ -363,7 +322,7 @@
     if (entries.length === 0) {
       const li = document.createElement("li");
       li.className = "irc1a-lowest-placeholder";
-      li.textContent = "Enter ratings above to see results.";
+      li.textContent = "Enter ratings below to see results.";
       lowestList.appendChild(li);
       return;
     }
@@ -383,7 +342,6 @@
   function recalcAll() {
     MONTHS.forEach(recalcMonth);
     for (let i = 1; i <= INDICATOR_COUNT; i++) recalcRow(i);
-    recalcBars();
     recalcLowest();
     recalcOverall();
     renderTrendChart();
@@ -394,7 +352,6 @@
     const row = e.target.closest("tr[data-indicator]");
     recalcMonth(e.target.dataset.month);
     if (row) recalcRow(row.dataset.indicator);
-    recalcBars();
     recalcLowest();
     recalcOverall();
     renderTrendChart();
@@ -481,6 +438,23 @@
       .catch(() => {
         /* Table just stays at its blank baseline. */
       });
+  }
+
+  // --- Legend modal ---
+  function openLegend() {
+    if (legendOverlay) legendOverlay.classList.add("visible");
+  }
+
+  function closeLegend() {
+    if (legendOverlay) legendOverlay.classList.remove("visible");
+  }
+
+  if (legendBtn) legendBtn.addEventListener("click", openLegend);
+  if (legendCloseBtn) legendCloseBtn.addEventListener("click", closeLegend);
+  if (legendOverlay) {
+    legendOverlay.addEventListener("click", (e) => {
+      if (e.target === legendOverlay) closeLegend();
+    });
   }
 
   // --- Reset All Data ---
