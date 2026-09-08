@@ -9,7 +9,123 @@
 }
 
 .irc3-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
   margin-bottom: 20px;
+}
+
+/* Reset button — same design as IRC2b's reset button */
+.irc3-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #dc2626;
+  border: 1.5px solid #f3b4b4;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc3-reset-btn i {
+  font-size: 15px;
+}
+
+.irc3-reset-btn:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+
+.irc3-reset-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------------------
+   Reset confirmation modal — same look as IRC6's confirm dialog
+------------------------------------------------------------------ */
+
+.irc3-confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.irc3-confirm-overlay.visible {
+  display: flex;
+}
+
+.irc3-confirm-box {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 380px;
+  padding: 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.irc3-confirm-box h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.irc3-confirm-box p {
+  margin: 0 0 20px 0;
+  font-size: 13.5px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.irc3-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.irc3-btn-secondary,
+.irc3-btn-danger {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.irc3-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.irc3-btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.irc3-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.irc3-btn-danger:hover {
+  background: #b91c1c;
 }
 
 .irc3-header h2 {
@@ -334,6 +450,10 @@
 
 /* Responsive */
 @media (max-width: 900px) {
+  .irc3-header {
+    flex-direction: column;
+  }
+
   .irc3-header h2 {
     font-size: 24px;
   }

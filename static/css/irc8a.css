@@ -58,8 +58,12 @@
    background, so it uses the same appearance as IRC7's .irc7-reset-btn. */
 
 .irc8a-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   flex-shrink: 0;
   align-self: flex-start;
+  appearance: none;
   background: #fff;
   color: #dc2626;
   border: 1.5px solid #f3b4b4;
@@ -68,9 +72,14 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition:
-    background 0.15s ease,
+    background-color 0.15s ease,
     border-color 0.15s ease;
+}
+
+.irc8a-reset-btn i {
+  font-size: 15px;
 }
 
 .irc8a-reset-btn:hover {

@@ -213,6 +213,74 @@
     el.addEventListener("input", scheduleSaveTargets);
   });
 
+  // --- Reset All Data ---
+  // There's no dedicated reset endpoint for IRC3 -- "Provided with TA" is
+  // computed live from IRC2a and was never stored here, so the only thing
+  // to actually reset is the two Target fields. Reused the normal /save
+  // endpoint with both targets zeroed out (same approach IRC6 takes for
+  // its Goal/Outcome rows, which reuses its own save endpoint rather than
+  // a dedicated reset route). Clicking the reset button opens the
+  // confirmation modal (see irc3-reset-confirm-overlay in irc3.html); the
+  // actual reset only happens once the user confirms inside that modal.
+  const resetBtn = document.getElementById("irc3-reset-btn");
+  const resetConfirmOverlay = document.getElementById(
+    "irc3-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc3-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc3-reset-confirm-confirm",
+  );
+
+  function openResetConfirm() {
+    if (resetConfirmOverlay) resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    if (resetConfirmOverlay) resetConfirmOverlay.classList.remove("visible");
+  }
+
+  function performReset() {
+    if (resetBtn) resetBtn.disabled = true;
+
+    const dedpTargetEl = document.getElementById("irc3-dedp-target");
+    const nondedpTargetEl = document.getElementById("irc3-nondedp-target");
+    if (dedpTargetEl) dedpTargetEl.value = 0;
+    if (nondedpTargetEl) nondedpTargetEl.value = 0;
+    recalcAll();
+
+    fetch("/irc/irc3/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dedp_target: 0, nondedp_target: 0 }),
+    })
+      .catch((err) => {
+        alert("Reset failed: " + err.message);
+      })
+      .finally(() => {
+        if (resetBtn) resetBtn.disabled = false;
+      });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener("click", openResetConfirm);
+  }
+  if (resetConfirmCancelBtn) {
+    resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  }
+  if (resetConfirmOverlay) {
+    resetConfirmOverlay.addEventListener("click", (e) => {
+      if (e.target === resetConfirmOverlay) closeResetConfirm();
+    });
+  }
+  if (resetConfirmConfirmBtn) {
+    resetConfirmConfirmBtn.addEventListener("click", () => {
+      closeResetConfirm();
+      performReset();
+    });
+  }
+
   // --- Initial render ---
   renderBasisCards();
   loadPersisted();

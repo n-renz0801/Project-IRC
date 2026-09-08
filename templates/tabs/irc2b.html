@@ -370,6 +370,33 @@ Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %}
   {{ render_table(secondary_schools, "secondary", "Secondary") }}
 </section>
 
+<!-- ================= RESET CONFIRMATION MODAL ================= -->
+<div id="irc2b-reset-confirm-overlay" class="irc2b-confirm-overlay">
+  <div class="irc2b-confirm-box">
+    <h4>Reset all data?</h4>
+    <p>
+      This will permanently clear every TA checkmark for Elementary and
+      Secondary schools this year. This cannot be undone.
+    </p>
+    <div class="irc2b-confirm-actions">
+      <button
+        type="button"
+        id="irc2b-reset-confirm-cancel"
+        class="irc2b-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc2b-reset-confirm-confirm"
+        class="irc2b-btn-danger"
+      >
+        Yes, Reset
+      </button>
+    </div>
+  </div>
+</div>
+
 <script src="{{ url_for('static', filename='js/irc2b.js') }}"></script>
 
 {% endblock %}

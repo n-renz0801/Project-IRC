@@ -566,13 +566,29 @@
   // --- Reset All Data ---
   // Wipes every checkbox (both sections) both on screen and in the
   // database. No per-cell undo -- this is a deliberate, confirmed,
-  // all-or-nothing action (see /irc/irc2b/reset in app.py).
-  function resetAllData() {
-    const confirmed = window.confirm(
-      "This will permanently clear every TA checkmark for Elementary and Secondary schools this year. This cannot be undone.\n\nContinue?",
-    );
-    if (!confirmed) return;
+  // all-or-nothing action (see /irc/irc2b/reset in app.py). Clicking the
+  // reset button opens the confirmation modal (see
+  // irc2b-reset-confirm-overlay in irc2b.html); the actual wipe only
+  // happens once the user confirms inside that modal.
+  const resetConfirmOverlay = document.getElementById(
+    "irc2b-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc2b-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc2b-reset-confirm-confirm",
+  );
 
+  function openResetConfirm() {
+    if (resetConfirmOverlay) resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    if (resetConfirmOverlay) resetConfirmOverlay.classList.remove("visible");
+  }
+
+  function performReset() {
     const btn = document.getElementById("irc2b-reset-all-btn");
     if (btn) btn.disabled = true;
 
@@ -603,7 +619,21 @@
 
   const resetAllBtn = document.getElementById("irc2b-reset-all-btn");
   if (resetAllBtn) {
-    resetAllBtn.addEventListener("click", resetAllData);
+    resetAllBtn.addEventListener("click", openResetConfirm);
+  }
+  if (resetConfirmCancelBtn) {
+    resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  }
+  if (resetConfirmOverlay) {
+    resetConfirmOverlay.addEventListener("click", (e) => {
+      if (e.target === resetConfirmOverlay) closeResetConfirm();
+    });
+  }
+  if (resetConfirmConfirmBtn) {
+    resetConfirmConfirmBtn.addEventListener("click", () => {
+      closeResetConfirm();
+      performReset();
+    });
   }
 
   // --- Total column header click: toggle Quarters <-> Months (and, in

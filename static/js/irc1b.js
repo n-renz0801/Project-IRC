@@ -48,6 +48,15 @@
   const chartEl = document.getElementById("irc1b-chart");
   const periodToggle = document.getElementById("chartPeriodToggle");
   const resetAllBtn = document.getElementById("resetAllBtn");
+  const resetConfirmOverlay = document.getElementById(
+    "irc1b-reset-confirm-overlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "irc1b-reset-confirm-cancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "irc1b-reset-confirm-confirm",
+  );
 
   // "monthly" or "quarterly" -- which view the chart currently renders.
   let currentPeriod = "monthly";
@@ -302,13 +311,18 @@
   }
 
   // --- Reset All Data ---
-  function resetAllData() {
-    const confirmed = window.confirm(
-      "This will permanently delete every month's customer count for this " +
-        "year. This cannot be undone. Continue?",
-    );
-    if (!confirmed) return;
+  // Clicking the reset button opens the confirmation modal (see
+  // irc1b-reset-confirm-overlay in irc1b.html); the actual wipe only
+  // happens once the user confirms inside that modal.
+  function openResetConfirm() {
+    if (resetConfirmOverlay) resetConfirmOverlay.classList.add("visible");
+  }
 
+  function closeResetConfirm() {
+    if (resetConfirmOverlay) resetConfirmOverlay.classList.remove("visible");
+  }
+
+  function performReset() {
     resetAllBtn.disabled = true;
     const originalLabel = resetAllBtn.innerHTML;
     resetAllBtn.textContent = "Resetting...";
@@ -337,7 +351,21 @@
   }
 
   if (resetAllBtn) {
-    resetAllBtn.addEventListener("click", resetAllData);
+    resetAllBtn.addEventListener("click", openResetConfirm);
+  }
+  if (resetConfirmCancelBtn) {
+    resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+  }
+  if (resetConfirmOverlay) {
+    resetConfirmOverlay.addEventListener("click", (e) => {
+      if (e.target === resetConfirmOverlay) closeResetConfirm();
+    });
+  }
+  if (resetConfirmConfirmBtn) {
+    resetConfirmConfirmBtn.addEventListener("click", () => {
+      closeResetConfirm();
+      performReset();
+    });
   }
 
   // --- Monthly / Quarterly chart toggle ---

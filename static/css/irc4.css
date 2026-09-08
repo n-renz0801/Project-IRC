@@ -54,26 +54,32 @@
 }
 
 .irc4-reset-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   flex: 0 0 auto;
-  background: white;
-  border: 1px solid #e5b4b4;
-  color: #b3261e;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-size: 12.5px;
+  appearance: none;
+  background: #fff;
+  border: 1.5px solid #f3b4b4;
+  color: #dc2626;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 600;
+  cursor: pointer;
   white-space: nowrap;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease;
 }
 
+.irc4-reset-btn i {
+  font-size: 15px;
+}
+
 .irc4-reset-btn:hover {
-  background: #fdf1f1;
-  border-color: #b3261e;
+  background: #fee2e2;
+  border-color: #dc2626;
 }
 
 /* ---- overall page layout (Option C: zoned) -------------------------------
