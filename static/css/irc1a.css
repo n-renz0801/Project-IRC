@@ -1,4 +1,5 @@
 /* IRC1a - Monthly Customers Feedback Rating - CSS Stylesheet */
+/* Option 4: Performance Dashboard (Analytics-First) */
 
 html {
   scrollbar-width: none;
@@ -13,8 +14,12 @@ html::-webkit-scrollbar {
   padding: 24px 0;
 }
 
+/* ------------------------------------------------------------------
+   1. Page Header
+------------------------------------------------------------------ */
+
 .irc1a-header {
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 
 .irc1a-header-top {
@@ -39,7 +44,43 @@ html::-webkit-scrollbar {
   line-height: 1.5;
 }
 
-/* Reset button — same design as IRC2b's reset button */
+.irc1a-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Legend trigger button */
+.irc1a-legend-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc1a-legend-btn i {
+  font-size: 15px;
+}
+
+.irc1a-legend-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+/* Reset button */
 .irc1a-reset-btn {
   display: flex;
   align-items: center;
@@ -75,7 +116,7 @@ html::-webkit-scrollbar {
 }
 
 /* ------------------------------------------------------------------
-   Reset confirmation modal — same look as IRC6's confirm dialog
+   Shared modal look (Legend + Reset confirm)
 ------------------------------------------------------------------ */
 
 .irc1a-confirm-overlay {
@@ -151,36 +192,36 @@ html::-webkit-scrollbar {
   background: #b91c1c;
 }
 
-/* Rating scale legend */
-.irc1a-legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 20px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid #ececec;
+/* Legend modal specifics */
+.irc1a-legend-box {
+  max-width: 340px;
+  text-align: left;
 }
 
-.irc1a-legend-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+.irc1a-legend-box h4 {
+  text-align: center;
+}
+
+.irc1a-legend-list {
+  list-style: none;
+  margin: 0 0 20px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .irc1a-legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  color: #555;
+  gap: 9px;
+  font-size: 13.5px;
+  color: #444;
 }
 
 .irc1a-legend-dot {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -201,22 +242,45 @@ html::-webkit-scrollbar {
   background: #22c55e;
 }
 
-.irc1a-bottom-row {
+/* ------------------------------------------------------------------
+   2. Top Analytics Section (Hero Block - 2 Column Split)
+------------------------------------------------------------------ */
+
+.irc1a-hero-row {
   display: grid;
-  grid-template-columns: 1fr 1.3fr;
-  gap: 20px;
+  grid-template-columns: 3fr 1fr;
+  gap: 1.25rem;
   align-items: stretch;
+  margin-bottom: 1.25rem;
 }
 
-/* Trend Section — full-width row of its own */
-.irc1a-trend-section {
+.irc1a-trend-card {
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
-  padding: 20px;
+  overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
-  margin-bottom: 20px;
+}
+
+/* ------------------------------------------------------------------
+   Shared dark analytics header band — marks a card as
+   "analytics/summary" (as opposed to the light data-entry table below).
+------------------------------------------------------------------ */
+
+.irc1a-dark-header {
+  background: linear-gradient(160deg, #1f2937 0%, #2d3f57 100%);
+  padding: 16px 20px;
+  box-sizing: border-box;
+}
+
+.irc1a-card-body {
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.irc1a-subtitle-dark {
+  color: #9aa7b8;
 }
 
 .irc1a-trend-header {
@@ -224,7 +288,6 @@ html::-webkit-scrollbar {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
-  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
@@ -232,12 +295,12 @@ html::-webkit-scrollbar {
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 4px 0;
-  color: #1a1a1a;
+  color: #fff;
 }
 
 .irc1a-trend-toggle {
   display: inline-flex;
-  background: #f0f2f5;
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   padding: 3px;
   gap: 2px;
@@ -251,7 +314,7 @@ html::-webkit-scrollbar {
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
-  color: #666;
+  color: #cbd5e1;
   cursor: pointer;
   transition:
     background 0.2s ease,
@@ -289,18 +352,260 @@ html::-webkit-scrollbar {
   fill: #185fa5;
 }
 
+/* Overall Performance Badge (right block) */
+.irc1a-badge-card {
+  background: linear-gradient(160deg, #1f2937 0%, #2d3f57 100%);
+  border-radius: 12px;
+  padding: 24px 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #fff;
+}
+
+.irc1a-badge-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #b9c4d3;
+  margin-bottom: 10px;
+}
+
+.irc1a-badge-score {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+}
+
+.irc1a-badge-scale {
+  font-size: 12px;
+  color: #9aa7b8;
+  margin-top: 4px;
+  margin-bottom: 14px;
+}
+
+.irc1a-badge-pill {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 12.5px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: #4b5a70;
+  color: #e5eaf0;
+}
+
+.irc1a-badge-pill.irc1a-band-poor {
+  background: #ef4444;
+  color: #fff;
+}
+
+.irc1a-badge-pill.irc1a-band-fair {
+  background: #f59e0b;
+  color: #fff;
+}
+
+.irc1a-badge-pill.irc1a-band-satisfactory {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.irc1a-badge-pill.irc1a-band-very-satisfactory {
+  background: #22c55e;
+  color: #fff;
+}
+
+.irc1a-badge-lowest {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  width: 100%;
+  text-align: left;
+}
+
+.irc1a-badge-lowest-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #b9c4d3;
+  margin-bottom: 10px;
+}
+
+.irc1a-lowest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.irc1a-lowest-placeholder {
+  font-size: 12.5px;
+  color: #9aa7b8;
+}
+
+.irc1a-lowest-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: #e5eaf0;
+}
+
+.irc1a-lowest-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: white;
+  background: #64748b;
+}
+
+.irc1a-lowest-rank.irc1a-rank-1 {
+  background: #ef4444;
+}
+
+.irc1a-lowest-rank.irc1a-rank-2 {
+  background: #f59e0b;
+}
+
+.irc1a-lowest-rank.irc1a-rank-3 {
+  background: #eab308;
+}
+
+.irc1a-lowest-label {
+  flex: 1;
+  color: #cbd5e1;
+  line-height: 1.35;
+}
+
+.irc1a-lowest-avg {
+  font-weight: 600;
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
 /* ------------------------------------------------------------------
-   Main Table — Refined Corporate, dark header
+   3. Middle Section (Summary Insights - 2 Equal Columns)
 ------------------------------------------------------------------ */
 
-.irc1a-table-wrapper {
+.irc1a-insights-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.irc1a-insight-card {
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.irc1a-insight-header {
+  flex-shrink: 0;
+}
+
+.irc1a-remarks-label {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+.irc1a-insight-card .irc1a-card-body {
+  flex: 1;
+  display: flex;
+  padding: 20px;
+}
+
+.irc1a-insight-card .irc1a-subtitle {
+  margin-bottom: 0;
+}
+
+.irc1a-remarks-textarea {
+  width: 100%;
+  flex: 1;
+  min-height: 90px;
+  padding: 12px;
+  border: 1px solid #e2e5ea;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: none;
+  background: #fbfbfc;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+  color: #333;
+  box-sizing: border-box;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.irc1a-remarks-textarea::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
+}
+
+.irc1a-remarks-textarea:focus {
+  outline: none;
+  border-color: #4a6fa5;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+}
+
+.irc1a-remarks-textarea::placeholder {
+  color: #aaa;
+}
+
+/* ------------------------------------------------------------------
+   4. Bottom Section — Detailed Data Table
+------------------------------------------------------------------ */
+
+.irc1a-table-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
+.irc1a-table-card-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #fff;
+}
+
+.irc1a-table-wrapper {
+  background: white;
+  border: none;
+  border-radius: 0;
   overflow-x: auto;
   overflow-y: visible;
-  margin-bottom: 32px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .irc1a-table {
@@ -317,12 +622,14 @@ html::-webkit-scrollbar {
 
 .irc1a-table thead th {
   padding: 13px 8px;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
   color: #f3f4f6;
   white-space: nowrap;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   background: #1f2937;
+  outline: none;
+  box-shadow: none;
 }
 
 .irc1a-table thead th:last-child {
@@ -335,19 +642,21 @@ html::-webkit-scrollbar {
 }
 
 .irc1a-rowavg-col {
-  width: 85px;
+  width: 110px;
   text-align: center;
 }
 
-.irc1a-rowbar-col {
-  width: 120px;
+.irc1a-rowdesc-col {
+  width: 140px;
   text-align: center;
 }
 
 .irc1a-table
-  th:not(.irc1a-indicator-col):not(.irc1a-rowavg-col):not(.irc1a-rowbar-col),
+  th:not(.irc1a-indicator-col):not(.irc1a-rowavg-col):not(.irc1a-rowdesc-col),
 .irc1a-table
-  td:not(.irc1a-indicator-col):not(.irc1a-rowavg-cell):not(.irc1a-rowbar-cell) {
+  td:not(.irc1a-indicator-col):not(.irc1a-rowavg-cell):not(
+    .irc1a-rowdesc-cell
+  ) {
   width: 60px;
 }
 
@@ -373,13 +682,23 @@ html::-webkit-scrollbar {
   border-right: 1px solid #e8e8e8;
 }
 
+.irc1a-table
+  tbody
+  td:not(.irc1a-indicator-col):not(.irc1a-rowavg-cell):not(
+    .irc1a-rowdesc-cell
+  ) {
+  text-align: center;
+}
+
 .irc1a-table tbody td:last-child {
   border-right: none;
 }
 
 .irc1a-table tbody input[type="number"] {
+  display: block;
   width: 100%;
   max-width: 60px;
+  margin: 0 auto;
   box-sizing: border-box;
   padding: 6px 4px;
   border: 1px solid #e2e5ea;
@@ -426,6 +745,11 @@ html::-webkit-scrollbar {
   border-right: 1px solid #e8e8e8;
   font-weight: 500;
   color: #333;
+  text-align: center;
+}
+
+.irc1a-table tfoot td.irc1a-indicator-col {
+  text-align: left;
 }
 
 .irc1a-table tfoot td:last-child {
@@ -436,16 +760,12 @@ html::-webkit-scrollbar {
   background: #eff4f9;
 }
 
-.irc1a-descriptive-row {
-  background: #f5f8fb;
-}
-
 .irc1a-rowavg-cell,
-.irc1a-rowbar-cell {
+.irc1a-rowdesc-cell {
   text-align: center;
 }
 
-/* Row Average — pill badge instead of plain text */
+/* Row Average — pill badge */
 .irc1a-row-avg {
   display: inline-block;
   font-weight: 600;
@@ -456,237 +776,89 @@ html::-webkit-scrollbar {
   border-radius: 999px;
 }
 
-/* Rating Snapshot Bar */
-.irc1a-bar {
-  position: relative;
-  width: 100%;
-  height: 8px;
+/* Descriptive Rating — color-coded badge per row */
+.irc1a-row-desc {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 11.5px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: #e8eef5;
-  overflow: hidden;
-  border: 1px solid #d8dce8;
+  background: #e5e7eb;
+  color: #4b5563;
 }
 
-.irc1a-bar-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  border-radius: 999px;
-  background: #888;
-  transition:
-    width 0.25s ease,
-    background-color 0.25s ease;
-  min-width: 2px;
+.irc1a-row-desc.irc1a-band-poor {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
-.irc1a-bar-fill.irc1a-band-poor {
-  background: #ef4444;
+.irc1a-row-desc.irc1a-band-fair {
+  background: #fef3c7;
+  color: #b45309;
 }
 
-.irc1a-bar-fill.irc1a-band-fair {
-  background: #f59e0b;
+.irc1a-row-desc.irc1a-band-satisfactory {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
-.irc1a-bar-fill.irc1a-band-satisfactory {
-  background: #3b82f6;
+.irc1a-row-desc.irc1a-band-very-satisfactory {
+  background: #dcfce7;
+  color: #15803d;
 }
 
-.irc1a-bar-fill.irc1a-band-very-satisfactory {
-  background: #22c55e;
-}
+/* ------------------------------------------------------------------
+   Responsive adjustments
+------------------------------------------------------------------ */
 
-/* Three Lowest Section */
-.irc1a-lowest-section {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 0;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  height: 100%;
-  box-sizing: border-box;
-}
-
-.irc1a-lowest-section h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-  color: #1a1a1a;
-}
-
-.irc1a-lowest-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.irc1a-lowest-placeholder {
-  font-size: 13px;
-  color: #999;
-}
-
-.irc1a-lowest-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  font-size: 13px;
-  color: #333;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.irc1a-lowest-item:last-child {
-  border-bottom: none;
-}
-
-.irc1a-lowest-rank {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-  color: white;
-  background: #cbd5e1;
-}
-
-.irc1a-lowest-rank.irc1a-rank-1 {
-  background: #ef4444;
-}
-
-.irc1a-lowest-rank.irc1a-rank-2 {
-  background: #f59e0b;
-}
-
-.irc1a-lowest-rank.irc1a-rank-3 {
-  background: #eab308;
-}
-
-.irc1a-lowest-label {
-  flex: 1;
-  color: #555;
-}
-
-.irc1a-lowest-avg {
-  font-weight: 600;
-  color: #d97706;
-  min-width: 60px;
-  text-align: right;
-}
-
-/* Remarks Section */
-.irc1a-remarks-section {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  height: 100%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-}
-
-.irc1a-remarks-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  flex: 1;
-  min-height: 0;
-}
-
-.irc1a-remarks-field {
-  margin-bottom: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.irc1a-remarks-label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #1a1a1a;
-  flex-shrink: 0;
-}
-
-.irc1a-remarks-textarea {
-  width: 100%;
-  flex: 1;
-  min-height: 0;
-  padding: 12px;
-  border: 1px solid #e2e5ea;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 13px;
-  line-height: 1.6;
-  resize: none;
-  background: #fbfbfc;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
-  color: #333;
-  box-sizing: border-box;
-  overflow-y: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-}
-
-.irc1a-remarks-textarea::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/Edge */
-}
-
-.irc1a-remarks-textarea:focus {
-  outline: none;
-  border-color: #4a6fa5;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
-}
-
-.irc1a-remarks-textarea::placeholder {
-  color: #aaa;
-}
-
-/* Responsive adjustments */
 @media (max-width: 1200px) {
   .irc1a-indicator-col {
     width: 150px;
   }
 
-  .irc1a-bottom-row {
+  .irc1a-hero-row {
     grid-template-columns: 1fr;
   }
 
-  /* Stacked to one column here, so the flex/grid height-stretch chain
-     no longer has a shared row to size against -- use a fixed,
-     scrollable height instead of collapsing to min-content. */
-  .irc1a-remarks-field {
-    flex: none;
+  .irc1a-badge-card {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    text-align: left;
   }
 
-  .irc1a-remarks-textarea {
-    flex: none;
-    height: 200px;
+  .irc1a-badge-label,
+  .irc1a-badge-score,
+  .irc1a-badge-scale,
+  .irc1a-badge-pill {
+    text-align: left;
   }
-}
 
-@media (max-width: 860px) {
-  .irc1a-table thead {
-    top: auto;
-    position: static;
+  .irc1a-badge-lowest {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 0;
+    flex-basis: 100%;
+  }
+
+  .irc1a-insights-row {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
   .irc1a-header h2 {
     font-size: 22px;
+  }
+
+  .irc1a-header-actions {
+    width: 100%;
+  }
+
+  .irc1a-legend-btn,
+  .irc1a-reset-btn {
+    flex: 1;
+    justify-content: center;
   }
 
   .irc1a-table-wrapper {
@@ -698,24 +870,13 @@ html::-webkit-scrollbar {
     padding: 8px 6px;
   }
 
-  .irc1a-bottom-row {
-    grid-template-columns: 1fr;
+  .irc1a-dark-header,
+  .irc1a-card-body,
+  .irc1a-insight-card .irc1a-card-body {
+    padding: 14px 16px;
   }
 
-  .irc1a-remarks-grid {
-    grid-template-columns: 1fr;
-    gap: 18px;
-  }
-
-  .irc1a-remarks-textarea {
-    height: 160px;
-  }
-
-  .irc1a-trend-section {
-    padding: 16px;
-  }
-
-  .irc1a-remarks-section {
-    padding: 16px;
+  .irc1a-badge-card {
+    padding: 18px 16px;
   }
 }
