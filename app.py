@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import datetime
 from flask import Flask, render_template, abort, request, jsonify
 import pdfplumber
@@ -48,16 +49,48 @@ from models import (
 )
 import storage
 
-app = Flask(__name__)
+def _resource_dir():
+    """Where templates/ and static/ live. Read-only, so it's fine for this
+    to sit inside PyInstaller's temp extraction folder (sys._MEIPASS) when
+    frozen -- that folder just needs to exist for the life of the run."""
+    if getattr(sys, "frozen", False):
+        return sys._MEIPASS
+    return os.path.abspath(os.path.dirname(__file__))
+
+
+def _data_dir():
+    """Where the SQLite file and uploaded PDFs live. This MUST be a stable,
+    writable, per-user location -- never PyInstaller's temp extraction
+    folder, which is deleted the moment the app closes (that would wipe
+    the database and every uploaded file on every restart). In dev
+    (not frozen) we keep using the project folder for convenience; once
+    frozen we switch to the OS's standard per-user app-data location."""
+    if getattr(sys, "frozen", False):
+        if sys.platform == "win32":
+            root = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
+        elif sys.platform == "darwin":
+            root = os.path.expanduser("~/Library/Application Support")
+        else:
+            root = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
+        return os.path.join(root, "SGOD_PMES")
+    return os.path.abspath(os.path.dirname(__file__))
+
+
+app = Flask(
+    __name__,
+    template_folder=os.path.join(_resource_dir(), "templates"),
+    static_folder=os.path.join(_resource_dir(), "static"),
+)
 
 # ---------------------------------------------------------------------------
 # Database + upload-storage configuration
 #
-# BASE_DIR anchors both the SQLite file and the uploads tree to the app's
-# own folder rather than the current working directory, since the future
-# pywebview .exe build won't reliably be launched from a fixed cwd.
+# BASE_DIR anchors both the SQLite file and the uploads tree to a stable,
+# writable, per-user location (see _data_dir() above) rather than the
+# current working directory or the app's install folder, so the pywebview
+# .exe build keeps its data across restarts/reinstalls.
 # ---------------------------------------------------------------------------
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+BASE_DIR = _data_dir()
 INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
 os.makedirs(INSTANCE_DIR, exist_ok=True)
 

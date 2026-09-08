@@ -1,9 +1,51 @@
-instance
-__pycache__
+# Python
+
+**pycache**/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+
+env/
+venv/
+.venv/
+
+# PyInstaller build files
+
+build/
+dist/
+
+# Local database / application data
+
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Local Adobe Illustrator files
+
 adobe_illustrator/
 
-# Excel and csv files
+# Excel and CSV files
+
 data/*.xlsx
 data/*.csv
+
 # Microsoft Office temporary/lock files
+
 ~$*
+
+# Environment variables / secrets
+
+.env
+.env.*
+
+# IDE / editor files
+
+.vscode/
+.idea/
+
+# OS-generated files
+
+.DS_Store
+Thumbs.db
