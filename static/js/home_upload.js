@@ -4,6 +4,7 @@
   const dropzone = document.getElementById("homeUploadDropzone");
   const fileInput = document.getElementById("homeUploadInput");
   const uploadBtn = document.getElementById("homeUploadBtn");
+  const resetAllBtn = document.getElementById("homeUploadResetBtn");
   const statusEl = document.getElementById("homeUploadStatus");
 
   const modalOverlay = document.getElementById("homeUploadModalOverlay");
@@ -11,6 +12,16 @@
   const reviewHint = document.getElementById("homeUploadReviewHint");
   const reviewSections = document.getElementById("homeUploadReviewSections");
   const confirmBtn = document.getElementById("homeUploadReviewConfirm");
+
+  const resetConfirmOverlay = document.getElementById(
+    "homeUploadResetConfirmOverlay",
+  );
+  const resetConfirmCancelBtn = document.getElementById(
+    "homeUploadResetConfirmCancel",
+  );
+  const resetConfirmConfirmBtn = document.getElementById(
+    "homeUploadResetConfirmConfirm",
+  );
 
   const monthGrid = document.getElementById("homeMonthGrid");
 
@@ -639,5 +650,68 @@
           btn.disabled = false;
         });
     });
+  }
+
+  // --- Reset: wipes every uploaded file (and everything extracted from
+  // them) for the current year in one action, instead of deleting each
+  // month's row one by one. Confirmed via a modal (same pattern as
+  // IRC6's reset-confirmation modal) rather than window.confirm, since
+  // this is a whole-page-wiping action. ---
+  function openResetConfirm() {
+    if (!resetConfirmOverlay) return;
+    resetConfirmOverlay.classList.add("visible");
+  }
+
+  function closeResetConfirm() {
+    if (!resetConfirmOverlay) return;
+    resetConfirmOverlay.classList.remove("visible");
+  }
+
+  if (resetAllBtn && resetConfirmOverlay) {
+    resetAllBtn.addEventListener("click", openResetConfirm);
+
+    if (resetConfirmCancelBtn) {
+      resetConfirmCancelBtn.addEventListener("click", closeResetConfirm);
+    }
+
+    resetConfirmOverlay.addEventListener("click", (e) => {
+      if (e.target === resetConfirmOverlay) closeResetConfirm();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (
+        e.key === "Escape" &&
+        resetConfirmOverlay.classList.contains("visible")
+      ) {
+        closeResetConfirm();
+      }
+    });
+
+    if (resetConfirmConfirmBtn) {
+      resetConfirmConfirmBtn.addEventListener("click", () => {
+        resetConfirmConfirmBtn.disabled = true;
+
+        fetch(`/files/reset?year=${CURRENT_YEAR}`, { method: "DELETE" })
+          .then((res) => res.json())
+          .then((result) => {
+            resetConfirmConfirmBtn.disabled = false;
+            closeResetConfirm();
+            if (result.error) {
+              showStatus(result.error, "error");
+              return;
+            }
+            showStatus(
+              `Cleared all monthly files for ${CURRENT_YEAR}.`,
+              "success",
+            );
+            refreshMonthGrid();
+          })
+          .catch((err) => {
+            resetConfirmConfirmBtn.disabled = false;
+            closeResetConfirm();
+            showStatus("Reset failed: " + err.message, "error");
+          });
+      });
+    }
   }
 })();

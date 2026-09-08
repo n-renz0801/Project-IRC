@@ -96,6 +96,13 @@ block extra_css %}
     <div class="home-uploads-card-header">
       <h3>Monthly Files</h3>
       <div class="home-uploads-card-header-action">
+        <button
+          type="button"
+          class="home-upload-reset-btn"
+          id="homeUploadResetBtn"
+        >
+          <i class="ti ti-trash" style="margin-right: 6px"></i> Reset
+        </button>
         <input
           type="file"
           id="homeUploadInput"
@@ -189,6 +196,40 @@ block extra_css %}
         id="homeUploadReviewConfirm"
       >
         Confirm Import
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= RESET-ALL CONFIRMATION MODAL ================= -->
+<!-- Same visual pattern/markup as IRC6's reset-confirmation modal (see
+     irc6.html) -- single scope, no options, since Reset here always
+     means "every uploaded file for this year". -->
+<div
+  id="homeUploadResetConfirmOverlay"
+  class="home-upload-reset-confirm-overlay"
+>
+  <div class="home-upload-reset-confirm-box">
+    <h4>Reset all monthly files?</h4>
+    <p>
+      This will delete every uploaded file for this year, along with everything
+      extracted from them (ratings, counts, and school statuses) across all 12
+      months. This cannot be undone.
+    </p>
+    <div class="home-upload-reset-confirm-actions">
+      <button
+        type="button"
+        id="homeUploadResetConfirmCancel"
+        class="home-upload-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="homeUploadResetConfirmConfirm"
+        class="home-upload-btn-danger"
+      >
+        Yes, Reset
       </button>
     </div>
   </div>

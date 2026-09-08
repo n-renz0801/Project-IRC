@@ -880,6 +880,23 @@ def delete_file(file_id):
     return jsonify({"deleted": True, "id": file_id}), 200
 
 
+@app.route("/files/reset", methods=["DELETE"])
+def reset_all_files():
+    """Wipes every uploaded PDF for a given year (defaults to the current
+    year -- the same year the home page's Monthly Files grid is scoped
+    to), one at a time through storage.delete_uploaded_file so each file
+    gets the same on-disk cleanup and cascading DB delete (ratings,
+    customer counts, school statuses, ...) as a single-row delete via
+    DELETE /files/<id>. Used by the home page's "Reset" button to clear
+    every month in one action instead of deleting rows one by one.
+    """
+    year = request.args.get("year", type=int) or _current_year()
+    files = UploadedFile.query.filter_by(year=year).all()
+    for uploaded_file in files:
+        storage.delete_uploaded_file(uploaded_file, app.config["UPLOAD_ROOT"])
+    return jsonify({"reset": True, "year": year, "deleted": len(files)}), 200
+
+
 @app.route("/irc/home/extract", methods=["POST"])
 def extract_home_pdf():
     """Combined home-page upload: runs every applicable section
@@ -2816,26 +2833,6 @@ def save_irc8c_row():
 
     db.session.commit()
     return jsonify(row.to_dict()), 200
-
-
-@app.route("/irc/irc8c/reset", methods=["DELETE"])
-def reset_irc8c_data():
-    """Resets this year's four Development Plan rows back to their default
-    blank/locked state -- mirrors reset_irc7_data's single-scope shape
-    (there's no "values only" vs "everything" split here since IRC8c has
-    nothing but these four fixed rows to begin with; see models.py's
-    IRC8CRow docstring for why they're permanent slots, not a user-managed
-    list).
-
-    Deleting the rows outright (rather than blanking each column) is safe
-    because get_irc8c_data() re-creates any missing slot with
-    is_locked=True on its next read -- the same "recreate on read" shape
-    IRC8b's fixed criteria rely on.
-    """
-    year = request.args.get("year", type=int) or _current_year()
-    IRC8CRow.query.filter_by(year=year).delete()
-    db.session.commit()
-    return jsonify({"reset": True, "year": year}), 200
 
 
 def not_found(e):
