@@ -71,11 +71,12 @@ def main():
         raise RuntimeError("Local server did not start in time.")
 
     webview.create_window(
-        "SGOD PMES",
+        "SGOD IRC",
         f"http://127.0.0.1:{port}/",
         width=1280,
         height=800,
         min_size=(1024, 700),
+        maximized=True,
     )
     webview.start()
 

@@ -295,18 +295,27 @@ html::-webkit-scrollbar {
 /* Section label — sits above each section's content, horizontally
    aligned with its corresponding numbered badge in the rail. */
 
-.irc1a-flow-section-1 {
+.irc1a-flow-section-1,
+.irc1a-flow-section-2,
+.irc1a-flow-section-3 {
   grid-column: 2;
+  /* Grid items default to min-width: auto, so content nested arbitrarily
+     deep inside any one section (e.g. the ratings table) could otherwise
+     force the shared "1fr" flow column -- and therefore every section
+     stacked in it -- wider than the viewport. min-width: 0 keeps this
+     column a well-behaved shrinking track at every screen size. */
+  min-width: 0;
+}
+
+.irc1a-flow-section-1 {
   grid-row: 1;
 }
 
 .irc1a-flow-section-2 {
-  grid-column: 2;
   grid-row: 2;
 }
 
 .irc1a-flow-section-3 {
-  grid-column: 2;
   grid-row: 3;
 }
 
@@ -343,6 +352,12 @@ html::-webkit-scrollbar {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  /* Grid items default to min-width: auto, which pins a card at its
+     content's min-content width and can hold the whole hero row open
+     wider than the viewport instead of letting it shrink with its
+     track. This keeps it a well-behaved shrinking grid item at every
+     screen size. */
+  min-width: 0;
 }
 
 /* ------------------------------------------------------------------
@@ -516,6 +531,8 @@ html::-webkit-scrollbar {
   align-items: center;
   text-align: center;
   color: #fff;
+  /* See .irc1a-trend-card -- same grid-shrink fix. */
+  min-width: 0;
 }
 
 .irc1a-badge-label {
@@ -576,6 +593,7 @@ html::-webkit-scrollbar {
   padding-top: 18px;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   width: 100%;
+  min-width: 0;
   text-align: left;
 }
 
@@ -609,6 +627,7 @@ html::-webkit-scrollbar {
   gap: 9px;
   font-size: 12px;
   color: #e5eaf0;
+  min-width: 0;
 }
 
 .irc1a-lowest-rank {
@@ -639,6 +658,8 @@ html::-webkit-scrollbar {
 
 .irc1a-lowest-label {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
   color: #cbd5e1;
   line-height: 1.35;
 }
@@ -668,6 +689,8 @@ html::-webkit-scrollbar {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  /* See .irc1a-trend-card -- same grid-shrink fix. */
+  min-width: 0;
 }
 
 .irc1a-insight-header {
@@ -770,17 +793,20 @@ html::-webkit-scrollbar {
 }
 
 .irc1a-indicator-col {
-  width: 220px;
+  /* Percentages (rather than fixed px) so the table always sums to
+     exactly 100% of whatever width its container gives it -- it can
+     never force the page wider than .content, at any screen size. */
+  width: 18%;
   text-align: left;
 }
 
 .irc1a-rowavg-col {
-  width: 110px;
+  width: 10%;
   text-align: center;
 }
 
 .irc1a-rowdesc-col {
-  width: 140px;
+  width: 12%;
   text-align: center;
 }
 
@@ -790,7 +816,7 @@ html::-webkit-scrollbar {
   td:not(.irc1a-indicator-col):not(.irc1a-rowavg-cell):not(
     .irc1a-rowdesc-cell
   ) {
-  width: 60px;
+  width: 5%;
 }
 
 .irc1a-table tbody tr {
@@ -944,38 +970,150 @@ html::-webkit-scrollbar {
    Responsive adjustments
 ------------------------------------------------------------------ */
 
-@media (max-width: 1200px) {
-  .irc1a-indicator-col {
-    width: 150px;
+/* HD laptops and narrower. Same 3fr/1fr hero row and 1fr/1fr insights
+   row as always (see min-width: 0 on .irc1a-trend-card /
+   .irc1a-badge-card / .irc1a-insight-card, and the percentage-based
+   table columns below, for how those keep shrinking with the
+   container instead of forcing an overflow or a layout change).
+   Padding and font sizes are trimmed here so the narrower cards don't
+   feel cramped. */
+@media (max-width: 1400px) {
+  .irc1a-dark-header,
+  .irc1a-card-body,
+  .irc1a-insight-card .irc1a-card-body {
+    padding: 12px 14px;
   }
 
-  .irc1a-hero-row {
-    grid-template-columns: 1fr;
+  .irc1a-trend-header h3,
+  .irc1a-remarks-label,
+  .irc1a-table-card-header h3 {
+    font-size: 14px;
+  }
+
+  .irc1a-subtitle,
+  .irc1a-subtitle-dark {
+    font-size: 12px;
+  }
+
+  .irc1a-toggle-btn {
+    padding: 5px 9px;
+    font-size: 11px;
   }
 
   .irc1a-badge-card {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    text-align: left;
+    padding: 18px 14px;
+  }
+
+  .irc1a-badge-score {
+    font-size: 34px;
   }
 
   .irc1a-badge-label,
-  .irc1a-badge-score,
   .irc1a-badge-scale,
-  .irc1a-badge-pill {
-    text-align: left;
+  .irc1a-badge-pill,
+  .irc1a-badge-lowest-title,
+  .irc1a-lowest-item,
+  .irc1a-lowest-placeholder {
+    font-size: 11px;
   }
 
-  .irc1a-badge-lowest {
-    border-top: none;
-    margin-top: 0;
-    padding-top: 0;
-    flex-basis: 100%;
+  .irc1a-remarks-textarea {
+    font-size: 12px;
+    min-height: 76px;
+  }
+
+  /* Table: smaller font + tighter cell padding so the (percentage-
+     width) columns still read comfortably once they're narrower. */
+  .irc1a-table {
+    font-size: 11px;
+  }
+
+  .irc1a-table thead th,
+  .irc1a-table tbody td,
+  .irc1a-table tfoot td {
+    padding: 7px 5px;
+  }
+
+  .irc1a-table tbody input[type="number"] {
+    max-width: 34px;
+    font-size: 11px;
+    padding: 5px 3px;
+  }
+
+  .irc1a-row-avg,
+  .irc1a-row-desc {
+    font-size: 10.5px;
+    padding: 2px 7px;
+  }
+}
+
+/* Continue shrinking past the 1400px step instead of freezing there --
+   gaps, badge-card padding, and font sizes keep tightening as the
+   viewport narrows further, so .irc1a-hero-row (3fr/1fr) and
+   .irc1a-insights-row (1fr/1fr) always have room to shrink in place.
+   Nothing here changes grid-template-columns, so neither row ever
+   collapses into a stacked, single-column layout. */
+@media (max-width: 1150px) {
+  .irc1a-hero-row,
+  .irc1a-insights-row {
+    gap: 1rem;
+  }
+
+  .irc1a-badge-card {
+    padding: 16px 12px;
+  }
+
+  .irc1a-badge-score {
+    font-size: 28px;
+  }
+
+  .irc1a-insight-card .irc1a-card-body {
+    padding: 14px 12px;
+  }
+
+  .irc1a-remarks-textarea {
+    font-size: 11.5px;
+    min-height: 70px;
+  }
+}
+
+@media (max-width: 950px) {
+  .irc1a-hero-row {
+    /* Give the badge card relatively more of the row so it doesn't get
+       squeezed to an unreadable sliver as the trend card's chart still
+       needs most of the space. */
+    grid-template-columns: 2.2fr 1fr;
+    gap: 0.75rem;
   }
 
   .irc1a-insights-row {
-    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .irc1a-badge-card {
+    padding: 14px 10px;
+  }
+
+  .irc1a-badge-score {
+    font-size: 24px;
+  }
+
+  .irc1a-badge-label,
+  .irc1a-badge-scale,
+  .irc1a-badge-pill,
+  .irc1a-badge-lowest-title,
+  .irc1a-lowest-item,
+  .irc1a-lowest-placeholder {
+    font-size: 10px;
+  }
+
+  .irc1a-insight-card .irc1a-card-body {
+    padding: 10px;
+  }
+
+  .irc1a-remarks-textarea {
+    font-size: 11px;
+    min-height: 60px;
   }
 }
 
