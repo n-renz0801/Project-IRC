@@ -5,18 +5,21 @@
 /* ---------- Hamburger toggle (lives in the navbar, see base.html) ---------- */
 .home-upload-hamburger-btn {
   position: absolute;
-  right: 24px;
+  /* 24px at >=1680px down to 14px at <=1366px -- shrinks in step with
+     the nav tabs (see --shrink, base.css) so it keeps its distance
+     from them as they get tighter. */
+  right: calc(24px - 10px * var(--shrink));
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: calc(8px - 2px * var(--shrink));
   background: var(--gold);
   color: var(--navy-deep);
   border: none;
   border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 0.85rem;
+  padding: calc(10px - 2px * var(--shrink)) calc(16px - 4px * var(--shrink));
+  font-size: calc(0.85rem - 0.13rem * var(--shrink));
   font-weight: 700;
   transition: background 0.15s ease;
 }

@@ -569,6 +569,74 @@ html::-webkit-scrollbar {
    Responsive adjustments
 ------------------------------------------------------------------ */
 
+/* HD laptops (~1366px). Same single-column hero row as always -- grid
+   items default to min-width: auto though, which can pin the trend
+   card at its content's min-content width and hold it open wider than
+   the viewport. min-width: 0 lets .irc1b-trend-card (the plot) shrink
+   properly, and the SVG inside it already redraws at whatever width
+   it's given (see getChartScale() in irc1b.js), so it just gets
+   narrower along with the card. Padding/font sizes trimmed to match. */
+@media (max-width: 1400px) {
+  .irc1b-trend-card {
+    min-width: 0;
+  }
+
+  .irc1b-dark-header,
+  .irc1b-card-body {
+    padding: 12px 14px;
+  }
+
+  .irc1b-trend-header h3,
+  .irc1b-table-card-header h3 {
+    font-size: 14px;
+  }
+
+  .irc1b-subtitle,
+  .irc1b-subtitle-dark {
+    font-size: 12px;
+  }
+
+  .irc1b-toggle-btn {
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+
+  /* Table: shrink font size + column widths together so the row stays
+     inside the card without ever needing horizontal scroll. */
+  .irc1b-table {
+    font-size: 11px;
+  }
+
+  .irc1b-label-col {
+    width: 130px;
+  }
+
+  .irc1b-total-col {
+    width: 70px;
+  }
+
+  .irc1b-table th:not(.irc1b-label-col):not(.irc1b-total-col),
+  .irc1b-table td:not(.irc1b-label-col):not(.irc1b-total-cell) {
+    width: 42px;
+  }
+
+  .irc1b-table thead th,
+  .irc1b-table tbody td {
+    padding: 7px 5px;
+  }
+
+  .irc1b-table tbody input[type="number"] {
+    max-width: 36px;
+    font-size: 11px;
+    padding: 5px 3px;
+  }
+
+  .irc1b-total-cell #irc1b-total {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+}
+
 @media (max-width: 1200px) {
   .irc1b-label-col {
     width: 150px;

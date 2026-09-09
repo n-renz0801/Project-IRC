@@ -26,7 +26,16 @@
   --border: #d0d8ec;
   --shadow: rgba(0, 51, 160, 0.12);
 
-  --header-height: 104px;
+  --header-height: 72px;
+
+  /* Fluid "how compromised are we" factor: 0 at 1680px and wider (full
+     size, as designed), ramping straight up to 1 at 1366px and narrower
+     (fully compromised). Everything that needs to shrink on smaller
+     laptops -- .content's side padding, the nav tabs, the uploads
+     hamburger button -- reads off this single value instead of each
+     jumping at its own hard breakpoint, so the whole page compromises
+     together and continuously as the window narrows. */
+  --shrink: clamp(0, calc((1680px - 100vw) / (1680px - 1366px)), 1);
 }
 
 body {
@@ -40,7 +49,7 @@ body {
 ═══════════════════════════════════════════════════════════════════════════ */
 header {
   background: var(--white);
-  padding: 14px 40px;
+  padding: 8px 40px;
   border-bottom: 3px solid var(--gold);
   box-shadow: 0 4px 16px var(--shadow);
 }
@@ -50,12 +59,12 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 40px;
+  gap: 28px;
   flex-wrap: wrap;
 }
 
 #logo-bar img {
-  height: 45px;
+  height: 32px;
   width: auto;
   object-fit: contain;
 }
@@ -83,16 +92,27 @@ nav ul {
   padding: 0 24px;
   gap: 0;
   margin: 0;
+  /* Reserves room on the right for the uploads hamburger button (Home
+     page only -- it's positioned absolutely over the nav, see
+     .home-upload-hamburger-btn), so the tab list never overlaps it as
+     the tabs get tighter. 0px reserved at >=1680px (button has plenty
+     of clearance at full size), growing to 160px at <=1366px. */
+  max-width: calc(100% - 160px * var(--shrink));
 }
 
 nav ul li a {
   display: block;
-  padding: 14px 25px;
+  /* 14px/25px at >=1680px down to 11px/12px at <=1366px. Horizontal
+     padding (the "gap" between tabs) shrinks the most since that's
+     where most of the width saving needs to come from. */
+  padding: calc(14px - 3px * var(--shrink)) calc(25px - 13px * var(--shrink));
   color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.06em;
+  /* 0.95rem at >=1680px down to 0.8rem at <=1366px. */
+  font-size: calc(0.95rem - 0.15rem * var(--shrink));
+  /* 0.06em at >=1680px down to 0.03em at <=1366px. */
+  letter-spacing: calc(0.06em - 0.03em * var(--shrink));
   text-transform: uppercase;
   position: relative;
   transition:
@@ -137,7 +157,14 @@ nav ul li a.active::after {
 ═══════════════════════════════════════════════════════════════════════════ */
 
 .content {
-  padding: 30px 250px;
+  /* 250px at >=1680px (unchanged from the original design) down to
+     100px at <=1366px, scaling continuously with --shrink. */
+  padding: 30px calc(250px - 150px * var(--shrink));
+  /* Hard guarantee: whatever happens inside (grid blowout, a stray
+     fixed-width element, etc.), nothing is ever allowed to render
+     past .content's own padding edge -- page content shrinks to fit,
+     it never spills past this boundary. */
+  overflow-x: hidden;
 }
 
 .page-hero h1 {
@@ -333,15 +360,15 @@ nav ul li a.active::after {
 
 @media (max-width: 860px) {
   header {
-    padding: 10px 16px;
+    padding: 6px 16px;
   }
 
   #logo-bar {
-    gap: 16px;
+    gap: 12px;
   }
 
   #logo-bar img {
-    height: 30px;
+    height: 22px;
   }
 
   nav ul {

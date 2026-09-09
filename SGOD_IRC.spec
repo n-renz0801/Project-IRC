@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='SGOD_PMES',
+    name='SGOD_IRC',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

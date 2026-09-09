@@ -307,6 +307,16 @@
   overflow: hidden;
 }
 
+/* HD laptops (~1366px): the card itself doesn't get any narrower (same
+   3-column grid), but with less spare room some group labels were
+   getting truncated with "..." at the 2-line clamp. A smaller font
+   fits more characters per line, so the same label reads in full. */
+@media (max-width: 1400px) {
+  .carousel-card__label {
+    font-size: 0.74rem;
+  }
+}
+
 /* Single-report card: the whole card becomes a click target */
 .carousel-card__link {
   position: absolute;
