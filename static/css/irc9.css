@@ -7,8 +7,6 @@
 }
 
 .irc9-panel {
-  padding: 24px 0;
-
   /* Fluid "how compromised are we" factor, same technique as the
      global --shrink in base.css: 0 at 1300px and wider (table renders
      at its designed column widths), ramping straight up to 1 at 480px
@@ -20,88 +18,161 @@
   --irc9-shrink: clamp(0, calc((1300px - 100vw) / (1300px - 480px)), 1);
 }
 
+/* ------------------------------------------------------------------
+   1. Page Header
+------------------------------------------------------------------ */
+
 .irc9-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
   margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1.5px solid #e0e0e0;
 }
 
-.irc9-header-text h2 {
-  font-size: 28px;
+.irc9-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Title block: badge + divider + title/subtitle, matching IRC1a's
+   header-title-bar-main pattern. */
+.irc9-header-title-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.irc9-header-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  padding: 0 16px;
+  flex-shrink: 0;
+  background: var(--navy-deep, #001550);
+  border-radius: 10px;
+  box-sizing: border-box;
+  line-height: 1.1;
+}
+
+.irc9-header-badge-group {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 10.5px;
   font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.irc9-header-badge-page {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.irc9-header-divider {
+  width: 4px;
+  height: 54px;
+  background: var(--navy-deep, #001550);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.irc9-header h2 {
+  font-size: 32px;
+  font-weight: 600;
+  /* Decreased title/subtitle gap -- was 8px. */
+  margin: 0 0 2px 0;
+  color: var(--navy-deep, #001550);
+  text-transform: uppercase;
+}
+
+.irc9-subtitle {
+  font-size: 14px;
+  color: #666;
   margin: 0;
-  color: #1a1a1a;
+  line-height: 1.5;
 }
 
 .irc9-header-actions {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
 }
 
+/* Header action buttons -- sized to match IRC1a's compact Legend /
+   Reset buttons (smaller than the previous full-size buttons). */
 .irc9-add-btn,
-.irc9-import-btn {
+.irc9-import-btn,
+.irc9-reset-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 14px;
+  gap: 5px;
+  appearance: none;
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition:
-    background 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
     transform 0.1s ease;
 }
 
+.irc9-add-btn i,
+.irc9-import-btn i,
+.irc9-reset-btn i {
+  font-size: 13px;
+}
+
+/* Add/Import now sit on the dark table-card header -- a visible
+   drop shadow (rather than just a color change) makes it read as a
+   raised, clickable control against the gradient, and lifts further
+   on hover for feedback. */
 .irc9-add-btn {
+  border: none;
   background: var(--irc9-dedp);
   color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .irc9-add-btn:hover {
   background: var(--irc9-dedp-light);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
 }
 
 .irc9-import-btn {
-  background: #f3f4f6;
-  color: #374151;
+  border: 1.5px solid #fff;
+  background: #fff;
+  color: #185fa5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .irc9-import-btn:hover {
-  background: #e5e7eb;
+  background: #eaf2fb;
+  border-color: #185fa5;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  transform: translateY(-1px);
 }
 
 .irc9-import-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .irc9-reset-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
   flex-shrink: 0;
-  appearance: none;
   border: 1.5px solid #f3b4b4;
-  border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
   background: #fff;
   color: #dc2626;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.irc9-reset-btn i {
-  font-size: 15px;
 }
 
 .irc9-reset-btn:hover {
@@ -110,14 +181,134 @@
 }
 
 .irc9-add-btn:active,
-.irc9-import-btn:active {
+.irc9-import-btn:active,
+.irc9-reset-btn:active {
   transform: scale(0.97);
 }
 
 .irc9-add-icon {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1;
+}
+
+/* ------------------------------------------------------------------
+   Guided Flow -- numbered rail tying the page's sections together,
+   matching IRC1a's flow-rail pattern. IRC9 only has one section (the
+   entries table), so the rail carries a single badge.
+------------------------------------------------------------------ */
+
+.irc9-flow {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto;
+  column-gap: 20px;
+  row-gap: 1.25rem;
+}
+
+.irc9-flow-rail {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  position: relative;
+}
+
+.irc9-flow-rail::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  background: var(--border-strong, #d0d5dd);
+  transform: translateX(-50%);
+}
+
+.irc9-flow-badge {
+  align-self: start;
+  justify-self: center;
+  margin-top: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1f2937;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.irc9-flow-section-1 {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.irc9-flow-label {
+  margin: 20px 0 10px 2px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------
+   Shared dark section header band, matching IRC1a's dark-header.
+------------------------------------------------------------------ */
+
+.irc9-dark-header {
+  background: linear-gradient(160deg, #1f2937 0%, #2d3f57 100%);
+  padding: 16px 20px;
+  box-sizing: border-box;
+}
+
+.irc9-table-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.irc9-table-card-header-text {
+  min-width: 0;
+}
+
+.irc9-table-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.irc9-table-card-header h3 {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #fff;
+}
+
+.irc9-subtitle-dark {
+  color: #9aa7b8;
+}
+
+.irc9-table-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
 }
 
 /* ------------------------------------------------------------------
@@ -126,12 +317,10 @@
 
 .irc9-table-wrapper {
   background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
+  border: none;
+  border-radius: 0;
   overflow-x: auto;
   overflow-y: visible;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   position: relative;
 }
 
@@ -161,16 +350,6 @@
 
 .irc9-table thead th:last-child {
   border-right: none;
-}
-
-.irc9-col-subtext {
-  display: block;
-  font-size: 11px;
-  font-weight: 400;
-  color: #cbd5e1;
-  margin-top: 4px;
-  line-height: 1.4;
-  text-transform: none;
 }
 
 .irc9-col-date {
@@ -266,12 +445,10 @@
   margin-bottom: 0;
 }
 
-.irc9-is-empty .irc9-table {
-  display: none;
-}
-
-.irc9-empty-state {
-  display: none;
+/* Empty state now renders as a row inside the table body (see
+   irc9.js) instead of hiding the table, so the header stays visible
+   even before any entries exist. */
+.irc9-empty-row td {
   padding: 40px 20px;
   text-align: center;
   color: #6b7280;
@@ -616,21 +793,51 @@
 /* Responsive */
 
 @media (max-width: 900px) {
-  .irc9-header {
+  .irc9-header-top {
     flex-direction: column;
+    align-items: flex-start;
   }
 
-  .irc9-header-text h2 {
-    font-size: 24px;
+  .irc9-header h2 {
+    font-size: 22px;
+  }
+
+  .irc9-header-badge {
+    height: 44px;
+    padding: 0 12px;
+  }
+
+  .irc9-header-badge-group {
+    font-size: 9px;
+  }
+
+  .irc9-header-badge-page {
+    font-size: 15px;
+  }
+
+  .irc9-header-divider {
+    height: 44px;
   }
 
   .irc9-header-actions {
     width: 100%;
   }
 
-  .irc9-add-btn,
-  .irc9-import-btn,
   .irc9-reset-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .irc9-table-card-header {
+    align-items: flex-start;
+  }
+
+  .irc9-table-card-actions {
+    width: 100%;
+  }
+
+  .irc9-add-btn,
+  .irc9-import-btn {
     flex: 1;
     justify-content: center;
   }

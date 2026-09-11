@@ -33,12 +33,6 @@
   --irc8c-red-border: #fca5a5;
 }
 
-.irc8c-panel {
-  /* No extra padding here -- same as irc1a-panel/irc8b-panel, which have
-     none of their own and rely purely on .content's padding (base.css)
-     for the page's outer spacing. */
-}
-
 /* ------------------------------------------------------------------
    1. Page Header — badge + divider + title/subtitle, copied 1:1 from
    IRC1a/IRC8b's header so every page's top band reads identically.

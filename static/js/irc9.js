@@ -31,8 +31,6 @@
   // DOM refs
   // ------------------------------------------------------------------
   const tableBody = document.getElementById("irc9-table-body");
-  const emptyState = document.getElementById("irc9-empty-state");
-  const tableWrapper = document.querySelector(".irc9-table-wrapper");
 
   const addBtn = document.getElementById("irc9-add-btn");
   const modalOverlay = document.getElementById("irc9-modal-overlay");
@@ -271,12 +269,17 @@
     tableBody.innerHTML = "";
 
     if (entries.length === 0) {
-      tableWrapper.classList.add("irc9-is-empty");
-      emptyState.style.display = "block";
+      const tr = document.createElement("tr");
+      tr.className = "irc9-empty-row";
+      tr.innerHTML = `
+        <td colspan="5">
+          No entries yet. Click <strong>&ldquo;+ Add Entry&rdquo;</strong> to
+          log your first critical incident, or import one from a PMCF PDF.
+        </td>
+      `;
+      tableBody.appendChild(tr);
       return;
     }
-    tableWrapper.classList.remove("irc9-is-empty");
-    emptyState.style.display = "none";
 
     entries.forEach((entry) => {
       const tr = document.createElement("tr");
@@ -542,7 +545,7 @@
       const data = await apiCall("GET", `/irc/irc9/data?year=${YEAR}`);
       entries = data.entries || [];
     } catch (err) {
-      tableBody.innerHTML = `<tr><td colspan="5">Couldn't load entries: ${escapeHtml(err.message)}</td></tr>`;
+      tableBody.innerHTML = `<tr class="irc9-empty-row"><td colspan="5">Couldn't load entries: ${escapeHtml(err.message)}</td></tr>`;
       return;
     }
     renderTable();

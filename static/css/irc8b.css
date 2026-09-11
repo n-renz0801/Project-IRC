@@ -3,12 +3,6 @@
    numbered guided-flow rail, a dashboard-style summary shown before the
    data-entry section, and dark section/subsection headers throughout. */
 
-.irc8b-panel {
-  /* No extra padding here -- same as irc1a-panel, which has none of its
-     own and relies purely on .content's padding (base.css) for the
-     page's outer spacing. */
-}
-
 /* ------------------------------------------------------------------
    1. Page Header — badge + divider + title/subtitle, copied 1:1 from
    IRC1a/IRC7's header so every page's top band reads identically.
