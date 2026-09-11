@@ -7,96 +7,177 @@ block content %}
 />
 
 <section id="irc8c-tab" class="tab-panel irc8c-panel">
+  <!-- ================= 1. PAGE HEADER ================= -->
   <div class="irc8c-header">
-    <div class="irc8c-header-text">
-      <h2>IRC8c &mdash; Summary of Ratings for Discussion</h2>
-      <p class="irc8c-subtitle">
-        The <strong>Final Performance Results Rating</strong> is carried over
-        automatically from IRC8a. Document the
-        <strong>Development Plans</strong> arising from the discussion below.
-      </p>
-    </div>
-    <div class="irc8c-header-actions">
-      <button type="button" id="irc8c-reset-btn" class="irc8c-reset-btn">
-        <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
-      </button>
-    </div>
-  </div>
-
-  <!-- ================= FINAL RATING (metric cards) ================= -->
-  <div class="irc8c-metric-row">
-    <div class="irc8c-metric-card">
-      <p class="irc8c-metric-label">Final Performance Results Rating</p>
-      <input
-        type="text"
-        inputmode="decimal"
-        autocomplete="off"
-        id="irc8c-final-rating"
-        class="irc8c-metric-input"
-        placeholder="&mdash;"
-        readonly
-        title="Carried over automatically from IRC8a's Overall Rating"
-      />
-    </div>
-    <div
-      class="irc8c-metric-card irc8c-metric-card-badge"
-      id="irc8c-adjectival-card"
-    >
-      <p class="irc8c-metric-label">Adjectival Rating</p>
-      <p class="irc8c-metric-value" id="irc8c-rating-badge">&mdash;</p>
+    <div class="irc8c-header-top">
+      <div class="irc8c-header-title-main">
+        <span class="irc8c-header-badge">
+          <span class="irc8c-header-badge-group">IRC</span>
+          <span class="irc8c-header-badge-page">8C</span>
+        </span>
+        <div class="irc8c-header-divider"></div>
+        <div>
+          <h2>Summary of Ratings for Discussion</h2>
+          <p class="irc8c-subtitle">
+            Review the final rating, confirm sign-off, and document development
+            plans.
+          </p>
+        </div>
+      </div>
+      <div class="irc8c-header-actions">
+        <button type="button" id="irc8c-reset-btn" class="irc8c-reset-btn">
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- ================= ACCOMPLISHMENTS OF KRAS AND OBJECTIVES ================= -->
-  <div class="irc8c-card">
-    <div class="irc8c-card-header">
-      <h3>Accomplishments of KRAs and Objectives</h3>
-      <p class="irc8c-card-subtitle">
-        Numerical rating equivalent used to interpret the Final Performance
-        Results Rating above.
-      </p>
+  <!-- ================= GUIDED FLOW: 1. Final rating -> 2. Rating guide -> 3. Agreement -> 4. Development plans ================= -->
+  <div class="irc8c-flow">
+    <div class="irc8c-flow-rail" aria-hidden="true">
+      <span class="irc8c-flow-badge">1</span>
+      <span class="irc8c-flow-badge">2</span>
+      <span class="irc8c-flow-badge">3</span>
+      <span class="irc8c-flow-badge">4</span>
     </div>
-    <div class="irc8c-criteria-strip" id="irc8c-criteria-strip">
-      <!-- criteria chips injected by irc8c.js -->
-    </div>
-  </div>
 
-  <!-- ================= DEVELOPMENT PLANS ================= -->
-  <div class="irc8c-card">
-    <div class="irc8c-card-header irc8c-card-header-row">
-      <div>
-        <h3>Development Plans</h3>
-        <p class="irc8c-card-subtitle">
-          Strengths and Development Needs are picked from IRC8a's
-          highest/lowest-rated objectives (first two rows) and IRC8b's
-          highest/lowest-rated competencies (last two rows). Click the pencil to
-          unlock a row for editing; while locked, the picks and text below are
-          read-only.
-        </p>
+    <!-- 2. DASHBOARD: Final Rating + Adjectival Rating, shown before
+         everything else so the headline numbers are seen first. -->
+    <div class="irc8c-flow-section irc8c-flow-section-1">
+      <p class="irc8c-flow-label">Final rating</p>
+      <div class="irc8c-metric-row">
+        <div class="irc8c-metric-card">
+          <p class="irc8c-metric-label">Final Performance Results Rating</p>
+          <input
+            type="text"
+            inputmode="decimal"
+            autocomplete="off"
+            id="irc8c-final-rating"
+            class="irc8c-metric-input"
+            placeholder="&mdash;"
+            readonly
+            title="Carried over automatically from IRC8a's Overall Rating"
+          />
+        </div>
+        <div
+          class="irc8c-metric-card irc8c-metric-card-badge"
+          id="irc8c-adjectival-card"
+        >
+          <p class="irc8c-metric-label">Adjectival Rating</p>
+          <p class="irc8c-metric-value" id="irc8c-rating-badge">&mdash;</p>
+        </div>
       </div>
     </div>
 
-    <div class="irc8c-table-wrapper">
-      <table id="irc8c-dev-table" class="irc8c-dev-table">
-        <thead>
-          <tr>
-            <th class="irc8c-col-edit"></th>
-            <th>Strengths</th>
-            <th>Development Needs</th>
-            <th>
-              Action Plan<br /><span class="irc8c-th-sub"
-                >(Recommended Developmental Intervention)</span
-              >
-            </th>
-            <th>Timeline</th>
-            <th>Resources Needed</th>
-          </tr>
-        </thead>
-        <tbody id="irc8c-dev-table-body">
-          <!-- rows injected by irc8c.js -->
-        </tbody>
-      </table>
+    <!-- 3. NUMERICAL RATING GUIDE -->
+    <div class="irc8c-flow-section irc8c-flow-section-2">
+      <p class="irc8c-flow-label">Rating scale reference</p>
+      <div class="irc8c-card">
+        <div class="irc8c-card-header">
+          <h3>Accomplishments of KRAs and Objectives</h3>
+          <p class="irc8c-subtitle-dark">
+            Numerical rating equivalent used to interpret the Final Performance
+            Results Rating above.
+          </p>
+        </div>
+        <div class="irc8c-card-body">
+          <div class="irc8c-criteria-strip" id="irc8c-criteria-strip">
+            <!-- criteria chips injected by irc8c.js -->
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- 4. EMPLOYEE-SUPERIOR AGREEMENT -->
+    <!-- Reuses the same .report-signatory-* classes as base.html's page-
+         footer signatory block (see static/css/base.css) so "Prepared by"/
+         "Checked by" look identical -- just without the dark
+         .report-signatory-title bar, and embedded in this page's own flow
+         instead of the base template's bottom-of-page footer, which is
+         suppressed for this tab specifically (see base.html). -->
+    <div class="irc8c-flow-section irc8c-flow-section-3">
+      <p class="irc8c-flow-label">Sign-off</p>
+      <div class="irc8c-card">
+        <div class="irc8c-card-header">
+          <h3>Employee-Superior Agreement</h3>
+          <p class="irc8c-subtitle-dark">
+            The signature below confirm that the employee and his/her superior
+            have agreed to the contents of the performance as captured in this
+            form.
+          </p>
+        </div>
+        <div class="report-signatory-grid">
+          <div class="report-signatory-block">
+            <p class="report-signatory-label">Prepared by</p>
+            <div class="report-signatory-person">
+              <span class="report-signatory-avatar" aria-hidden="true">
+                <i class="ti ti-user"></i>
+              </span>
+              <div class="report-signatory-info">
+                <p class="report-signatory-name" id="reportPreparedByName">
+                  &nbsp;
+                </p>
+                <p
+                  class="report-signatory-position"
+                  id="reportPreparedByPosition"
+                ></p>
+              </div>
+            </div>
+          </div>
+          <div class="report-signatory-block">
+            <p class="report-signatory-label">Checked by</p>
+            <div class="report-signatory-person">
+              <span class="report-signatory-avatar" aria-hidden="true">
+                <i class="ti ti-user"></i>
+              </span>
+              <div class="report-signatory-info">
+                <p class="report-signatory-name">DR. JONATHAN P. DOMINGO</p>
+                <p class="report-signatory-position">SGOD Chief</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. DEVELOPMENT PLANS (data entry) -->
+    <div class="irc8c-flow-section irc8c-flow-section-4">
+      <p class="irc8c-flow-label">Action planning</p>
+      <div class="irc8c-card">
+        <div class="irc8c-card-header">
+          <h3>Development Plans</h3>
+          <p class="irc8c-subtitle-dark">
+            Strengths and Development Needs are picked from IRC8a's
+            highest/lowest-rated objectives (first two rows) and IRC8b's
+            highest/lowest-rated competencies (last two rows). Click the pencil
+            to unlock a row for editing; while locked, the picks and text below
+            are read-only.
+          </p>
+        </div>
+        <div class="irc8c-table-wrapper">
+          <table id="irc8c-dev-table" class="irc8c-dev-table">
+            <thead>
+              <tr>
+                <th class="irc8c-col-edit"></th>
+                <th>Strengths</th>
+                <th>Development Needs</th>
+                <th>
+                  Action Plan<br /><span class="irc8c-th-sub"
+                    >(Recommended Developmental Intervention)</span
+                  >
+                </th>
+                <th>Timeline</th>
+                <th>Resources Needed</th>
+              </tr>
+            </thead>
+            <tbody id="irc8c-dev-table-body">
+              <!-- rows injected by irc8c.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- /.irc8c-flow -->
   </div>
 </section>
 

@@ -52,6 +52,13 @@
   width: 100%;
 }
 
+.masthead-irc-logo {
+  height: 85px; /* matches .masthead-divider's min-height, so both sit flush */
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .masthead-divider {
   width: 5px;
   align-self: stretch;

@@ -1,4 +1,5 @@
 /* IRC2a - Number of Schools Provided with TA - CSS Stylesheet */
+/* Restyled to match IRC1a's analytics-first, guided-flow design language. */
 
 .irc2a-panel {
   --irc2a-elementary: rgb(180, 83, 9);
@@ -8,70 +9,101 @@
   --irc2a-secondary-tint: rgba(4, 120, 87, 0.1);
 }
 
-html {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-html::-webkit-scrollbar {
-  display: none;
-}
-
-.irc2a-panel {
-  /* Full-height flex column so irc2a-panel-row can be pinned to the
-     bottom of the screen (via margin-top: auto below) instead of
-     following the height of the columns above it.
-     The precise min-height is set by JS (updatePanelHeight in irc2a.js),
-     which measures the actual space available below this section —
-     that's the reliable way to do it since we can't know from CSS
-     alone how tall your navbar/header in base.html is.
-     This 100vh is just a pre-JS fallback. */
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding: 16px 0 28px;
-  box-sizing: border-box;
-}
+/* ------------------------------------------------------------------
+   1. Page Header — same title-badge + divider layout as IRC1a
+------------------------------------------------------------------ */
 
 .irc2a-header {
-  margin-bottom: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1.5px solid #e0e0e0;
 }
 
 .irc2a-header-top {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
+  align-items: center;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
-.irc2a-header h2 {
-  font-size: 22px;
+.irc2a-header-title-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.irc2a-header-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  padding: 0 16px;
+  flex-shrink: 0;
+  background: var(--navy-deep, #001550);
+  border-radius: 10px;
+  box-sizing: border-box;
+  line-height: 1.1;
+}
+
+.irc2a-header-badge-group {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 10.5px;
   font-weight: 600;
-  margin: 0 0 4px 0;
-  color: #1a1a1a;
+  letter-spacing: 0.14em;
+}
+
+.irc2a-header-badge-page {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.irc2a-header-divider {
+  width: 4px;
+  height: 54px;
+  background: var(--navy-deep, #001550);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.irc2a-header h2 {
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+  color: var(--navy-deep, #001550);
+  text-transform: uppercase;
 }
 
 .irc2a-subtitle {
-  font-size: 13px;
+  font-size: 14px;
   color: #666;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
-/* Reset-all-data button — same design as IRC2b's reset button */
+.irc2a-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Reset-all-data button — same design as IRC1a's reset button */
 .irc2a-reset-btn {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
   flex-shrink: 0;
   appearance: none;
   background: #fff;
   color: #dc2626;
   border: 1.5px solid #f3b4b4;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -81,7 +113,7 @@ html::-webkit-scrollbar {
 }
 
 .irc2a-reset-btn i {
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .irc2a-reset-btn:hover {
@@ -95,7 +127,7 @@ html::-webkit-scrollbar {
 }
 
 /* ------------------------------------------------------------------
-   Reset confirmation modal — same look as IRC6's confirm dialog
+   Reset confirmation modal — same look as IRC1a's confirm dialog
 ------------------------------------------------------------------ */
 
 .irc2a-confirm-overlay {
@@ -171,7 +203,406 @@ html::-webkit-scrollbar {
   background: #b91c1c;
 }
 
-/* ---- filters ---------------------------------------------------------- */
+/* ------------------------------------------------------------------
+   Guided Flow — numbered rail (1-2-3) tying the coverage dashboard,
+   filters, and assignment board together as a top-to-bottom sequence.
+------------------------------------------------------------------ */
+
+.irc2a-flow {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto auto auto;
+  column-gap: 20px;
+  row-gap: 1.25rem;
+}
+
+.irc2a-flow-rail {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  display: grid;
+  grid-template-rows: subgrid;
+  position: relative;
+}
+
+.irc2a-flow-rail::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  background: var(--border-strong, #d0d5dd);
+  transform: translateX(-50%);
+}
+
+.irc2a-flow-badge {
+  align-self: start;
+  justify-self: center;
+  margin-top: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1f2937;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.irc2a-flow-section-1,
+.irc2a-flow-section-2,
+.irc2a-flow-section-3 {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.irc2a-flow-section-1 {
+  grid-row: 1;
+}
+
+.irc2a-flow-section-2 {
+  grid-row: 2;
+}
+
+.irc2a-flow-section-3 {
+  grid-row: 3;
+}
+
+.irc2a-flow-label {
+  margin: 20px 0 10px 2px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------
+   Shared dark analytics header band — marks a card as
+   "analytics/summary" (as opposed to the light data-entry board below).
+------------------------------------------------------------------ */
+
+.irc2a-dark-header {
+  background: linear-gradient(160deg, #1f2937 0%, #2d3f57 100%);
+  padding: 16px 20px;
+  box-sizing: border-box;
+}
+
+.irc2a-dark-header h3 {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #fff;
+}
+
+.irc2a-subtitle-dark {
+  color: #9aa7b8;
+}
+
+.irc2a-card-body {
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   1. Coverage overview — dashboard/plot section (shown first)
+   ========================================================================== */
+
+.irc2a-hero-row {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.irc2a-trend-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.irc2a-trend-card > .irc2a-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* Overall Coverage badge card (right block) */
+.irc2a-badge-card {
+  background: linear-gradient(160deg, #1f2937 0%, #2d3f57 100%);
+  border-radius: 12px;
+  padding: 24px 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #fff;
+  min-width: 0;
+}
+
+.irc2a-badge-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #b9c4d3;
+  margin-bottom: 10px;
+}
+
+.irc2a-badge-score {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+}
+
+.irc2a-badge-scale {
+  font-size: 12px;
+  color: #9aa7b8;
+  margin-top: 4px;
+  margin-bottom: 14px;
+}
+
+.irc2a-badge-pill {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 12.5px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: #4b5a70;
+  color: #e5eaf0;
+}
+
+.irc2a-badge-lowest {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+.irc2a-badge-lowest-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #b9c4d3;
+  margin-bottom: 10px;
+}
+
+.irc2a-lowest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.irc2a-lowest-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: #e5eaf0;
+  min-width: 0;
+}
+
+.irc2a-lowest-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.irc2a-lowest-dot--elementary {
+  background: var(--irc2a-elementary);
+}
+
+.irc2a-lowest-dot--secondary {
+  background: var(--irc2a-secondary);
+}
+
+.irc2a-lowest-label {
+  flex: 1;
+  min-width: 0;
+  color: #cbd5e1;
+}
+
+.irc2a-lowest-avg {
+  font-weight: 600;
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+/* ---- coverage rows (DEDP / non-DEDP), nested inside the trend card ---- */
+
+.irc2a-coverage-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 6px 0;
+}
+
+.irc2a-coverage-hero {
+  flex: 0 0 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.irc2a-coverage-hero-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 36px;
+}
+
+.irc2a-coverage-hero--dedp .irc2a-coverage-hero-value {
+  color: #b5534d;
+}
+
+.irc2a-coverage-hero--nondedp .irc2a-coverage-hero-value {
+  color: #4a6fa5;
+}
+
+.irc2a-coverage-hero-label {
+  font-size: 12.5px;
+  line-height: 16px;
+  color: #5b6b80;
+  margin-top: 6px;
+}
+
+.irc2a-coverage-bar-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.irc2a-coverage-bar-track {
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  overflow: hidden;
+}
+
+.irc2a-coverage-bar-track--dedp {
+  background: rgba(181, 83, 77, 0.12);
+}
+
+.irc2a-coverage-bar-track--nondedp {
+  background: rgba(74, 111, 165, 0.12);
+}
+
+.irc2a-coverage-bar-seg {
+  height: 100%;
+  min-width: 0;
+  transition: width 0.25s ease;
+}
+
+.irc2a-coverage-bar-track--dedp .irc2a-coverage-bar-seg--elementary {
+  background: #b5534d;
+}
+
+.irc2a-coverage-bar-track--dedp .irc2a-coverage-bar-seg--secondary {
+  background: #d98c86;
+}
+
+.irc2a-coverage-bar-track--nondedp .irc2a-coverage-bar-seg--elementary {
+  background: #4a6fa5;
+}
+
+.irc2a-coverage-bar-track--nondedp .irc2a-coverage-bar-seg--secondary {
+  background: #8fabce;
+}
+
+.irc2a-coverage-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.irc2a-coverage-meta-breakdown {
+  line-height: 16px;
+  color: #5b6b80;
+}
+
+.irc2a-coverage-meta-total {
+  line-height: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+.irc2a-coverage-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.irc2a-coverage-legend-dot--dedp-elementary {
+  background: #b5534d;
+}
+
+.irc2a-coverage-legend-dot--dedp-secondary {
+  background: #d98c86;
+}
+
+.irc2a-coverage-legend-dot--nondedp-elementary {
+  background: #4a6fa5;
+}
+
+.irc2a-coverage-legend-dot--nondedp-secondary {
+  background: #8fabce;
+}
+
+.irc2a-coverage-divider {
+  height: 1px;
+  background: #eee;
+  margin: 4px 0;
+}
+
+/* ==========================================================================
+   2. Filter & search
+   ========================================================================== */
+
+.irc2a-filter-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
 
 .irc2a-filters {
   display: flex;
@@ -179,7 +610,6 @@ html::-webkit-scrollbar {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 12px;
 }
 
 .irc2a-filter-chips {
@@ -288,7 +718,9 @@ html::-webkit-scrollbar {
   font-size: 10px;
 }
 
-/* ---- columns layout -------------------------------------------------- */
+/* ==========================================================================
+   3. School assignment — two-column board (data input)
+   ========================================================================== */
 
 .irc2a-columns {
   display: grid;
@@ -333,7 +765,7 @@ html::-webkit-scrollbar {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: #1f2937;
+  background: linear-gradient(160deg, #1f2937 0%, #2d3f57 100%);
   border-bottom: 3px solid #4a6fa5;
 }
 
@@ -384,7 +816,7 @@ html::-webkit-scrollbar {
   list-style: none;
   margin: 0;
   padding: 10px;
-  max-height: 235px;
+  max-height: 350px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -529,172 +961,29 @@ html::-webkit-scrollbar {
   content: "\2190";
 }
 
-/* ==========================================================================
-   Coverage summary row
-   ========================================================================== */
+/* ------------------------------------------------------------------
+   Responsive adjustments
+------------------------------------------------------------------ */
 
-.irc2a-panel-row {
-  /* Pushes this row all the way to the bottom of the flex column above
-     (.irc2a-panel), regardless of how tall .irc2a-columns ends up being. */
-  margin-top: auto;
-  padding-top: 16px;
+@media (max-width: 950px) {
+  .irc2a-hero-row {
+    grid-template-columns: 2.2fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .irc2a-badge-card {
+    padding: 16px 12px;
+  }
+
+  .irc2a-badge-score {
+    font-size: 32px;
+  }
 }
 
-.irc2a-coverage-card {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  box-sizing: border-box;
-  padding: 16px 20px;
-  width: 100%;
-}
-
-.irc2a-coverage-card h3 {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: #1a1a1a;
-}
-
-.irc2a-coverage-row {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 6px 0;
-}
-
-/* Hero % — the emphasized number every row leads with. */
-
-.irc2a-coverage-hero {
-  flex: 0 0 120px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.irc2a-coverage-hero-value {
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 36px;
-}
-
-.irc2a-coverage-hero--dedp .irc2a-coverage-hero-value {
-  color: #b5534d;
-}
-
-.irc2a-coverage-hero--nondedp .irc2a-coverage-hero-value {
-  color: #4a6fa5;
-}
-
-.irc2a-coverage-hero-label {
-  font-size: 12.5px;
-  line-height: 16px;
-  color: #5b6b80;
-  margin-top: 6px;
-}
-
-/* Segmented capacity bar — width of each segment is a % of that group's
-   total school count, so the two segments together always span exactly
-   that group's overall % provided, split by level. */
-
-.irc2a-coverage-bar-wrap {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.irc2a-coverage-bar-track {
-  /* Matches irc2a-coverage-hero-value's line-height so the bar and the
-     hero % it belongs to sit at the same height. */
-  height: 36px;
-  border-radius: 6px;
-  display: flex;
-  overflow: hidden;
-}
-
-.irc2a-coverage-bar-track--dedp {
-  background: rgba(181, 83, 77, 0.12);
-}
-
-.irc2a-coverage-bar-track--nondedp {
-  background: rgba(74, 111, 165, 0.12);
-}
-
-.irc2a-coverage-bar-seg {
-  height: 100%;
-  min-width: 0;
-  transition: width 0.25s ease;
-}
-
-.irc2a-coverage-bar-track--dedp .irc2a-coverage-bar-seg--elementary {
-  background: #b5534d;
-}
-
-.irc2a-coverage-bar-track--dedp .irc2a-coverage-bar-seg--secondary {
-  background: #d98c86;
-}
-
-.irc2a-coverage-bar-track--nondedp .irc2a-coverage-bar-seg--elementary {
-  background: #4a6fa5;
-}
-
-.irc2a-coverage-bar-track--nondedp .irc2a-coverage-bar-seg--secondary {
-  background: #8fabce;
-}
-
-.irc2a-coverage-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  font-size: 13px;
-}
-
-.irc2a-coverage-meta-breakdown {
-  line-height: 16px;
-  color: #5b6b80;
-}
-
-.irc2a-coverage-meta-total {
-  line-height: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
-  white-space: nowrap;
-}
-
-.irc2a-coverage-legend-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  margin-right: 5px;
-  vertical-align: middle;
-}
-
-.irc2a-coverage-legend-dot--dedp-elementary {
-  background: #b5534d;
-}
-
-.irc2a-coverage-legend-dot--dedp-secondary {
-  background: #d98c86;
-}
-
-.irc2a-coverage-legend-dot--nondedp-elementary {
-  background: #4a6fa5;
-}
-
-.irc2a-coverage-legend-dot--nondedp-secondary {
-  background: #8fabce;
-}
-
-.irc2a-coverage-divider {
-  height: 1px;
-  background: #eee;
-  margin: 4px 0;
+@media (max-width: 700px) {
+  .irc2a-hero-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 620px) {
@@ -710,8 +999,40 @@ html::-webkit-scrollbar {
     gap: 8px;
   }
 }
+
 @media (max-width: 768px) {
   .irc2a-header h2 {
-    font-size: 20px;
+    font-size: 22px;
+  }
+
+  .irc2a-header-badge {
+    height: 44px;
+    padding: 0 12px;
+  }
+
+  .irc2a-header-badge-group {
+    font-size: 9px;
+  }
+
+  .irc2a-header-badge-page {
+    font-size: 15px;
+  }
+
+  .irc2a-header-divider {
+    height: 44px;
+  }
+
+  .irc2a-header-actions {
+    width: 100%;
+  }
+
+  .irc2a-reset-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .irc2a-dark-header,
+  .irc2a-card-body {
+    padding: 14px 16px;
   }
 }

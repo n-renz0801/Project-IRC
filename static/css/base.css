@@ -28,6 +28,12 @@
 
   --header-height: 72px;
 
+  /* Scrollbar theming -- see the "Custom scrollbar" block near the end
+     of this file. Change these to re-theme the scrollbar app-wide. */
+  --scrollbar-width: 13px;
+  --scrollbar-thumb: color-mix(in srgb, var(--navy) 25%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--navy) 45%, transparent);
+
   /* Fluid "how compromised are we" factor: 0 at 1680px and wider (full
      size, as designed), ramping straight up to 1 at 1366px and narrower
      (fully compromised). Everything that needs to shrink on smaller
@@ -38,10 +44,22 @@
   --shrink: clamp(0, calc((1680px - 100vw) / (1680px - 1366px)), 1);
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
   background: var(--white);
   color: var(--text);
+  /* Header + nav are pinned above; .content is the only element that
+     actually scrolls (see .content below) -- this is what lets its
+     scrollbar start below the navbar instead of spanning the whole
+     window. */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -52,6 +70,7 @@ header {
   padding: 8px 40px;
   border-bottom: 3px solid var(--gold);
   box-shadow: 0 4px 16px var(--shadow);
+  flex-shrink: 0; /* stays pinned above .content, same as nav below */
 }
 
 #logo-bar {
@@ -77,6 +96,7 @@ nav {
   position: sticky;
   top: 0;
   z-index: 100;
+  flex-shrink: 0;
   box-shadow: 0 2px 10px var(--shadow);
   display: flex;
   align-items: center;
@@ -165,6 +185,16 @@ nav ul li a.active::after {
      past .content's own padding edge -- page content shrinks to fit,
      it never spills past this boundary. */
   overflow-x: hidden;
+  /* This is now the only scrolling element on the page (see body's
+     overflow: hidden above) -- its native scrollbar therefore starts
+     right below the pinned header+nav and runs to the bottom of the
+     window, instead of spanning the full document like before.
+     min-height: 0 overrides the flex item's default min-height: auto,
+     which would otherwise force .content to grow to fit its content
+     and push the scroll up to body/html instead of staying in here. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .page-hero h1 {
@@ -393,6 +423,48 @@ nav ul li a.active::after {
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CUSTOM SCROLLBAR (app-wide)
+   Applies to .content (the page's main scroll area) and to every other
+   scrollable region already in the app -- modal bodies, the uploads
+   panel's month grid, the IRC2a checklist, etc. -- without needing a
+   class on each one. Colors/width are read from the --scrollbar-*
+   variables declared in :root above.
+═══════════════════════════════════════════════════════════════════════════ */
+
+*::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.15s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+/* Removes the up/down (and left/right) arrow buttons at the scrollbar's
+   ends, for the plain modern look. */
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* ---------------------------------------------------------------------

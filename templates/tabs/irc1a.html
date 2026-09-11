@@ -24,11 +24,18 @@ of the Technical Assistance.") ] %}
   <!-- ================= 1. PAGE HEADER ================= -->
   <div class="irc1a-header">
     <div class="irc1a-header-top">
-      <div>
-        <h2>IRC1a &mdash; Monthly Customers Feedback Rating</h2>
-        <p class="irc1a-subtitle">
-          Rate each Technical Assistance (TA) indicator for every month.
-        </p>
+      <div class="irc1a-header-title-main">
+        <span class="irc1a-header-badge">
+          <span class="irc1a-header-badge-group">IRC</span>
+          <span class="irc1a-header-badge-page">1A</span>
+        </span>
+        <div class="irc1a-header-divider"></div>
+        <div>
+          <h2>Monthly Customers Feedback Rating</h2>
+          <p class="irc1a-subtitle">
+            Rate each Technical Assistance (TA) indicator for every month.
+          </p>
+        </div>
       </div>
       <div class="irc1a-header-actions">
         <button type="button" id="irc1a-legend-btn" class="irc1a-legend-btn">
@@ -174,15 +181,20 @@ of the Technical Assistance.") ] %}
                 {% for key, label in irc1a_months %}
                 <th>{{ label }}</th>
                 {% endfor %}
-                <th class="irc1a-rowavg-col">Rating / Average</th>
-                <th class="irc1a-rowdesc-col">Descriptive Rating</th>
+                <th class="irc1a-rowavg-col">Average</th>
+                <th class="irc1a-rowdesc-col">Description</th>
               </tr>
             </thead>
 
             <tbody>
               {% for id, label in irc1a_indicators %}
               <tr data-indicator="{{ id }}">
-                <td class="irc1a-indicator-col">{{ id }}. {{ label }}</td>
+                <td class="irc1a-indicator-col">
+                  <span class="irc1a-indicator-wrap">
+                    <span class="irc1a-indicator-num">{{ id }}.</span>
+                    <span class="irc1a-indicator-text">{{ label }}</span>
+                  </span>
+                </td>
                 {% for key, month_label in irc1a_months %}
                 <td>
                   <input

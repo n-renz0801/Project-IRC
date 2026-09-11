@@ -8,6 +8,16 @@
 
 .irc9-panel {
   padding: 24px 0;
+
+  /* Fluid "how compromised are we" factor, same technique as the
+     global --shrink in base.css: 0 at 1300px and wider (table renders
+     at its designed column widths), ramping straight up to 1 at 480px
+     and narrower. The three text-column widths and the table's own
+     min-width below all read off this single value, so the whole
+     table narrows continuously with the viewport instead of jumping
+     at a hard breakpoint -- which is what lets it shrink to fit
+     without ever needing to introduce horizontal scrolling. */
+  --irc9-shrink: clamp(0, calc((1300px - 100vw) / (1300px - 480px)), 1);
 }
 
 .irc9-header {
@@ -127,7 +137,12 @@
 
 .irc9-table {
   width: 100%;
-  min-width: 1000px;
+  /* 1000px at >=1300px down to 0 at <=480px -- at the floor there's no
+     min-width constraint left at all, so the table is free to match
+     the wrapper's full width exactly and never overflows it. Between
+     1300px and 480px this ramps down continuously with --irc9-shrink,
+     alongside the column widths below. */
+  min-width: calc(1000px * (1 - var(--irc9-shrink)));
   table-layout: fixed;
   border-collapse: collapse;
   font-size: 13px;
@@ -159,15 +174,21 @@
 }
 
 .irc9-col-date {
-  width: 85px;
+  /* 20px at >=1300px down to 14px at <=480px. */
+  width: calc(20px - 6px * var(--irc9-shrink));
 }
-.irc9-col-incident,
+.irc9-col-incident {
+  /* 50% at >=1300px down to 35% at <=480px. */
+  width: calc(50% - 15% * var(--irc9-shrink));
+}
 .irc9-col-output,
 .irc9-col-impact {
-  width: 23%;
+  /* 17% at >=1300px down to 12% at <=480px. */
+  width: calc(17% - 5% * var(--irc9-shrink));
 }
 .irc9-col-actions {
-  width: 68px;
+  /* 10px at >=1300px down to 7px at <=480px. */
+  width: calc(10px - 3px * var(--irc9-shrink));
 }
 
 .irc9-table tbody tr {
@@ -188,7 +209,7 @@
 }
 
 .irc9-table tbody td {
-  padding: 10px 8px;
+  padding: 12px 16px;
   border-right: 1px solid #e8e8e8;
   text-align: center;
   vertical-align: top;

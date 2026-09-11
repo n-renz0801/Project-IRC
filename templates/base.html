@@ -80,11 +80,14 @@
 
       <!-- ===== REPORT SIGNATORY FOOTER =====
            Shown at the bottom of every IRC1a-IRC9 page (active_tab is set
-           by view_tab()); hidden on Home, which has no report to sign.
-           "Prepared by" is populated client-side from /api/preparer (see
-           index.js) so it always reflects whatever was last saved on the
-           Home page. "Checked by" never changes, so it's hardcoded here. -->
-      {% if active_tab %}
+           by view_tab()) except IRC8c, which renders its own copy inline
+           inside the "Employee-Superior Agreement" card (see irc8c.html)
+           instead of down here. Hidden on Home, which has no report to
+           sign. "Prepared by" is populated client-side from /api/preparer
+           (see index.js) so it always reflects whatever was last saved on
+           the Home page. "Checked by" never changes, so it's hardcoded
+           here. -->
+      {% if active_tab and active_tab.id != 'irc8c' %}
       <div class="report-signatory">
         <div class="report-signatory-title">
           <i class="ti ti-clipboard-text" aria-hidden="true"></i>
