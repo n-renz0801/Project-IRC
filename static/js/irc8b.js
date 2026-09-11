@@ -1,6 +1,15 @@
 (function () {
-  const sectionsEl = document.getElementById("irc8b-sections");
-  if (!sectionsEl) return;
+  const sectionsCbcEl = document.getElementById("irc8b-sections-cbc");
+  const sectionsCsEl = document.getElementById("irc8b-sections-cs");
+  if (!sectionsCbcEl || !sectionsCsEl) return;
+
+  // Maps a DATA section key to the container it renders into, now that
+  // Core Behavioral Competencies and Core Skills each get their own
+  // guided-flow step/section instead of sharing one #irc8b-sections list.
+  const SECTION_CONTAINERS = {
+    cbc: sectionsCbcEl,
+    cs: sectionsCsEl,
+  };
 
   const summaryCbcEl = document.getElementById("irc8b-summary-cbc");
   const summaryCbcDescEl = document.getElementById("irc8b-summary-cbc-desc");
@@ -292,9 +301,13 @@
 
   // ================= Render =================
   function render() {
-    sectionsEl.innerHTML = "";
+    sectionsCbcEl.innerHTML = "";
+    sectionsCsEl.innerHTML = "";
 
     DATA.forEach((section) => {
+      const container = SECTION_CONTAINERS[section.key];
+      if (!container) return; // unknown section key -- shouldn't happen
+
       const sectionCard = document.createElement("div");
       sectionCard.className = "irc8b-section";
 
@@ -312,7 +325,7 @@
         <div class="irc8b-subsection-list">${subHtml}</div>
       `;
 
-      sectionsEl.appendChild(sectionCard);
+      container.appendChild(sectionCard);
     });
 
     updateSummary();
@@ -374,7 +387,7 @@
   }
 
   // ================= Delegated clicks =================
-  sectionsEl.addEventListener("click", (e) => {
+  function handleRateClick(e) {
     const btn = e.target.closest(".irc8b-rate-btn");
     if (!btn) return;
 
@@ -388,7 +401,10 @@
 
     render();
     saveRating(subKey, idx, newValue);
-  });
+  }
+
+  sectionsCbcEl.addEventListener("click", handleRateClick);
+  sectionsCsEl.addEventListener("click", handleRateClick);
 
   // ================= Initial load =================
   loadRatings();

@@ -7,56 +7,108 @@ block content %}
 />
 
 <section id="irc8b-tab" class="tab-panel irc8b-panel">
+  <!-- ================= 1. PAGE HEADER ================= -->
   <div class="irc8b-header">
-    <h2>IRC8B &mdash; Core Behavioral Competencies and Core Skills</h2>
-    <button type="button" id="irc8b-reset-btn" class="irc8b-reset-btn">
-      <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
-    </button>
-  </div>
-
-  <!-- Rating scale legend — constant, uneditable, applies to every criterion below -->
-  <div class="irc8b-legend">
-    <span class="irc8b-legend-title">Rating Scale</span>
-    <div class="irc8b-legend-items">
-      <span class="irc8b-legend-item"><strong>5</strong> Role model</span>
-      <span class="irc8b-legend-item"
-        ><strong>4</strong> Consistently demonstrate</span
-      >
-      <span class="irc8b-legend-item"
-        ><strong>3</strong> Most of the time demonstrate</span
-      >
-      <span class="irc8b-legend-item"
-        ><strong>2</strong> Sometimes demonstrate</span
-      >
-      <span class="irc8b-legend-item"
-        ><strong>1</strong> Rarely demonstrate</span
-      >
+    <div class="irc8b-header-top">
+      <div class="irc8b-header-title-main">
+        <span class="irc8b-header-badge">
+          <span class="irc8b-header-badge-group">IRC</span>
+          <span class="irc8b-header-badge-page">8B</span>
+        </span>
+        <div class="irc8b-header-divider"></div>
+        <div>
+          <h2>Core Behavioral Competencies and Core Skills</h2>
+          <p class="irc8b-subtitle">
+            Rate each criterion under the Core Behavioral Competencies and Core
+            Skills.
+          </p>
+        </div>
+      </div>
+      <div class="irc8b-header-actions">
+        <button type="button" id="irc8b-reset-btn" class="irc8b-reset-btn">
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
+        </button>
+      </div>
     </div>
   </div>
 
-  <div id="irc8b-sections" class="irc8b-sections">
-    <!-- Section / subsection / criteria cards are rendered here by irc8b.js -->
-  </div>
+  <!-- ================= GUIDED FLOW: 1. Overall summary -> 2. Rating Scale -> 3. Core Behavioral -> 4. Core Skills ================= -->
+  <div class="irc8b-flow">
+    <div class="irc8b-flow-rail" aria-hidden="true">
+      <span class="irc8b-flow-badge">1</span>
+      <span class="irc8b-flow-badge">2</span>
+      <span class="irc8b-flow-badge">3</span>
+      <span class="irc8b-flow-badge">4</span>
+    </div>
 
-  <!-- Overall summary footer -->
-  <div id="irc8b-summary" class="irc8b-summary">
-    <div class="irc8b-summary-item">
-      <span class="irc8b-summary-label">Core Behavioral Competencies</span>
-      <span class="irc8b-summary-value" id="irc8b-summary-cbc">&mdash;</span>
-      <span class="irc8b-summary-desc" id="irc8b-summary-cbc-desc"></span>
+    <!-- 2. DASHBOARD: overall summary, shown before data entry -->
+    <div class="irc8b-flow-section irc8b-flow-section-1">
+      <p class="irc8b-flow-label">Overall summary</p>
+      <div id="irc8b-summary" class="irc8b-summary">
+        <div class="irc8b-summary-item">
+          <span class="irc8b-summary-label">Core Behavioral Competencies</span>
+          <span class="irc8b-summary-value" id="irc8b-summary-cbc"
+            >&mdash;</span
+          >
+          <span class="irc8b-summary-desc" id="irc8b-summary-cbc-desc"></span>
+        </div>
+        <div class="irc8b-summary-item">
+          <span class="irc8b-summary-label">Core Skills</span>
+          <span class="irc8b-summary-value" id="irc8b-summary-cs">&mdash;</span>
+          <span class="irc8b-summary-desc" id="irc8b-summary-cs-desc"></span>
+        </div>
+        <div class="irc8b-summary-item irc8b-summary-item--overall">
+          <span class="irc8b-summary-label">Overall Average</span>
+          <span class="irc8b-summary-value" id="irc8b-summary-overall"
+            >&mdash;</span
+          >
+          <span
+            class="irc8b-summary-desc"
+            id="irc8b-summary-overall-desc"
+          ></span>
+        </div>
+      </div>
     </div>
-    <div class="irc8b-summary-item">
-      <span class="irc8b-summary-label">Core Skills</span>
-      <span class="irc8b-summary-value" id="irc8b-summary-cs">&mdash;</span>
-      <span class="irc8b-summary-desc" id="irc8b-summary-cs-desc"></span>
+
+    <!-- 3. RATING SCALE — its own step, shown once ahead of both data-entry sections below -->
+    <div class="irc8b-flow-section irc8b-flow-section-2">
+      <p class="irc8b-flow-label">Rating scale</p>
+      <div class="irc8b-legend">
+        <span class="irc8b-legend-title">Rating Scale</span>
+        <div class="irc8b-legend-items">
+          <span class="irc8b-legend-item"><strong>5</strong> Role model</span>
+          <span class="irc8b-legend-item"
+            ><strong>4</strong> Consistently demonstrate</span
+          >
+          <span class="irc8b-legend-item"
+            ><strong>3</strong> Most of the time demonstrate</span
+          >
+          <span class="irc8b-legend-item"
+            ><strong>2</strong> Sometimes demonstrate</span
+          >
+          <span class="irc8b-legend-item"
+            ><strong>1</strong> Rarely demonstrate</span
+          >
+        </div>
+      </div>
     </div>
-    <div class="irc8b-summary-item irc8b-summary-item--overall">
-      <span class="irc8b-summary-label">Overall Average</span>
-      <span class="irc8b-summary-value" id="irc8b-summary-overall"
-        >&mdash;</span
-      >
-      <span class="irc8b-summary-desc" id="irc8b-summary-overall-desc"></span>
+
+    <!-- 4. DATA ENTRY: Core Behavioral Competencies -->
+    <div class="irc8b-flow-section irc8b-flow-section-3">
+      <p class="irc8b-flow-label">Core Behavioral Competencies</p>
+      <div id="irc8b-sections-cbc" class="irc8b-sections">
+        <!-- CBC section / subsection / criteria cards rendered here by irc8b.js -->
+      </div>
     </div>
+
+    <!-- 5. DATA ENTRY: Core Skills -->
+    <div class="irc8b-flow-section irc8b-flow-section-4">
+      <p class="irc8b-flow-label">Core Skills</p>
+      <div id="irc8b-sections-cs" class="irc8b-sections">
+        <!-- Core Skills section / subsection / criteria cards rendered here by irc8b.js -->
+      </div>
+    </div>
+    <!-- /.irc8b-flow -->
   </div>
 </section>
 

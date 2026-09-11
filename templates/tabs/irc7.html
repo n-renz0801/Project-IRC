@@ -7,178 +7,264 @@ block content %}
 />
 
 <section id="irc7-tab" class="tab-panel irc7-panel">
+  <!-- Opaque sticky strip that recreates the page's normal top spacing
+       (see the "Sticky-header / navbar gap" comment in irc7.css) -- it
+       sticks flush against the navbar and paints over that space so
+       scrolled table rows never show through it. -->
+  <div id="irc7StickyTopGap" aria-hidden="true"></div>
+
+  <!-- ================= 1. PAGE HEADER ================= -->
   <div class="irc7-header">
-    <h2>IRC7 &mdash; SGOD Dashboard Data</h2>
-    <p class="irc7-subtitle">
-      Provide the needed data for the SGOD Dashboard. Use "Add Column" to add
-      new fields, grouped or standalone.
-    </p>
-  </div>
-
-  <div class="irc7-toolbar">
-    <div class="irc7-mode-banners">
-      <div
-        class="irc7-mode-banner irc7-mode-banner--edit"
-        id="editModeBanner"
-        style="display: none"
-      >
-        <svg
-          class="irc7-banner-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path
-            d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-          ></path>
-        </svg>
-        Edit mode is ON — click a column or group header to rename or change it.
+    <div class="irc7-header-top">
+      <div class="irc7-header-title-main">
+        <span class="irc7-header-badge">
+          <span class="irc7-header-badge-group">IRC</span>
+          <span class="irc7-header-badge-page">7</span>
+        </span>
+        <div class="irc7-header-divider"></div>
+        <div>
+          <h2>SGOD Dashboard Data</h2>
+          <p class="irc7-subtitle">
+            Provide the needed data for the SGOD Dashboard. Use "Add Column" to
+            add new fields, grouped or standalone.
+          </p>
+        </div>
       </div>
-      <div
-        class="irc7-mode-banner irc7-mode-banner--delete"
-        id="deleteModeBanner"
-        style="display: none"
-      >
-        <svg
-          class="irc7-banner-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M12 9v4"></path>
-          <path d="M12 17h.01"></path>
-          <path
-            d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-          ></path>
-        </svg>
-        Delete mode is ON — clicking a column or group header will permanently
-        remove it. This cannot be undone.
+      <div class="irc7-header-actions">
+        <button type="button" id="irc7-reset-btn" class="irc7-reset-btn">
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
+        </button>
       </div>
-    </div>
-
-    <div class="irc7-toolbar-actions">
-      <button
-        type="button"
-        class="irc7-icon-btn irc7-icon-btn--edit"
-        id="editModeBtn"
-        title="Toggle edit mode"
-        aria-label="Toggle edit mode"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path
-            d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-          ></path>
-        </svg>
-      </button>
-      <button
-        type="button"
-        class="irc7-icon-btn irc7-icon-btn--delete"
-        id="deleteModeBtn"
-        title="Toggle delete mode"
-        aria-label="Toggle delete mode"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-          <path d="M10 11v6"></path>
-          <path d="M14 11v6"></path>
-          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-        </svg>
-      </button>
-      <span class="irc7-toolbar-divider"></span>
-      <button type="button" id="irc7-reset-btn" class="irc7-reset-btn">
-        <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
-      </button>
-      <button
-        type="button"
-        class="irc7-add-column-toolbar-btn"
-        id="addColumnBtn"
-      >
-        <svg
-          class="irc7-inline-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M12 5v14M5 12h14"></path>
-        </svg>
-        Add Column
-      </button>
     </div>
   </div>
 
-  <div class="irc7-table-wrapper">
-    <table id="irc7-table" class="irc7-table">
-      <colgroup id="irc7-colgroup">
-        <col data-min-width="90" />
-        <col data-min-width="240" />
-        <col data-min-width="130" />
-        <col data-min-width="110" />
-        <col data-min-width="90" />
-        <col data-min-width="130" />
-      </colgroup>
+  <!-- ================= GUIDED FLOW: Dashboard table ================= -->
+  <div class="irc7-flow">
+    <div class="irc7-flow-rail" aria-hidden="true">
+      <span class="irc7-flow-badge">1</span>
+    </div>
 
-      <thead>
-        <tr id="irc7-group-row">
-          <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">School ID</th>
-          <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
-            School Name
-          </th>
-          <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
-            Curricular Offering
-          </th>
-          <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
-            District Learning Cluster (DLC)
-          </th>
-          <th rowspan="2" class="irc7-fixed-col">Status</th>
-          <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
-            School Classification (2024)
-          </th>
-        </tr>
-        <tr id="irc7-col-row"></tr>
-      </thead>
+    <div class="irc7-flow-section irc7-flow-section-1">
+      <p class="irc7-flow-label">Dashboard table</p>
 
-      <tbody id="irc7-tbody">
-        <!-- Fixed reference rows (school / curricular offering) are
-             rendered here by irc7.js from GET /irc/irc7/data, since they
-             now live in the IRC7Row table instead of being hardcoded
-             here. -->
-      </tbody>
+      <div class="irc7-mode-banners">
+        <div
+          class="irc7-mode-banner irc7-mode-banner--edit"
+          id="editModeBanner"
+          style="display: none"
+        >
+          <svg
+            class="irc7-banner-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+            ></path>
+          </svg>
+          Edit mode is ON — click a column or group header to rename or change
+          it.
+        </div>
+        <div
+          class="irc7-mode-banner irc7-mode-banner--delete"
+          id="deleteModeBanner"
+          style="display: none"
+        >
+          <svg
+            class="irc7-banner-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 9v4"></path>
+            <path d="M12 17h.01"></path>
+            <path
+              d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+            ></path>
+          </svg>
+          Delete mode is ON — clicking a column or group header will permanently
+          remove it. This cannot be undone.
+        </div>
+      </div>
 
-      <tfoot id="irc7-tfoot">
-        <tr id="irc7-totals-row">
-          <!-- 6 = number of fixed leading columns above (School ID through
-               School Classification), same hardcoded count used by their
-               colgroup/thead entries. One totals cell per added column is
-               appended here by irc7.js (buildTotalsCell in appendCellToRows)
-               -- only "number" columns get a running sum, others stay blank. -->
-          <td class="irc7-totals-label" colspan="6">Total</td>
-        </tr>
-      </tfoot>
-    </table>
+      <div class="irc7-table-card">
+        <div class="irc7-dark-header irc7-dark-header-with-action">
+          <div class="irc7-dark-header-text">
+            <h3>SGOD Dashboard Table</h3>
+            <p class="irc7-subtitle irc7-subtitle-dark">
+              School-level indicator data for the dashboard, editable per year.
+            </p>
+          </div>
+          <div class="irc7-toolbar-actions">
+            <button
+              type="button"
+              class="irc7-icon-btn irc7-icon-btn--edit"
+              id="editModeBtn"
+              title="Toggle edit mode"
+              aria-label="Toggle edit mode"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                ></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="irc7-icon-btn irc7-icon-btn--delete"
+              id="deleteModeBtn"
+              title="Toggle delete mode"
+              aria-label="Toggle delete mode"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+              </svg>
+            </button>
+            <span class="irc7-toolbar-divider"></span>
+            <button
+              type="button"
+              class="irc7-add-column-toolbar-btn"
+              id="addColumnBtn"
+            >
+              <svg
+                class="irc7-inline-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 5v14M5 12h14"></path>
+              </svg>
+              Add Column
+            </button>
+          </div>
+        </div>
+
+        <div class="irc7-table-wrapper" id="irc7TableWrapper">
+          <!-- Sticky header: lives in its own small table, separate from
+               the horizontally-scrolling body table below -- see the
+               "Sticky header (separate table)" comment in irc7.css for
+               why this has to be a separate table rather than a <thead>
+               inside #irc7-table. Column widths are mirrored 1:1 from
+               the body table's colgroup (recalcLayout() in irc7.js);
+               horizontal scroll position is driven by JS, not native
+               overflow, via #irc7StickyHeaderClip. -->
+          <div class="irc7-sticky-header" id="irc7StickyHeader">
+            <div class="irc7-sticky-header-clip" id="irc7StickyHeaderClip">
+              <table id="irc7-header-table" class="irc7-table">
+                <colgroup id="irc7-header-colgroup"></colgroup>
+
+                <thead>
+                  <tr id="irc7-group-row">
+                    <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+                      School ID
+                    </th>
+                    <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+                      School Name
+                    </th>
+                    <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+                      Curricular Offering
+                    </th>
+                    <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+                      District Learning Cluster (DLC)
+                    </th>
+                    <th rowspan="2" class="irc7-fixed-col">Status</th>
+                    <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+                      School Classification (2024)
+                    </th>
+                  </tr>
+                  <tr id="irc7-col-row"></tr>
+                </thead>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sticky duplicate scrollbar: sits just below #irc7StickyHeader
+               (see updateStickyOffsets() in irc7.js) and mirrors
+               horizontal scroll position with the real scroll container
+               below. Hidden automatically whenever the real scrollbar
+               (at the bottom edge of #irc7TableScroll) is already
+               on-screen, so only one is ever visible at once -- see the
+               IntersectionObserver on #irc7BottomSentinel. -->
+          <div class="irc7-top-scrollbar" id="irc7TopScrollbar">
+            <div
+              class="irc7-top-scrollbar-inner"
+              id="irc7TopScrollbarInner"
+            ></div>
+          </div>
+
+          <div class="irc7-table-scroll" id="irc7TableScroll">
+            <table id="irc7-table" class="irc7-table">
+              <colgroup id="irc7-colgroup">
+                <col data-min-width="90" />
+                <col data-min-width="240" />
+                <col data-min-width="130" />
+                <col data-min-width="110" />
+                <col data-min-width="90" />
+                <col data-min-width="130" />
+              </colgroup>
+
+              <tbody id="irc7-tbody">
+                <!-- Fixed reference rows (school / curricular offering) are
+                     rendered here by irc7.js from GET /irc/irc7/data, since
+                     they now live in the IRC7Row table instead of being
+                     hardcoded here. -->
+              </tbody>
+
+              <tfoot id="irc7-tfoot">
+                <tr id="irc7-totals-row">
+                  <!-- 6 = number of fixed leading columns above (School ID
+                       through School Classification), same hardcoded count
+                       used by their colgroup/thead entries. One totals cell
+                       per added column is appended here by irc7.js
+                       (buildTotalsCell in appendCellToRows) -- only "number"
+                       columns get a running sum, others stay blank. -->
+                  <td class="irc7-totals-label" colspan="6">Total</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Zero-height marker at the true bottom edge of the scroll
+               container -- observed via IntersectionObserver so the JS
+               knows when the real (bottom) horizontal scrollbar is
+               visible on-screen. -->
+          <div
+            class="irc7-bottom-sentinel"
+            id="irc7BottomSentinel"
+            aria-hidden="true"
+          ></div>
+        </div>
+      </div>
+    </div>
+    <!-- /.irc7-flow -->
   </div>
 
   <!-- Add Column Modal -->

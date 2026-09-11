@@ -9,6 +9,18 @@
   const tbody = document.getElementById("irc7-tbody");
   const totalsRow = document.getElementById("irc7-totals-row");
 
+  // Sticky header lives in its own table, separate from #irc7-table --
+  // see the "Sticky header (separate table)" comment in irc7.css for why.
+  const stickyHeader = document.getElementById("irc7StickyHeader");
+  const stickyHeaderClip = document.getElementById("irc7StickyHeaderClip");
+  const headerTable = document.getElementById("irc7-header-table");
+  const headerColgroup = document.getElementById("irc7-header-colgroup");
+  // Dual horizontal scrollbar elements (sticky top duplicate + the real one).
+  const tableScroll = document.getElementById("irc7TableScroll") || wrapper;
+  const topScrollbar = document.getElementById("irc7TopScrollbar");
+  const topScrollbarInner = document.getElementById("irc7TopScrollbarInner");
+  const bottomSentinel = document.getElementById("irc7BottomSentinel");
+
   const addColumnBtn = document.getElementById("addColumnBtn");
   const modal = document.getElementById("addColumnModal");
   const modalClose = document.getElementById("irc7ModalClose");
@@ -95,23 +107,39 @@
   //    shrinking, and the wrapper's overflow-x: auto makes it scroll.
   function recalcLayout() {
     const cols = Array.from(colgroup.children);
-    if (cols.length === 0) return;
+    if (cols.length > 0) {
+      const minWidths = cols.map((c) => parseFloat(c.dataset.minWidth) || 100);
+      const totalMin = minWidths.reduce((sum, w) => sum + w, 0);
+      const available = tableScroll.clientWidth;
 
-    const minWidths = cols.map((c) => parseFloat(c.dataset.minWidth) || 100);
-    const totalMin = minWidths.reduce((sum, w) => sum + w, 0);
-    const available = wrapper.clientWidth;
-
-    if (totalMin <= available) {
-      table.style.width = "100%";
-      cols.forEach((c, i) => {
-        c.style.width = (minWidths[i] / totalMin) * 100 + "%";
-      });
-    } else {
-      table.style.width = totalMin + "px";
-      cols.forEach((c, i) => {
-        c.style.width = minWidths[i] + "px";
-      });
+      if (totalMin <= available) {
+        table.style.width = "100%";
+        cols.forEach((c, i) => {
+          c.style.width = (minWidths[i] / totalMin) * 100 + "%";
+        });
+      } else {
+        table.style.width = totalMin + "px";
+        cols.forEach((c, i) => {
+          c.style.width = minWidths[i] + "px";
+        });
+      }
     }
+
+    // The sticky header lives in its own <table> (see irc7.css), so its
+    // width and <col> widths need to be mirrored here on every layout
+    // pass -- otherwise its columns would drift out of alignment with
+    // the real (scrolling) table's as columns are added/removed/resized.
+    if (headerTable && headerColgroup) {
+      headerTable.style.width = table.style.width;
+      headerColgroup.innerHTML = colgroup.innerHTML;
+    }
+
+    // Column widths above (and header height, if wrapping changed)
+    // affect both the sticky offsets and the duplicate top scrollbar,
+    // so keep them in lockstep with every layout pass rather than
+    // hunting down every call site that changes the table's shape.
+    updateStickyOffsets();
+    syncTopScrollbarWidth();
   }
 
   let resizeTimer = null;
@@ -119,6 +147,100 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(recalcLayout, 100);
   });
+
+  // ================= STICKY HEADER + DUAL HORIZONTAL SCROLLBAR =================
+  //
+  // #irc7StickyHeader (the header, in its own table -- see the "Sticky
+  // header (separate table)" comment in irc7.css) and #irc7TopScrollbar
+  // are both sticky via CSS alone (position: sticky; top: 0 / top:
+  // var(--irc7-thead-height)). #irc7-table-card uses `overflow: clip`
+  // rather than `hidden` specifically so it doesn't become an accidental
+  // scroll container that would trap that stickiness instead of letting
+  // it resolve against .content (the page's real scroll container) --
+  // see the comment on that rule in irc7.css. What needs JS:
+  //  1. Measuring the sticky header's actual height (it changes as
+  //     columns wrap or are added/removed) so the duplicate top
+  //     scrollbar sticks immediately below it.
+  //  2. Keeping the duplicate top scrollbar's inner width matched to the
+  //     real table width, and keeping all three of #irc7TableScroll (the
+  //     real, native scrollbar), #irc7TopScrollbar (the duplicate), and
+  //     #irc7StickyHeaderClip (the sticky header's horizontal clip --
+  //     not natively scrollable, just has its scrollLeft driven by JS)
+  //     in sync with whichever one the user just scrolled.
+  //  3. Showing only one of the two *visible* scrollbars at a time: the
+  //     top one hides itself whenever the real one (at the scroll
+  //     container's true bottom edge, marked by #irc7BottomSentinel) is
+  //     already visible on-screen.
+
+  function updateStickyOffsets() {
+    if (!stickyHeader) return;
+    document.documentElement.style.setProperty(
+      "--irc7-thead-height",
+      stickyHeader.offsetHeight + "px",
+    );
+  }
+
+  function syncTopScrollbarWidth() {
+    if (!topScrollbarInner || !topScrollbar || !tableScroll) return;
+    topScrollbarInner.style.width = table.scrollWidth + "px";
+    const hasOverflow = table.scrollWidth > tableScroll.clientWidth + 1;
+    topScrollbar.classList.toggle("irc7-top-scrollbar--noscroll", !hasOverflow);
+  }
+
+  if (topScrollbar && tableScroll) {
+    let syncingScroll = false;
+
+    // Applies `left` to whichever of the three horizontal-scroll
+    // surfaces didn't just trigger this (the `source` element already
+    // has that scrollLeft -- re-setting it is harmless, but skipping it
+    // avoids a redundant native "scroll" event on some browsers).
+    function syncScrollLeft(left, source) {
+      syncingScroll = true;
+      if (source !== tableScroll) tableScroll.scrollLeft = left;
+      if (source !== topScrollbar) topScrollbar.scrollLeft = left;
+      if (stickyHeaderClip) stickyHeaderClip.scrollLeft = left;
+      syncingScroll = false;
+    }
+
+    topScrollbar.addEventListener("scroll", () => {
+      if (syncingScroll) return;
+      syncScrollLeft(topScrollbar.scrollLeft, topScrollbar);
+    });
+
+    tableScroll.addEventListener("scroll", () => {
+      if (syncingScroll) return;
+      syncScrollLeft(tableScroll.scrollLeft, tableScroll);
+    });
+  }
+
+  // Only one horizontal scrollbar visible at a time: hide the sticky
+  // top scrollbar the instant the real one (at the bottom edge of
+  // #irc7TableScroll) scrolls into view, and show it again once that
+  // edge scrolls back out of view.
+  if (bottomSentinel && topScrollbar && "IntersectionObserver" in window) {
+    const bottomScrollbarObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          topScrollbar.classList.toggle(
+            "irc7-top-scrollbar--hidden",
+            entry.isIntersecting,
+          );
+        });
+      },
+      { threshold: 0 },
+    );
+    bottomScrollbarObserver.observe(bottomSentinel);
+  }
+
+  // Header height changes whenever columns wrap differently or are
+  // added/removed -- ResizeObserver catches all of that without needing
+  // every call site to remember to re-measure.
+  if (stickyHeader && "ResizeObserver" in window) {
+    const theadObserver = new ResizeObserver(() => updateStickyOffsets());
+    theadObserver.observe(stickyHeader);
+  } else {
+    updateStickyOffsets();
+  }
 
   // ================= LOADING FIXED ROWS + SAVED COLUMNS/VALUES =================
 
@@ -943,4 +1065,11 @@
 
   // ---------- Initial load ----------
   loadData();
+
+  // Fonts finishing their load can shift header text wrapping (and
+  // therefore header height) after the initial measurement above.
+  window.addEventListener("load", () => {
+    updateStickyOffsets();
+    syncTopScrollbarWidth();
+  });
 })();

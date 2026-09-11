@@ -7,55 +7,225 @@ block content %}
 />
 
 <section id="irc5-tab" class="tab-panel irc5-panel">
+  <!-- ================= 1. PAGE HEADER ================= -->
   <div class="irc5-header">
-    <div class="irc5-header-text">
-      <h2>IRC5 &mdash; Post Program Evaluation Results</h2>
-      <p class="irc5-subtitle">
-        Based on the <strong>Post Program Evaluation Results</strong> given by
-        the SMME Section, encode the required information for each activity
-        conducted. Enter <strong>N/A</strong> in a field if it does not apply.
-      </p>
-    </div>
-    <div class="irc5-header-actions">
-      <button type="button" id="irc5-reset-btn" class="irc5-reset-btn">
-        <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
-      </button>
-      <button type="button" id="irc5-add-btn" class="irc5-add-btn">
-        <span class="irc5-add-icon">+</span> Add Entry
-      </button>
+    <div class="irc5-header-top">
+      <div class="irc5-header-title-main">
+        <span class="irc5-header-badge">
+          <span class="irc5-header-badge-group">IRC</span>
+          <span class="irc5-header-badge-page">5</span>
+        </span>
+        <div class="irc5-header-divider"></div>
+        <div>
+          <h2>Post Program Evaluation Results</h2>
+          <p class="irc5-subtitle">
+            Encode each activity's evaluation results from the SMME Section.
+          </p>
+        </div>
+      </div>
+      <div class="irc5-header-actions">
+        <button type="button" id="irc5-reset-btn" class="irc5-reset-btn">
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- ================= MAIN TABLE ================= -->
-  <div class="irc5-table-wrapper">
-    <table id="irc5-table" class="irc5-table">
-      <thead>
-        <tr>
-          <th class="irc5-col-no">No.</th>
-          <th class="irc5-col-title">Activity Title</th>
-          <th class="irc5-col-nature">Nature of Activity</th>
-          <th class="irc5-col-date">Date of Implementation</th>
-          <th class="irc5-col-participants">Participants</th>
-          <th class="irc5-col-rating">Overall Rating</th>
-          <th class="irc5-col-descval">Descriptive Value</th>
-          <th class="irc5-col-indicator">
-            Indicator with the Lowest Attained Rating
-          </th>
-          <th class="irc5-col-cause">Potential Cause for the Low Rating</th>
-          <th class="irc5-col-measures">
-            Corrective Measures to be Implemented
-          </th>
-          <th class="irc5-col-actions">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="irc5-table-body">
-        <!-- rows injected by irc5.js -->
-      </tbody>
-    </table>
-
-    <div id="irc5-empty-state" class="irc5-empty-state">
-      <p>No entries yet. Click <strong>Add Entry</strong> to get started.</p>
+  <!-- ================= GUIDED FLOW: 1. Overview -> 2. Entries ================= -->
+  <div class="irc5-flow">
+    <div class="irc5-flow-rail" aria-hidden="true">
+      <span class="irc5-flow-badge">1</span>
+      <span class="irc5-flow-badge">2</span>
     </div>
+
+    <!-- 1. PERFORMANCE OVERVIEW (DASHBOARD) -->
+    <div class="irc5-flow-section irc5-flow-section-1">
+      <p class="irc5-flow-label">Performance overview</p>
+      <div class="irc5-hero-row">
+        <!-- Left Block: Funded vs Non-Funded donut -->
+        <div class="irc5-donut-card">
+          <div class="irc5-dark-header">
+            <h3>Funded vs Non-Funded Activities</h3>
+            <p class="irc5-subtitle irc5-subtitle-dark">
+              Distribution of program activities.
+            </p>
+          </div>
+          <div class="irc5-card-body">
+            <div class="irc5-donut-body">
+              <div class="irc5-donut-wrap">
+                <svg
+                  viewBox="0 0 160 160"
+                  class="irc5-donut-svg"
+                  aria-hidden="true"
+                >
+                  <circle class="irc5-donut-track" cx="80" cy="80" r="64" />
+                  <circle
+                    class="irc5-donut-seg irc5-donut-seg-funded"
+                    id="irc5-donut-funded"
+                    cx="80"
+                    cy="80"
+                    r="64"
+                  />
+                  <circle
+                    class="irc5-donut-seg irc5-donut-seg-nonfunded"
+                    id="irc5-donut-nonfunded"
+                    cx="80"
+                    cy="80"
+                    r="64"
+                  />
+                </svg>
+                <div class="irc5-donut-center">
+                  <span class="irc5-donut-center-value" id="irc5-donut-total"
+                    >0</span
+                  >
+                  <span class="irc5-donut-center-label">Activities</span>
+                </div>
+              </div>
+              <div class="irc5-donut-legend">
+                <div class="irc5-donut-legend-item">
+                  <span class="irc5-donut-dot irc5-donut-dot-funded"></span>
+                  <span class="irc5-donut-legend-label">Funded</span>
+                  <span class="irc5-donut-legend-value" id="irc5-legend-funded"
+                    >0</span
+                  >
+                </div>
+                <div class="irc5-donut-legend-item">
+                  <span class="irc5-donut-dot irc5-donut-dot-nonfunded"></span>
+                  <span class="irc5-donut-legend-label">Non-Funded</span>
+                  <span
+                    class="irc5-donut-legend-value"
+                    id="irc5-legend-nonfunded"
+                    >0</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Middle Block: rating distribution across the four descriptive
+             bands (Strongly Disagree/Disagree/Agree/Strongly Agree), same
+             ranges computeDescVal() uses -- so a 3.75 and a 3.30 both land
+             in "Strongly Agree" instead of needing their own bar. -->
+        <div class="irc5-dist-card">
+          <div class="irc5-dark-header">
+            <h3>Rating Distribution</h3>
+            <p class="irc5-subtitle irc5-subtitle-dark">
+              Activities grouped by descriptive rating range.
+            </p>
+          </div>
+          <div class="irc5-card-body">
+            <div class="irc5-dist-body" id="irc5-dist-body">
+              <div class="irc5-dist-bar-col">
+                <span class="irc5-dist-count" id="irc5-dist-count-sd">0</span>
+                <div class="irc5-dist-track">
+                  <div
+                    class="irc5-dist-fill irc5-dist-fill-sd"
+                    id="irc5-dist-fill-sd"
+                  ></div>
+                </div>
+                <span class="irc5-dist-label">Strongly<br />Disagree</span>
+                <span class="irc5-dist-range">1.00&ndash;1.75</span>
+              </div>
+              <div class="irc5-dist-bar-col">
+                <span class="irc5-dist-count" id="irc5-dist-count-d">0</span>
+                <div class="irc5-dist-track">
+                  <div
+                    class="irc5-dist-fill irc5-dist-fill-d"
+                    id="irc5-dist-fill-d"
+                  ></div>
+                </div>
+                <span class="irc5-dist-label">Disagree</span>
+                <span class="irc5-dist-range">1.76&ndash;2.50</span>
+              </div>
+              <div class="irc5-dist-bar-col">
+                <span class="irc5-dist-count" id="irc5-dist-count-a">0</span>
+                <div class="irc5-dist-track">
+                  <div
+                    class="irc5-dist-fill irc5-dist-fill-a"
+                    id="irc5-dist-fill-a"
+                  ></div>
+                </div>
+                <span class="irc5-dist-label">Agree</span>
+                <span class="irc5-dist-range">2.51&ndash;3.25</span>
+              </div>
+              <div class="irc5-dist-bar-col">
+                <span class="irc5-dist-count" id="irc5-dist-count-sa">0</span>
+                <div class="irc5-dist-track">
+                  <div
+                    class="irc5-dist-fill irc5-dist-fill-sa"
+                    id="irc5-dist-fill-sa"
+                  ></div>
+                </div>
+                <span class="irc5-dist-label">Strongly<br />Agree</span>
+                <span class="irc5-dist-range">3.26&ndash;4.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Block: average overall rating badge -->
+        <div class="irc5-badge-card">
+          <span class="irc5-badge-label">Average Overall Rating</span>
+          <span class="irc5-badge-score" id="irc5-avg-rating">&mdash;</span>
+          <span class="irc5-badge-scale">out of 4</span>
+          <span class="irc5-badge-pill" id="irc5-avg-desc">No data yet</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. ACTIVITY ENTRIES (DATA TABLE) -->
+    <div class="irc5-flow-section irc5-flow-section-2">
+      <p class="irc5-flow-label">Activity entries</p>
+      <div class="irc5-table-card">
+        <div class="irc5-dark-header irc5-dark-header-with-action">
+          <div class="irc5-dark-header-text">
+            <h3>Post Program Evaluation Entries</h3>
+            <p class="irc5-subtitle irc5-subtitle-dark">
+              Every activity conducted this year, with its evaluation results.
+            </p>
+          </div>
+          <button type="button" id="irc5-add-btn" class="irc5-add-btn">
+            <span class="irc5-add-icon">+</span> Add Entry
+          </button>
+        </div>
+        <div class="irc5-table-wrapper">
+          <table id="irc5-table" class="irc5-table">
+            <thead>
+              <tr>
+                <th class="irc5-col-no">No.</th>
+                <th class="irc5-col-title">Activity Title</th>
+                <th class="irc5-col-nature">Nature of Activity</th>
+                <th class="irc5-col-date">Date of Implementation</th>
+                <th class="irc5-col-participants">Participants</th>
+                <th class="irc5-col-rating">Overall Rating</th>
+                <th class="irc5-col-descval">Descriptive Value</th>
+                <th class="irc5-col-indicator">
+                  Indicator with the Lowest Attained Rating
+                </th>
+                <th class="irc5-col-cause">
+                  Potential Cause for the Low Rating
+                </th>
+                <th class="irc5-col-measures">
+                  Corrective Measures to be Implemented
+                </th>
+                <th class="irc5-col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="irc5-table-body">
+              <!-- rows injected by irc5.js -->
+            </tbody>
+          </table>
+
+          <div id="irc5-empty-state" class="irc5-empty-state">
+            <p>
+              No entries yet. Click <strong>Add Entry</strong> to get started.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /.irc5-flow -->
   </div>
 </section>
 

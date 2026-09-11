@@ -1,18 +1,115 @@
 /* IRC7 - SGOD Dashboard Data - CSS Stylesheet */
 
-.irc7-panel {
-  padding: 24px 0;
+/* ------------------------------------------------------------------
+   0. Sticky-header / navbar gap
+   ------------------------------------------------------------------
+   #irc7StickyHeader (see the "Sticky header (separate table)" block
+   below) sticks against `.content` (base.css), since that's the
+   page's real scrolling ancestor. `.content` has its own
+   `padding: 30px ...`, and per the CSS spec a position:sticky element
+   can NEVER move up into its scroll container's own padding -- that's
+   a hard clamp, not just an initial offset. So the sticky header can
+   only ever get flush with the *inside edge* of that 30px padding,
+   leaving a permanent 30px gap between it and the sticky navbar above
+   `.content`.
+
+   That gap is intentional (matches the page's normal top spacing), but
+   the 30px band is just empty space, not a clipping boundary -- while
+   `.content` scrolls, ordinary flow content (the table's own rows)
+   passes freely through that same pixel range and becomes visible
+   there unless something opaque covers it.
+
+   Fix: move the 30px off `.content` itself (:has() scoped so only this
+   page is affected) and rebuild it as a real, opaque element
+   (#irc7StickyTopGap below) that is ALSO sticky at top:0 -- since it's
+   an ordinary descendant rather than the scroll box, it isn't clamped
+   the way `.content`'s own padding was, so it can sit flush against
+   the navbar and physically paint over that strip, no matter what
+   scrolls underneath it. The table's own sticky header/top-scrollbar
+   then stick `--irc7-navbar-gap` further down, directly below it. */
+.content:has(.irc7-panel) {
+  padding-top: 0;
 }
 
+.irc7-panel {
+  --irc7-navbar-gap: 30px;
+}
+
+#irc7StickyTopGap {
+  position: sticky;
+  top: 0;
+  z-index: 50; /* above the table's own sticky header (8) / top scrollbar (6), below the navbar (100) */
+  height: var(--irc7-navbar-gap);
+  background: #fff;
+}
+
+/* ------------------------------------------------------------------
+   1. Page Header — badge + divider + title/subtitle, same structure
+   as IRC5/IRC6's header.
+------------------------------------------------------------------ */
+
 .irc7-header {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1.5px solid #e0e0e0;
+}
+
+.irc7-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.irc7-header-title-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.irc7-header-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  padding: 0 16px;
+  flex-shrink: 0;
+  background: var(--navy-deep, #001550);
+  border-radius: 10px;
+  box-sizing: border-box;
+  line-height: 1.1;
+}
+
+.irc7-header-badge-group {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.irc7-header-badge-page {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.irc7-header-divider {
+  width: 4px;
+  height: 54px;
+  background: var(--navy-deep, #001550);
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .irc7-header h2 {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 600;
-  margin: 0 0 8px 0;
-  color: #1a1a1a;
+  margin: 0 0 2px 0;
+  color: var(--navy-deep, #001550);
+  text-transform: uppercase;
 }
 
 .irc7-subtitle {
@@ -22,20 +119,140 @@
   line-height: 1.5;
 }
 
-/* ---------- Toolbar ---------- */
+.irc7-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
-.irc7-toolbar {
+/* ------------------------------------------------------------------
+   Guided Flow — numbered rail, same pattern as IRC1a/IRC3/IRC5/IRC6.
+   Only one section lives here (Dashboard table) since IRC7 has no
+   performance-overview dashboard.
+------------------------------------------------------------------ */
+
+.irc7-flow {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto;
+  column-gap: 20px;
+  row-gap: 1.25rem;
+}
+
+.irc7-flow-rail {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  grid-template-rows: subgrid;
+  position: relative;
+}
+
+.irc7-flow-rail::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  background: var(--border-strong, #d0d5dd);
+  transform: translateX(-50%);
+}
+
+.irc7-flow-badge {
+  align-self: start;
+  justify-self: center;
+  margin-top: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1f2937;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.irc7-flow-section-1 {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.irc7-flow-label {
+  margin: 20px 0 10px 2px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+
+/* Shared dark analytics header band. */
+.irc7-dark-header {
+  background: linear-gradient(160deg, #1f2937 0%, #2d3f57 100%);
+  padding: 16px 20px;
+  box-sizing: border-box;
+}
+
+.irc7-dark-header h3 {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #fff;
+}
+
+.irc7-subtitle-dark {
+  color: #9aa7b8;
+}
+
+/* Variant for a dark header that also hosts action buttons (mode
+   toggles + Add Column) at its rightmost edge -- title/subtitle wrap
+   in their own block so the actions can sit beside them instead of
+   below. */
+.irc7-dark-header-with-action {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 
-.irc7-mode-banners {
-  flex: 1;
+.irc7-dark-header-text {
   min-width: 0;
+}
+
+.irc7-table-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  /* clip, not hidden: both clip the rounded corners identically, but
+     unlike hidden, clip never establishes a scrolling mechanism of its
+     own. That matters because .irc7-table-card is an ancestor of
+     #irc7StickyHeader (the sticky header table, see below) -- if this
+     were `hidden`, position:sticky on that header would latch onto
+     *this* element as its nearest scroll container instead of .content
+     (the page's real one), and since .irc7-table-card itself never
+     actually scrolls, the header would just sit static instead of
+     sticking as the page scrolls. */
+  overflow: clip;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
+/* ---------- Toolbar (now hosted inside the dark card header) ---------- */
+
+.irc7-mode-banners {
+  margin-bottom: 12px;
 }
 
 .irc7-mode-banner {
@@ -63,38 +280,52 @@
 .irc7-toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex-shrink: 0;
 }
 
+/* Add Column: solid white pill against the dark gradient header, same
+   "active toggle on dark bg" contrast trick as IRC5/IRC6's Add
+   buttons. */
 .irc7-add-column-toolbar-btn {
-  background: #4a6fa5;
-  color: white;
+  background: #fff;
+  color: var(--irc7-dedp, #1e4976);
   border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
+  padding: 8px 16px;
+  border-radius: 7px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  transition: background 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
 }
 
 .irc7-add-column-toolbar-btn:hover {
-  background: #3d5a8a;
+  background: #eaf2fb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* Minimalist icon-only mode toggles */
+.irc7-add-column-toolbar-btn:active {
+  transform: scale(0.97);
+}
+
+/* Minimalist icon-only mode toggles — translucent white against the
+   dark header so they read as controls without competing with the
+   solid white Add Column pill. */
 
 .irc7-icon-btn {
-  background: white;
-  border: 1px solid #d0d0d0;
-  color: #555;
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
-  font-size: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #e5eaf0;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  font-size: 14px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -103,43 +334,43 @@
 }
 
 .irc7-icon-btn:hover {
-  background: #f5f5f5;
-  border-color: #999;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 .irc7-icon-btn--edit.irc7-icon-btn--active {
-  background: #1f4f8a;
-  border-color: #1f4f8a;
+  background: #3b82f6;
+  border-color: #3b82f6;
   color: white;
 }
 
 .irc7-icon-btn--delete.irc7-icon-btn--active {
-  background: #c0392b;
-  border-color: #c0392b;
+  background: #dc2626;
+  border-color: #dc2626;
   color: white;
 }
 
 .irc7-toolbar-divider {
   width: 1px;
-  height: 24px;
-  background: #e0e0e0;
-  margin: 0 4px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 0 2px;
 }
 
-/* Reset button — identical appearance to IRC5's .irc5-reset-btn */
+/* Reset button — identical (reduced) sizing to IRC5/IRC6's .irc5-reset-btn */
 
 .irc7-reset-btn {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
   flex-shrink: 0;
   appearance: none;
   background: #fff;
   color: #dc2626;
   border: 1.5px solid #f3b4b4;
-  border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 14px;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -149,7 +380,7 @@
 }
 
 .irc7-reset-btn i {
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .irc7-reset-btn:hover {
@@ -162,20 +393,65 @@
    respected exactly instead of being overridden by cell content. The
    table's own width and each <col>'s width are both set by irc7.js's
    recalcLayout(): when every column's minimum width still fits the
-   wrapper, the table is set to 100% and columns get percentage widths
-   (fluid — fills the table, shrinks together as columns are added).
-   Once the combined minimums no longer fit, the table is pinned to that
-   total in px and each column to its px minimum, so nothing shrinks
-   further — instead .irc7-table-wrapper's overflow-x: auto scrolls. */
+   scroll container, the table is set to 100% and columns get percentage
+   widths (fluid — fills the table, shrinks together as columns are
+   added). Once the combined minimums no longer fit, the table is pinned
+   to that total in px and each column to its px minimum, so nothing
+   shrinks further — instead #irc7TableScroll's overflow-x: auto scrolls.
+
+   #irc7TableWrapper is the plain (non-scrolling) card frame; the actual
+   horizontal scrolling happens in the nested #irc7TableScroll, with
+   #irc7TopScrollbar as a sticky duplicate scrollbar living alongside it
+   -- see the "Sticky header + dual scrollbar" block below. */
 
 .irc7-table-wrapper {
   background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
+  margin-bottom: 32px;
+}
+
+.irc7-table-scroll {
   overflow-x: auto;
   overflow-y: visible;
-  margin-bottom: 32px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- Sticky top scrollbar (duplicate of the real one) ---------- */
+/* A thin, sticky strip that sits right below #irc7StickyHeader (see
+   --irc7-thead-height, set by updateStickyOffsets() in irc7.js) so the
+   table can be scrolled horizontally without hunting for the real
+   scrollbar at the very bottom of a long table. Its inner div is only
+   ever as wide as the table itself (kept in sync by
+   syncTopScrollbarWidth()); scrolling either bar updates the other.
+   Hidden via .irc7-top-scrollbar--hidden whenever the real scrollbar
+   (at #irc7BottomSentinel, the true bottom edge of #irc7TableScroll) is
+   already visible on-screen, and via .irc7-top-scrollbar--noscroll when
+   the table doesn't overflow horizontally at all -- only one horizontal
+   scrollbar is ever shown at a time. */
+.irc7-top-scrollbar {
+  position: sticky;
+  top: calc(var(--irc7-navbar-gap, 0px) + var(--irc7-thead-height, 0px));
+  z-index: 6;
+  height: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #eef1f5;
+  border-bottom: 1px solid #e0e0e0;
+  transition: visibility 0s;
+}
+
+.irc7-top-scrollbar-inner {
+  height: 1px;
+}
+
+.irc7-top-scrollbar.irc7-top-scrollbar--hidden {
+  visibility: hidden;
+}
+
+.irc7-top-scrollbar.irc7-top-scrollbar--noscroll {
+  display: none;
+}
+
+.irc7-bottom-sentinel {
+  height: 0;
 }
 
 .irc7-table {
@@ -206,6 +482,43 @@
 
 .irc7-table thead tr:first-child th {
   border-bottom: 3px solid #4a6fa5;
+}
+
+/* ---------- Sticky header (separate table) ---------- */
+/* The header lives in its own small table (#irc7-header-table, inside
+   #irc7StickyHeader) instead of a <thead> inside the real, horizontally-
+   scrolling #irc7-table. That's necessary, not just tidy: #irc7TableScroll
+   needs overflow-x: auto for horizontal scrolling, and per the CSS
+   overflow spec that alone makes it a "scroll container" -- regardless
+   of what overflow-y is set to. A position:sticky descendant always
+   resolves against its *nearest* ancestor scroll container, so a sticky
+   <th> inside #irc7TableScroll would latch onto that div instead of
+   .content (the page's real vertical scroll container). And since
+   #irc7TableScroll itself never actually gets scrolled vertically (only
+   .content does), that sticky <th> would just sit static and never
+   track the page scroll at all -- it wouldn't stick.
+
+   Pulling the header into its own table, positioned as a sibling
+   *before* #irc7TableScroll, sidesteps that: #irc7StickyHeader's nearest
+   ancestor with any scroll mechanism is .content, so position: sticky
+   here does exactly what it looks like it should. Column widths are
+   mirrored 1:1 from the body table's colgroup (recalcLayout() in
+   irc7.js), and horizontal scroll position is driven by JS rather than
+   native overflow-x, so this table never becomes a trapping scroll
+   container of its own. */
+.irc7-sticky-header {
+  position: sticky;
+  top: var(--irc7-navbar-gap, 0px);
+  z-index: 8;
+  background: #1f2937;
+}
+
+.irc7-sticky-header-clip {
+  overflow: hidden;
+}
+
+#irc7-header-table {
+  margin: 0;
 }
 
 /* Added-column headers get a distinct blue family so they're visually
@@ -860,12 +1173,22 @@
 
 /* ---------- Responsive ---------- */
 
-@media (max-width: 768px) {
-  .irc7-header h2 {
-    font-size: 22px;
+@media (max-width: 900px) {
+  .irc7-header-top {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .irc7-toolbar {
+  .irc7-header-actions {
+    width: 100%;
+  }
+
+  .irc7-reset-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .irc7-dark-header-with-action {
     flex-direction: column;
     align-items: stretch;
   }
@@ -873,6 +1196,29 @@
   .irc7-toolbar-actions {
     justify-content: flex-end;
     flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .irc7-header h2 {
+    font-size: 22px;
+  }
+
+  .irc7-header-badge {
+    height: 44px;
+    padding: 0 12px;
+  }
+
+  .irc7-header-badge-group {
+    font-size: 9px;
+  }
+
+  .irc7-header-badge-page {
+    font-size: 15px;
+  }
+
+  .irc7-header-divider {
+    height: 44px;
   }
 
   .irc7-table-wrapper {

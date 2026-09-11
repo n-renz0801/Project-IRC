@@ -160,6 +160,10 @@
       nonDedpSecondary: document.getElementById("stat-nondedp-secondary"),
       nonDedpTotal: document.getElementById("stat-nondedp-total"),
       nonDedpPct: document.getElementById("stat-nondedp-pct"),
+      overallPct: document.getElementById("stat-overall-pct"),
+      overallFraction: document.getElementById("stat-overall-fraction"),
+      overallElementary: document.getElementById("stat-overall-elementary"),
+      overallSecondary: document.getElementById("stat-overall-secondary"),
     };
     els.bars = {
       dedpElementary: document.getElementById("dedp-bar-elementary"),
@@ -194,7 +198,6 @@
           }
         });
         render(currentFilters());
-        updatePanelHeight();
       })
       .catch(() => {
         /* Board just stays at the "everyone unprovided" baseline. */
@@ -347,6 +350,34 @@
       nonDedpSecondaryCount,
       nonDedpTotalSchools,
     );
+
+    // Overall coverage badge (right block of the dashboard) — combines
+    // both DEDP and non-DEDP groups.
+    const overallTotalSchools = SCHOOLS.length;
+    const elementaryTotal = SCHOOLS.filter(
+      (s) => s.level === "elementary",
+    ).length;
+    const secondaryTotal = SCHOOLS.filter(
+      (s) => s.level === "secondary",
+    ).length;
+    const elementaryProvidedCount =
+      dedpElementaryCount + nonDedpElementaryCount;
+    const secondaryProvidedCount = dedpSecondaryCount + nonDedpSecondaryCount;
+    const overallProvidedCount = providedSchools.length;
+    const overallPct = pct(overallProvidedCount, overallTotalSchools);
+
+    if (els.stats.overallPct) {
+      els.stats.overallPct.textContent = `${overallPct}%`;
+    }
+    if (els.stats.overallFraction) {
+      els.stats.overallFraction.textContent = `${overallProvidedCount} / ${overallTotalSchools}`;
+    }
+    if (els.stats.overallElementary) {
+      els.stats.overallElementary.textContent = `${elementaryProvidedCount} / ${elementaryTotal}`;
+    }
+    if (els.stats.overallSecondary) {
+      els.stats.overallSecondary.textContent = `${secondaryProvidedCount} / ${secondaryTotal}`;
+    }
   }
 
   // Each segmented capacity bar's two fills are sized as plain CSS
@@ -473,27 +504,6 @@
     render(currentFilters());
   }
 
-  function updatePanelHeight() {
-    if (!els.root) return;
-    const top = els.root.getBoundingClientRect().top + window.scrollY;
-    const bottomGap = 12; // small breathing room from the very bottom of the screen
-    const available = window.innerHeight - top - bottomGap;
-    // Measuring the real space (instead of assuming 100vh) is what lets
-    // irc2a-panel-row sit right at the visible bottom of the screen no
-    // matter what's above this section (navbar, page header, etc.) in
-    // base.html.
-    els.root.style.minHeight = Math.max(available, 0) + "px";
-  }
-
-  let resizeRaf = null;
-  function onWindowResize() {
-    if (resizeRaf) return;
-    resizeRaf = requestAnimationFrame(() => {
-      resizeRaf = null;
-      updatePanelHeight();
-    });
-  }
-
   // --- Reset All Data --------------------------------------------------
   // Clicking the reset button opens the confirmation modal (see
   // irc2a-reset-confirm-overlay in irc2a.html); the actual wipe only
@@ -525,7 +535,6 @@
         }
         initState();
         render(currentFilters());
-        updatePanelHeight();
       })
       .catch((err) => {
         alert("Reset failed: " + err.message);
@@ -542,7 +551,6 @@
 
     initState();
     render();
-    updatePanelHeight();
 
     if (els.resetAllBtn) {
       els.resetAllBtn.addEventListener("click", openResetConfirm);
@@ -572,8 +580,6 @@
 
     els.levelFilterGroup.addEventListener("click", onLevelFilterClick);
     els.dedpToggle.addEventListener("change", onDedpToggleChange);
-
-    window.addEventListener("resize", onWindowResize);
 
     loadPersistedState();
   }

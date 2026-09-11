@@ -142,6 +142,104 @@
     }
   }
 
+  // ------------------------------------------------------------------
+  // Dashboard: Funded vs Non-Funded donut + average overall rating
+  // ------------------------------------------------------------------
+  const DONUT_RADIUS = 64;
+  const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
+
+  const donutFundedCircle = document.getElementById("irc5-donut-funded");
+  const donutNonfundedCircle = document.getElementById("irc5-donut-nonfunded");
+  const donutTotalEl = document.getElementById("irc5-donut-total");
+  const legendFundedEl = document.getElementById("irc5-legend-funded");
+  const legendNonfundedEl = document.getElementById("irc5-legend-nonfunded");
+  const avgRatingEl = document.getElementById("irc5-avg-rating");
+  const avgDescEl = document.getElementById("irc5-avg-desc");
+
+  // Rating Distribution (middle block): four bars keyed on the same
+  // descriptive bands computeDescVal() uses, so a decimal rating like
+  // 3.75 buckets under "Strongly Agree" alongside a 3.30 or a 4.00 --
+  // there's no separate bar per raw value.
+  const DIST_BANDS = ["sd", "d", "a", "sa"];
+  const distCountEls = {};
+  const distFillEls = {};
+  DIST_BANDS.forEach((key) => {
+    distCountEls[key] = document.getElementById(`irc5-dist-count-${key}`);
+    distFillEls[key] = document.getElementById(`irc5-dist-fill-${key}`);
+  });
+
+  function renderDistribution() {
+    const ratings = entries
+      .map((e) => parseFloat(e.rating))
+      .filter((v) => !Number.isNaN(v));
+
+    const counts = { sd: 0, d: 0, a: 0, sa: 0 };
+    ratings.forEach((val) => {
+      const cls = descValClass(computeDescVal(val));
+      if (cls && counts[cls] !== undefined) counts[cls] += 1;
+    });
+
+    const maxCount = Math.max(counts.sd, counts.d, counts.a, counts.sa, 1);
+
+    DIST_BANDS.forEach((key) => {
+      const count = counts[key];
+      if (distCountEls[key]) distCountEls[key].textContent = count;
+      if (distFillEls[key]) {
+        distFillEls[key].style.height =
+          count > 0 ? `${(count / maxCount) * 100}%` : "0%";
+      }
+    });
+  }
+
+  function renderDashboard() {
+    const fundedCount = entries.filter((e) => e.nature === "Funded").length;
+    const nonfundedCount = entries.filter(
+      (e) => e.nature === "Non-Funded",
+    ).length;
+    const natureTotal = fundedCount + nonfundedCount;
+
+    const fundedLen =
+      natureTotal > 0 ? (fundedCount / natureTotal) * DONUT_CIRCUMFERENCE : 0;
+    const nonfundedLen =
+      natureTotal > 0
+        ? (nonfundedCount / natureTotal) * DONUT_CIRCUMFERENCE
+        : 0;
+
+    if (donutFundedCircle) {
+      donutFundedCircle.style.strokeDasharray = `${fundedLen} ${DONUT_CIRCUMFERENCE}`;
+      donutFundedCircle.style.strokeDashoffset = "0";
+    }
+    if (donutNonfundedCircle) {
+      donutNonfundedCircle.style.strokeDasharray = `${nonfundedLen} ${DONUT_CIRCUMFERENCE}`;
+      donutNonfundedCircle.style.strokeDashoffset = `${-fundedLen}`;
+    }
+
+    if (donutTotalEl) donutTotalEl.textContent = entries.length;
+    if (legendFundedEl) legendFundedEl.textContent = fundedCount;
+    if (legendNonfundedEl) legendNonfundedEl.textContent = nonfundedCount;
+
+    // Average overall rating, across every entry with a numeric rating.
+    const ratings = entries
+      .map((e) => parseFloat(e.rating))
+      .filter((v) => !Number.isNaN(v));
+    const avg = ratings.length
+      ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+      : null;
+
+    if (avgRatingEl)
+      avgRatingEl.textContent = avg === null ? "—" : avg.toFixed(2);
+    if (avgDescEl) {
+      if (avg === null) {
+        avgDescEl.textContent = "No data yet";
+        avgDescEl.className = "irc5-badge-pill";
+      } else {
+        const desc = computeDescVal(avg);
+        avgDescEl.textContent = desc || "—";
+        avgDescEl.className = `irc5-badge-pill ${descValClass(desc)}`;
+      }
+    }
+  }
+
   function escapeHtml(str) {
     const div = document.createElement("div");
     div.textContent = str == null ? "" : str;
@@ -553,6 +651,9 @@
   // Table rendering
   // ------------------------------------------------------------------
   function renderTable() {
+    renderDashboard();
+    renderDistribution();
+
     tableBody.innerHTML = "";
 
     if (entries.length === 0) {

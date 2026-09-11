@@ -7,55 +7,91 @@ block content %}
 />
 
 <section id="irc6-tab" class="tab-panel irc6-panel">
+  <!-- ================= 1. PAGE HEADER ================= -->
   <div class="irc6-header">
-    <div class="irc6-header-text">
-      <h2>IRC6 &mdash; Monitoring &amp; Evaluation Plan</h2>
-      <p class="irc6-subtitle">
-        Supply the needed data for your
-        <strong>Monitoring &amp; Evaluation (M&amp;E) Plan</strong>.
-      </p>
-    </div>
-    <div class="irc6-header-actions">
-      <button type="button" id="irc6-reset-btn" class="irc6-reset-btn">
-        <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
-      </button>
-      <button type="button" id="irc6-add-btn" class="irc6-add-btn">
-        <span class="irc6-add-icon">+</span> Add Output
-      </button>
+    <div class="irc6-header-top">
+      <div class="irc6-header-title-main">
+        <span class="irc6-header-badge">
+          <span class="irc6-header-badge-group">IRC</span>
+          <span class="irc6-header-badge-page">6</span>
+        </span>
+        <div class="irc6-header-divider"></div>
+        <div>
+          <h2>Monitoring &amp; Evaluation Plan</h2>
+          <p class="irc6-subtitle">
+            Supply the needed data for your Monitoring &amp; Evaluation
+            (M&amp;E) Plan.
+          </p>
+        </div>
+      </div>
+      <div class="irc6-header-actions">
+        <button type="button" id="irc6-reset-btn" class="irc6-reset-btn">
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- ================= MAIN TABLE ================= -->
-  <div class="irc6-table-wrapper">
-    <table id="irc6-table" class="irc6-table">
-      <thead>
-        <tr>
-          <th class="irc6-col-no" rowspan="2">No.</th>
-          <th class="irc6-col-title" rowspan="2">Project Title: S.G.O.D</th>
-          <th class="irc6-col-objectives" rowspan="2">Objectives</th>
-          <th class="irc6-col-indicators" rowspan="2">Indicators</th>
-          <th class="irc6-col-definition" rowspan="2">Definition</th>
-          <th class="irc6-group-th" colspan="3">Data Collection</th>
-          <th class="irc6-group-th" colspan="3">Data Analysis</th>
-          <th class="irc6-col-users" rowspan="2">Users of M&amp;E Results</th>
-          <th class="irc6-group-th" colspan="2">Reporting</th>
-          <th class="irc6-col-actions" rowspan="2">Actions</th>
-        </tr>
-        <tr>
-          <th class="irc6-col-sub">Source/Methods</th>
-          <th class="irc6-col-sub">Person Responsible</th>
-          <th class="irc6-col-sub">Frequency/Schedule</th>
-          <th class="irc6-col-sub">Data Used</th>
-          <th class="irc6-col-sub">Person Responsible</th>
-          <th class="irc6-col-sub">Frequency</th>
-          <th class="irc6-col-sub">Communication Strategies</th>
-          <th class="irc6-col-sub">Frequency/Schedule</th>
-        </tr>
-      </thead>
-      <tbody id="irc6-table-body">
-        <!-- rows injected by irc6.js -->
-      </tbody>
-    </table>
+  <!-- ================= GUIDED FLOW: Output Entries ================= -->
+  <div class="irc6-flow">
+    <div class="irc6-flow-rail" aria-hidden="true">
+      <span class="irc6-flow-badge">1</span>
+    </div>
+
+    <!-- 1. M&E ENTRIES (DATA TABLE) -->
+    <div class="irc6-flow-section irc6-flow-section-1">
+      <p class="irc6-flow-label">Output entries</p>
+      <div class="irc6-table-card">
+        <div class="irc6-dark-header irc6-dark-header-with-action">
+          <div class="irc6-dark-header-text">
+            <h3>Monitoring &amp; Evaluation Entries</h3>
+            <p class="irc6-subtitle irc6-subtitle-dark">
+              Goal, Outcome, and every Output with its M&amp;E plan details.
+            </p>
+          </div>
+          <button type="button" id="irc6-add-btn" class="irc6-add-btn">
+            <span class="irc6-add-icon">+</span> Add Output
+          </button>
+        </div>
+
+        <div class="irc6-table-wrapper">
+          <table id="irc6-table" class="irc6-table">
+            <thead>
+              <tr>
+                <th class="irc6-col-no" rowspan="2">No.</th>
+                <th class="irc6-col-title" rowspan="2">
+                  Project Title: S.G.O.D
+                </th>
+                <th class="irc6-col-objectives" rowspan="2">Objectives</th>
+                <th class="irc6-col-indicators" rowspan="2">Indicators</th>
+                <th class="irc6-col-definition" rowspan="2">Definition</th>
+                <th class="irc6-group-th" colspan="3">Data Collection</th>
+                <th class="irc6-group-th" colspan="3">Data Analysis</th>
+                <th class="irc6-col-users" rowspan="2">
+                  Users of M&amp;E Results
+                </th>
+                <th class="irc6-group-th" colspan="2">Reporting</th>
+                <th class="irc6-col-actions" rowspan="2">Actions</th>
+              </tr>
+              <tr>
+                <th class="irc6-col-sub">Source/Methods</th>
+                <th class="irc6-col-sub">Person Responsible</th>
+                <th class="irc6-col-sub">Frequency/Schedule</th>
+                <th class="irc6-col-sub">Data Used</th>
+                <th class="irc6-col-sub">Person Responsible</th>
+                <th class="irc6-col-sub">Frequency</th>
+                <th class="irc6-col-sub">Communication Strategies</th>
+                <th class="irc6-col-sub">Frequency/Schedule</th>
+              </tr>
+            </thead>
+            <tbody id="irc6-table-body">
+              <!-- rows injected by irc6.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- /.irc6-flow -->
   </div>
 </section>
 
