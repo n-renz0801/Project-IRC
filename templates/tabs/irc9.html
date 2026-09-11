@@ -7,58 +7,85 @@ block content %}
 />
 
 <section id="irc9-tab" class="tab-panel irc9-panel">
+  <!-- ================= 1. PAGE HEADER ================= -->
   <div class="irc9-header">
-    <div class="irc9-header-text">
-      <h2>IRC9 &mdash; Performance Monitoring &amp; Coaching Form (PMCF)</h2>
-    </div>
-    <div class="irc9-header-actions">
-      <input
-        type="file"
-        id="irc9-file-input"
-        accept=".pdf"
-        style="display: none"
-      />
-      <button type="button" id="irc9-reset-btn" class="irc9-reset-btn">
-        <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
-      </button>
-      <button type="button" id="irc9-import-btn" class="irc9-import-btn">
-        <i class="ti ti-file-upload"></i> Import from PDF
-      </button>
-      <button type="button" id="irc9-add-btn" class="irc9-add-btn">
-        <span class="irc9-add-icon">+</span> Add Entry
-      </button>
+    <div class="irc9-header-top">
+      <div class="irc9-header-title-main">
+        <span class="irc9-header-badge">
+          <span class="irc9-header-badge-group">IRC</span>
+          <span class="irc9-header-badge-page">9</span>
+        </span>
+        <div class="irc9-header-divider"></div>
+        <div>
+          <h2>Performance Monitoring &amp; Coaching Form</h2>
+          <p class="irc9-subtitle">
+            Log critical incidents, outputs, and action plans observed
+            throughout the year.
+          </p>
+        </div>
+      </div>
+      <div class="irc9-header-actions">
+        <button type="button" id="irc9-reset-btn" class="irc9-reset-btn">
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- ================= MAIN TABLE ================= -->
-  <div class="irc9-table-wrapper">
-    <table id="irc9-table" class="irc9-table">
-      <thead>
-        <tr>
-          <th class="irc9-col-date">Date</th>
-          <th class="irc9-col-incident">
-            Critical Incidence Description
-            <span class="irc9-col-subtext"
-              >Actual events and behaviors reinforcing and hindering performance
-              which are observed</span
-            >
-          </th>
-          <th class="irc9-col-output">Output</th>
-          <th class="irc9-col-impact">Impact on Job / Action Plan</th>
-          <th class="irc9-col-actions">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="irc9-table-body">
-        <!-- rows injected by irc9.js -->
-      </tbody>
-    </table>
-
-    <div id="irc9-empty-state" class="irc9-empty-state">
-      <p>
-        No entries yet. Click <strong>“+ Add Entry”</strong> to log your first
-        critical incident, or import one from a PMCF PDF.
-      </p>
+  <!-- ================= GUIDED FLOW ================= -->
+  <div class="irc9-flow">
+    <div class="irc9-flow-rail" aria-hidden="true">
+      <span class="irc9-flow-badge">1</span>
     </div>
+
+    <!-- MAIN TABLE -->
+    <div class="irc9-flow-section irc9-flow-section-1">
+      <p class="irc9-flow-label">Critical incident log</p>
+      <div class="irc9-table-card">
+        <div class="irc9-table-card-header irc9-dark-header">
+          <div class="irc9-table-card-header-text">
+            <h3>Logged Entries</h3>
+            <p class="irc9-subtitle irc9-subtitle-dark">
+              Actual events and behaviors reinforcing and hindering performance
+              which are observed.
+            </p>
+          </div>
+          <div class="irc9-table-card-actions">
+            <input
+              type="file"
+              id="irc9-file-input"
+              accept=".pdf"
+              style="display: none"
+            />
+            <button type="button" id="irc9-import-btn" class="irc9-import-btn">
+              <i class="ti ti-file-upload"></i> Import from PDF
+            </button>
+            <button type="button" id="irc9-add-btn" class="irc9-add-btn">
+              <span class="irc9-add-icon">+</span> Add Entry
+            </button>
+          </div>
+        </div>
+        <div class="irc9-table-wrapper">
+          <table id="irc9-table" class="irc9-table">
+            <thead>
+              <tr>
+                <th class="irc9-col-date">Date</th>
+                <th class="irc9-col-incident">
+                  Critical Incidence Description
+                </th>
+                <th class="irc9-col-output">Output</th>
+                <th class="irc9-col-impact">Impact on Job / Action Plan</th>
+                <th class="irc9-col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="irc9-table-body">
+              <!-- rows injected by irc9.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- /.irc9-flow -->
   </div>
 </section>
 
