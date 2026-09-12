@@ -227,6 +227,23 @@
     els.taReceiverField = document.getElementById("irc4TaReceiverField");
     els.movsField = document.getElementById("irc4MovsField");
 
+    els.activityActionBtn = document.getElementById("irc4ActivityActionBtn");
+    els.taReceiverActionBtn = document.getElementById(
+      "irc4TaReceiverActionBtn",
+    );
+    els.movsActionBtn = document.getElementById("irc4MovsActionBtn");
+
+    // Generic Add/Edit modal shared by Activity, TA Receiver, and MOV's.
+    els.fieldModal = document.getElementById("irc4FieldModal");
+    els.fieldModalOverlay = document.getElementById("irc4FieldModalOverlay");
+    els.fieldModalTitle = document.getElementById("irc4FieldModalTitle");
+    els.fieldModalClose = document.getElementById("irc4FieldModalClose");
+    els.fieldModalLabel = document.getElementById("irc4FieldModalLabel");
+    els.fieldModalInput = document.getElementById("irc4FieldModalInput");
+    els.fieldModalDelete = document.getElementById("irc4FieldModalDelete");
+    els.fieldModalCancel = document.getElementById("irc4FieldModalCancel");
+    els.fieldModalSave = document.getElementById("irc4FieldModalSave");
+
     els.objectivesList = document.getElementById("irc4ObjectivesList");
     els.addObjectiveBtn = document.getElementById("irc4AddObjectiveBtn");
     els.objectivesWarning = document.getElementById("irc4ObjectivesWarning");
@@ -375,6 +392,43 @@
     });
 
     return { refreshView, enterEdit, exitEdit, setValue };
+  }
+
+  // ============================================================
+  // Read-only display field (Activity, TA Receiver, MOV's)
+  //
+  // These three no longer edit inline: the field just shows the current
+  // text (or its placeholder). All changes happen through the header
+  // action button, which opens the shared Add/Edit modal below.
+  // ============================================================
+
+  function initDisplayField(fieldEl, initialValue) {
+    const textEl = fieldEl.querySelector('[data-role="text"]');
+    const placeholder = textEl.dataset.placeholder || "";
+    let value = initialValue || "";
+
+    function refreshView() {
+      if (value.trim()) {
+        textEl.textContent = value;
+        textEl.classList.remove("is-placeholder");
+      } else {
+        textEl.textContent = placeholder;
+        textEl.classList.add("is-placeholder");
+      }
+    }
+
+    function setValue(val) {
+      value = val || "";
+      refreshView();
+    }
+
+    function getValue() {
+      return value;
+    }
+
+    refreshView();
+
+    return { getValue, setValue };
   }
 
   // ============================================================
@@ -1028,6 +1082,99 @@
   }
 
   // ============================================================
+  // Add/Edit single-field modal — shared by Activity, TA Receiver, and
+  // MOV's. Each has a header action button that reads "Add" when the
+  // field is empty and "Edit" once it holds a value; either way it opens
+  // this same modal, pre-filled with whatever's already there.
+  // ============================================================
+
+  const FIELD_MODAL_CONFIG = {
+    activity: {
+      title: "Activity",
+      label: "Specify the activity and project title",
+      apiKey: "activityFieldApi",
+      btnKey: "activityActionBtn",
+      saveField: "activity",
+    },
+    taReceiver: {
+      title: "TA Receiver",
+      label: "Identify the individuals who will be provided with TA",
+      apiKey: "taReceiverFieldApi",
+      btnKey: "taReceiverActionBtn",
+      saveField: "taReceiver",
+    },
+    movs: {
+      title: "MOV\u2019s",
+      label: "List down the evidences",
+      apiKey: "movsFieldApi",
+      btnKey: "movsActionBtn",
+      saveField: "movs",
+    },
+  };
+
+  // Which field the modal is currently open for, so Apply/Delete know
+  // where to write back to. Null while the modal is closed.
+  let fieldModalKey = null;
+
+  // Keeps a header action button's label in sync with whether its field
+  // currently holds a value ("Add" when blank, "Edit" once filled).
+  function updateFieldActionLabel(key) {
+    const config = FIELD_MODAL_CONFIG[key];
+    const btn = els[config.btnKey];
+    if (!btn) return;
+    const label = btn.querySelector('[data-role="action-label"]');
+    const api = els[config.apiKey];
+    const hasValue = !!(api && api.getValue().trim());
+    if (label) label.textContent = hasValue ? "Edit" : "Add";
+  }
+
+  function openFieldModal(key) {
+    const config = FIELD_MODAL_CONFIG[key];
+    if (!config) return;
+    fieldModalKey = key;
+
+    const api = els[config.apiKey];
+    const currentValue = api ? api.getValue() : "";
+
+    els.fieldModalTitle.textContent = config.title;
+    els.fieldModalLabel.textContent = config.label;
+    els.fieldModalInput.value = currentValue;
+    // Nothing to delete yet if the field is already empty.
+    els.fieldModalDelete.hidden = !currentValue.trim();
+
+    els.fieldModal.style.display = "flex";
+    els.fieldModalInput.focus();
+  }
+
+  function closeFieldModal() {
+    els.fieldModal.style.display = "none";
+    fieldModalKey = null;
+  }
+
+  function applyFieldModal() {
+    if (!fieldModalKey) return;
+    const config = FIELD_MODAL_CONFIG[fieldModalKey];
+    const val = els.fieldModalInput.value;
+
+    data[config.saveField] = val;
+    if (els[config.apiKey]) els[config.apiKey].setValue(val);
+    savePlanField(config.saveField, val);
+    updateFieldActionLabel(fieldModalKey);
+    closeFieldModal();
+  }
+
+  function deleteFieldModal() {
+    if (!fieldModalKey) return;
+    const config = FIELD_MODAL_CONFIG[fieldModalKey];
+
+    data[config.saveField] = "";
+    if (els[config.apiKey]) els[config.apiKey].setValue("");
+    savePlanField(config.saveField, "");
+    updateFieldActionLabel(fieldModalKey);
+    closeFieldModal();
+  }
+
+  // ============================================================
   // Reset — wipes the entire plan (Activity, Objectives, Groups, TA
   // Receiver, MOV's) back to a blank slate, after the person confirms in
   // irc4ResetModal. Built entirely out of the same per-field/per-item
@@ -1054,6 +1201,9 @@
     if (els.activityFieldApi) els.activityFieldApi.setValue("");
     if (els.taReceiverFieldApi) els.taReceiverFieldApi.setValue("");
     if (els.movsFieldApi) els.movsFieldApi.setValue("");
+    updateFieldActionLabel("activity");
+    updateFieldActionLabel("taReceiver");
+    updateFieldActionLabel("movs");
     savePlanField("activity", "");
     savePlanField("taReceiver", "");
     savePlanField("movs", "");
@@ -1110,16 +1260,6 @@
   // Init
   // ============================================================
 
-  const debouncedSaveActivity = debounce(
-    (val) => savePlanField("activity", val),
-    500,
-  );
-  const debouncedSaveTaReceiver = debounce(
-    (val) => savePlanField("taReceiver", val),
-    500,
-  );
-  const debouncedSaveMovs = debounce((val) => savePlanField("movs", val), 500);
-
   async function init() {
     cacheEls();
     if (!els.root) return; // not on this page
@@ -1130,27 +1270,33 @@
     await loadPlan();
 
     // Field APIs are kept around (not just fired-and-forgotten) so
-    // resetPlan() can blank them out from the outside later.
-    els.activityFieldApi = initEditableField(
-      els.activityField,
-      data.activity,
-      (val) => {
-        data.activity = val;
-        debouncedSaveActivity(val);
-      },
-    );
-    els.taReceiverFieldApi = initEditableField(
+    // resetPlan() and the field modal can update them from the outside.
+    els.activityFieldApi = initDisplayField(els.activityField, data.activity);
+    els.taReceiverFieldApi = initDisplayField(
       els.taReceiverField,
       data.taReceiver,
-      (val) => {
-        data.taReceiver = val;
-        debouncedSaveTaReceiver(val);
-      },
     );
-    els.movsFieldApi = initEditableField(els.movsField, data.movs, (val) => {
-      data.movs = val;
-      debouncedSaveMovs(val);
-    });
+    els.movsFieldApi = initDisplayField(els.movsField, data.movs);
+
+    // Header buttons read "Add" or "Edit" depending on whether the plan
+    // already has a saved value for that field.
+    updateFieldActionLabel("activity");
+    updateFieldActionLabel("taReceiver");
+    updateFieldActionLabel("movs");
+
+    els.activityActionBtn.addEventListener("click", () =>
+      openFieldModal("activity"),
+    );
+    els.taReceiverActionBtn.addEventListener("click", () =>
+      openFieldModal("taReceiver"),
+    );
+    els.movsActionBtn.addEventListener("click", () => openFieldModal("movs"));
+
+    els.fieldModalClose.addEventListener("click", closeFieldModal);
+    els.fieldModalCancel.addEventListener("click", closeFieldModal);
+    els.fieldModalOverlay.addEventListener("click", closeFieldModal);
+    els.fieldModalSave.addEventListener("click", applyFieldModal);
+    els.fieldModalDelete.addEventListener("click", deleteFieldModal);
 
     els.addObjectiveBtn.addEventListener("click", addObjective);
     els.objectivesList.addEventListener("click", onObjectivesClick);
