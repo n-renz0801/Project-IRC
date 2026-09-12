@@ -1,24 +1,77 @@
 /* IRC8D - Summary of Ratings for Discussion (read-only, mirrors IRC8a) */
 
-.irc8d-panel {
-  padding: 24px 0;
-}
-
 .irc8d-header {
   margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1.5px solid #e0e0e0;
+}
+
+.irc8d-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Title block: badge + divider + title/subtitle, mirroring IRC1a's
+   .irc1a-header-title-main. */
+.irc8d-header-title-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.irc8d-header-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  padding: 0 16px;
+  flex-shrink: 0;
+  background: var(--navy-deep, #001550);
+  border-radius: 10px;
+  box-sizing: border-box;
+  line-height: 1.1;
+}
+
+.irc8d-header-badge-group {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.irc8d-header-badge-page {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.irc8d-header-divider {
+  width: 4px;
+  height: 54px;
+  background: var(--navy-deep, #001550);
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .irc8d-header h2 {
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 600;
-  margin: 0 0 6px 0;
-  color: #1a1a1a;
+  /* Decreased title/subtitle gap -- was 8px. */
+  margin: 0 0 2px 0;
+  color: var(--navy-deep, #001550);
+  text-transform: uppercase;
 }
 
 .irc8d-subtitle {
   margin: 0;
   font-size: 13px;
   color: #8695a8;
+  line-height: 1.4;
 }
 
 /* ---------- MFO banner (same treatment as IRC8a's, minus Add KRA) ---------- */
@@ -419,6 +472,27 @@
 }
 
 @media (max-width: 640px) {
+  .irc8d-header h2 {
+    font-size: 21px;
+  }
+
+  .irc8d-header-badge {
+    height: 44px;
+    padding: 0 12px;
+  }
+
+  .irc8d-header-badge-group {
+    font-size: 9px;
+  }
+
+  .irc8d-header-badge-page {
+    font-size: 15px;
+  }
+
+  .irc8d-header-divider {
+    height: 44px;
+  }
+
   .irc8d-kra-card-header {
     flex-wrap: wrap;
   }

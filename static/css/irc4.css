@@ -15,10 +15,6 @@
   --irc4-secondary-tint: rgba(4, 120, 87, 0.1);
 }
 
-.irc4-panel {
-  padding: 16px 0 40px;
-}
-
 /* Default rule: every clickable button anywhere in this panel (Edit,
    Delete, Add, Remove, suggestion items, modal actions, etc.) shows a
    pointer cursor on hover. Individual buttons can still override this if
@@ -32,39 +28,100 @@
 }
 
 .irc4-header {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1.5px solid #e0e0e0;
+}
+
+.irc4-header-top {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Title block: badge + divider + title/subtitle, matching IRC1a's
+   .irc1a-header-title-main. */
+.irc4-header-title-main {
+  display: flex;
+  align-items: center;
   gap: 16px;
 }
 
-.irc4-header h2 {
-  font-size: 22px;
+.irc4-header-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  padding: 0 16px;
+  flex-shrink: 0;
+  background: var(--navy-deep, #001550);
+  border-radius: 10px;
+  box-sizing: border-box;
+  line-height: 1.1;
+}
+
+.irc4-header-badge-group {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 10.5px;
   font-weight: 600;
-  margin: 0 0 4px 0;
-  color: #1a1a1a;
+  letter-spacing: 0.14em;
+}
+
+.irc4-header-badge-page {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.irc4-header-divider {
+  width: 4px;
+  height: 54px;
+  background: var(--navy-deep, #001550);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.irc4-header h2 {
+  font-size: 32px;
+  font-weight: 600;
+  /* Tightened from 4px so the title sits closer to its subtitle. */
+  margin: 0 0 2px 0;
+  color: var(--navy-deep, #001550);
+  text-transform: uppercase;
 }
 
 .irc4-subtitle {
-  font-size: 13px;
+  font-size: 14px;
   color: #666;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
+.irc4-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Reset button — sized down to match IRC1a's compact header actions
+   (was 10px/18px padding, 14px/15px font/icon). */
 .irc4-reset-btn {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
   flex: 0 0 auto;
   appearance: none;
   background: #fff;
   border: 1.5px solid #f3b4b4;
   color: #dc2626;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -74,7 +131,7 @@
 }
 
 .irc4-reset-btn i {
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .irc4-reset-btn:hover {
@@ -82,41 +139,102 @@
   border-color: #dc2626;
 }
 
-/* ---- overall page layout (Option C: zoned) -------------------------------
-   Activity + Objectives sit as compact cards up top, the School/Schedule
-   groups get a visually distinct, roomier highlighted zone as the
-   centerpiece, then TA Receiver + MOV's close the form as a side-by-side
-   pair. ---------------------------------------------------------------- */
+/* ---- overall page layout: guided flow ------------------------------------
+   Same numbered-rail pattern as IRC1a: a 1-2-3 rail ties three stacked
+   sections together top-to-bottom. The School/Schedule groups (the plan's
+   centerpiece) come first as the "dashboard" section, then Activity +
+   Objectives, then TA Receiver + MOV's — each later pair laid out as a
+   side-by-side cards row. ---------------------------------------------- */
 
-.irc4-layout {
+.irc4-flow {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto auto auto;
+  column-gap: 20px;
+  row-gap: 1.25rem;
+}
+
+.irc4-flow-rail {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  display: grid;
+  grid-template-rows: subgrid;
+  position: relative;
+}
+
+.irc4-flow-rail::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  background: var(--border-strong, #d0d5dd);
+  transform: translateX(-50%);
+}
+
+.irc4-flow-badge {
+  align-self: start;
+  justify-self: center;
+  margin-top: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1f2937;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.irc4-flow-section-1,
+.irc4-flow-section-2,
+.irc4-flow-section-3 {
+  grid-column: 2;
+  /* Keeps this column a well-behaved shrinking track at every screen
+     size — see the identical note on IRC1a's .irc1a-flow-section-*. */
+  min-width: 0;
+}
+
+.irc4-flow-section-1 {
+  grid-row: 1;
+}
+
+.irc4-flow-section-2 {
+  grid-row: 2;
+}
+
+.irc4-flow-section-3 {
+  grid-row: 3;
+}
+
+.irc4-flow-label {
+  margin: 20px 0 10px 2px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+
+/* Side-by-side card pairs (Activity+Objectives, Receiver+MOV's). */
+.irc4-cards-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-.irc4-card--activity,
-.irc4-card--objectives {
-  grid-column: span 1;
-}
-
-.irc4-zone--groups {
-  grid-column: 1 / -1;
-}
-
-.irc4-card--receiver,
-.irc4-card--movs {
-  grid-column: span 1;
+  gap: 1.25rem;
 }
 
 @media (max-width: 780px) {
-  .irc4-layout {
+  .irc4-cards-row {
     grid-template-columns: 1fr;
-  }
-  .irc4-card--activity,
-  .irc4-card--objectives,
-  .irc4-card--receiver,
-  .irc4-card--movs {
-    grid-column: 1 / -1;
   }
 }
 
@@ -126,29 +244,90 @@
   background: white;
   border: 1px solid var(--irc4-border);
   border-radius: 12px;
+  overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  padding: 16px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
-/* Section labels bumped up in size/weight so each numbered section reads
-   as a clear heading rather than a small form label. */
-.irc4-label {
+/* Shared dark header band — every numbered section title (card or zone)
+   uses this same gradient band, matching IRC1a's .irc1a-dark-header.
+   Laid out as a row so each section's action button always sits at the
+   far right of its header. */
+.irc4-dark-header {
+  background: linear-gradient(160deg, #1f2937 0%, #2d3f57 100%);
+  padding: 16px 20px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.irc4-dark-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.irc4-dark-header h3 {
+  display: block;
   font-size: 16px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 10px;
-  line-height: 1.35;
-  display: block;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: #fff;
 }
 
-.irc4-hint {
-  display: block;
-  font-size: 11.5px;
-  font-weight: 400;
-  color: #888;
-  margin-top: 2px;
+.irc4-subtitle-dark {
+  color: #9aa7b8;
+}
+
+.irc4-card-body {
+  padding: 20px;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+/* ---- header action buttons ------------------------------------------------
+   One consistent look for every clickable action that lives inside a dark
+   header: the Activity/TA Receiver/MOV's Add-or-Edit button, Add Objective,
+   and Add Group. Solid white against the dark gradient so it visibly reads
+   as a button (not a ghost/outline), with a lift on hover for feedback. */
+.irc4-header-action-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1.5px solid #fff;
+  color: var(--irc4-accent-dark);
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+}
+
+.irc4-header-action-btn:hover {
+  background: #eef4fb;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.irc4-header-action-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.irc4-header-action-btn .irc4-icon {
+  flex-shrink: 0;
 }
 
 /* ---- icons ------------------------------------------------------------ */
@@ -476,29 +655,6 @@
   color: #991b1b;
 }
 
-.irc4-add-objective-btn {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: white;
-  border: 1px dashed #a8b8d8;
-  color: var(--irc4-accent);
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.irc4-add-objective-btn:hover {
-  background: #eff4f9;
-  border-color: var(--irc4-accent);
-}
-
 .irc4-objectives-warning {
   font-size: 11px;
   color: #92400e;
@@ -511,14 +667,18 @@
    most interactive part of the form. ------------------------------------ */
 
 .irc4-zone--groups {
-  background: var(--irc4-accent-tint);
-  border: 1px solid #cfe0f2;
-  border-radius: 14px;
-  padding: 20px;
+  background: white;
+  border: 1px solid var(--irc4-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
 }
 
-.irc4-label--zone {
-  margin-bottom: 14px;
+/* The zone's own body keeps the accent tint so the groups list still
+   reads as the highlighted centerpiece under its dark header. */
+.irc4-zone--groups > .irc4-card-body {
+  background: var(--irc4-accent-tint);
 }
 
 .irc4-groups-list {
@@ -671,29 +831,6 @@
   content: counter(irc4-group-school-index) ". ";
   font-weight: 700;
   opacity: 0.7;
-}
-
-.irc4-add-group-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: white;
-  border: 1px dashed var(--irc4-accent);
-  color: var(--irc4-accent);
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.irc4-add-group-btn:hover {
-  background: white;
-  border-color: var(--irc4-accent-dark);
-  color: var(--irc4-accent-dark);
 }
 
 /* ---- Add/Edit Group modal -------------------------------------------- */
@@ -1131,6 +1268,27 @@
   border-top: 1px solid var(--irc4-border);
 }
 
+/* Field modal (Activity/TA Receiver/MOV's): Delete sits on its own at the
+   left, Cancel + Apply stay grouped together on the right. */
+.irc4-modal-footer--split {
+  justify-content: space-between;
+}
+
+.irc4-modal-footer-group {
+  display: flex;
+  gap: 8px;
+}
+
+/* Hidden (add-mode, nothing to delete yet) but keeps the footer's
+   space-between layout intact via this empty flex item. */
+.irc4-modal-btn-danger[hidden] {
+  visibility: hidden;
+}
+
+.irc4-field-modal-textarea {
+  min-height: 110px;
+}
+
 .irc4-modal-btn {
   padding: 8px 16px;
   border-radius: 6px;
@@ -1223,13 +1381,42 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .irc4-header {
-    flex-wrap: wrap;
-  }
   .irc4-header h2 {
-    font-size: 20px;
+    font-size: 22px;
   }
-  .irc4-zone--groups {
-    padding: 16px;
+
+  .irc4-header-badge {
+    height: 44px;
+    padding: 0 12px;
+  }
+
+  .irc4-header-badge-group {
+    font-size: 9px;
+  }
+
+  .irc4-header-badge-page {
+    font-size: 15px;
+  }
+
+  .irc4-header-divider {
+    height: 44px;
+  }
+
+  .irc4-header-actions {
+    width: 100%;
+  }
+
+  .irc4-reset-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .irc4-dark-header,
+  .irc4-card-body {
+    padding: 14px 16px;
+  }
+
+  .irc4-dark-header {
+    flex-wrap: wrap;
   }
 }

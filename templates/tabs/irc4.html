@@ -8,47 +8,144 @@ block content %}
 
 <section id="irc4-tab" class="tab-panel irc4-panel">
   <div class="irc4-header">
-    <div class="irc4-header-text">
-      <h2>IRC4 &mdash; Technical Assistance (TA) Catch-up Plan</h2>
-      <p class="irc4-subtitle">
-        Prepare a TA Catch-up Plan based on the results of IRC3.
-      </p>
+    <div class="irc4-header-top">
+      <div class="irc4-header-title-main">
+        <span class="irc4-header-badge">
+          <span class="irc4-header-badge-group">IRC</span>
+          <span class="irc4-header-badge-page">4</span>
+        </span>
+        <div class="irc4-header-divider"></div>
+        <div>
+          <h2>Technical Assistance (TA) Catch-up Plan</h2>
+          <p class="irc4-subtitle">
+            Prepare a TA Catch-up Plan based on the results of IRC3.
+          </p>
+        </div>
+      </div>
+      <div class="irc4-header-actions">
+        <button type="button" class="irc4-reset-btn" id="irc4ResetBtn">
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
+        </button>
+      </div>
     </div>
-    <button type="button" class="irc4-reset-btn" id="irc4ResetBtn">
-      <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
-    </button>
   </div>
 
-  <div class="irc4-layout">
-    <!-- 1. Activity -->
-    <div class="irc4-card irc4-card--activity">
-      <label class="irc4-label"
-        >1. Activity
-        <span class="irc4-hint"
-          >(Specify the activity and project title)</span
-        ></label
-      >
-      <div class="irc4-field" id="irc4ActivityField">
-        <div class="irc4-field-view" data-role="view">
-          <p
-            class="irc4-field-text"
-            data-role="text"
-            data-placeholder="Describe the activity and project title..."
-          >
-            Describe the activity and project title...
-          </p>
-          <textarea
-            class="irc4-textarea"
-            id="irc4Activity"
-            data-role="input"
-            rows="1"
-            hidden
-          ></textarea>
+  <div class="irc4-flow">
+    <div class="irc4-flow-rail" aria-hidden="true">
+      <span class="irc4-flow-badge">1</span>
+      <span class="irc4-flow-badge">2</span>
+      <span class="irc4-flow-badge">3</span>
+    </div>
+
+    <!-- 1. Activity + 2. Objectives -->
+    <div class="irc4-flow-section irc4-flow-section-1">
+      <p class="irc4-flow-label">Plan details</p>
+      <div class="irc4-cards-row">
+        <div class="irc4-card irc4-card--activity">
+          <div class="irc4-dark-header">
+            <div class="irc4-dark-header-text">
+              <h3>1. Activity</h3>
+              <p class="irc4-subtitle irc4-subtitle-dark">
+                Specify the activity and project title
+              </p>
+            </div>
+            <button
+              type="button"
+              class="irc4-header-action-btn"
+              id="irc4ActivityActionBtn"
+            >
+              <svg
+                class="irc4-icon"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                ></path>
+              </svg>
+              <span data-role="action-label">Add</span>
+            </button>
+          </div>
+          <div class="irc4-card-body">
+            <div class="irc4-field" id="irc4ActivityField">
+              <p
+                class="irc4-field-text"
+                data-role="text"
+                data-placeholder="Describe the activity and project title..."
+              >
+                Describe the activity and project title...
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Objectives -->
+        <div class="irc4-card irc4-card--objectives">
+          <div class="irc4-dark-header">
+            <div class="irc4-dark-header-text">
+              <h3>2. Objective/s</h3>
+              <p class="irc4-subtitle irc4-subtitle-dark">
+                List down at least three specific objectives
+              </p>
+            </div>
+            <button
+              type="button"
+              class="irc4-header-action-btn"
+              id="irc4AddObjectiveBtn"
+            >
+              <svg
+                class="irc4-icon"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Add Objective</span>
+            </button>
+          </div>
+          <div class="irc4-card-body">
+            <ol class="irc4-objectives-list" id="irc4ObjectivesList"></ol>
+            <p
+              class="irc4-objectives-warning"
+              id="irc4ObjectivesWarning"
+              hidden
+            >
+              At least three objectives are recommended.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 & 4. School + Schedule of TA — the plan's centerpiece. -->
+    <div class="irc4-flow-section irc4-flow-section-2">
+      <p class="irc4-flow-label">Plan coverage</p>
+      <div class="irc4-zone irc4-zone--groups">
+        <div class="irc4-dark-header">
+          <div class="irc4-dark-header-text">
+            <h3>3. School &amp; 4. Schedule of TA</h3>
+            <p class="irc4-subtitle irc4-subtitle-dark">
+              Add a group, select the schools to be provided with TA, and set
+              their schedule. A school may appear in more than one group.
+            </p>
+          </div>
           <button
             type="button"
-            class="irc4-field-edit-btn"
-            data-role="edit-btn"
-            title="Edit"
+            class="irc4-header-action-btn"
+            id="irc4AddGroupBtn"
           >
             <svg
               class="irc4-icon"
@@ -61,242 +158,113 @@ block content %}
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <path
-                d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-              ></path>
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-          </button>
-          <button
-            type="button"
-            class="irc4-field-save-btn"
-            data-role="save-btn"
-            title="Save"
-            hidden
-          >
-            <svg
-              class="irc4-icon"
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+            <span>Add Group</span>
           </button>
         </div>
+        <div class="irc4-card-body">
+          <div class="irc4-groups-list" id="irc4GroupsList"></div>
+
+          <p class="irc4-groups-empty" id="irc4GroupsEmpty" hidden>
+            No groups yet. Click &ldquo;Add Group&rdquo; above to select schools
+            and set their TA schedule.
+          </p>
+        </div>
       </div>
-    </div>
-
-    <!-- 2. Objectives -->
-    <div class="irc4-card irc4-card--objectives">
-      <label class="irc4-label"
-        >2. Objective/s
-        <span class="irc4-hint"
-          >(List down at least three specific objectives)</span
-        ></label
-      >
-      <ol class="irc4-objectives-list" id="irc4ObjectivesList"></ol>
-      <button
-        type="button"
-        class="irc4-add-objective-btn"
-        id="irc4AddObjectiveBtn"
-      >
-        <svg
-          class="irc4-icon"
-          viewBox="0 0 24 24"
-          width="14"
-          height="14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add Objective
-      </button>
-      <p class="irc4-objectives-warning" id="irc4ObjectivesWarning" hidden>
-        At least three objectives are recommended.
-      </p>
-    </div>
-
-    <!-- 3 & 4. School + Schedule of TA — highlighted centerpiece zone -->
-    <div class="irc4-zone irc4-zone--groups">
-      <label class="irc4-label irc4-label--zone"
-        >3. School &amp; 4. Schedule of TA
-        <span class="irc4-hint"
-          >(Add a group, select the schools to be provided with TA, and set
-          their schedule. A school may appear in more than one group.)</span
-        ></label
-      >
-
-      <div class="irc4-groups-list" id="irc4GroupsList"></div>
-
-      <p class="irc4-groups-empty" id="irc4GroupsEmpty" hidden>
-        No groups yet. Click &ldquo;Add Group&rdquo; to select schools and set
-        their TA schedule.
-      </p>
-
-      <button type="button" class="irc4-add-group-btn" id="irc4AddGroupBtn">
-        <svg
-          class="irc4-icon"
-          viewBox="0 0 24 24"
-          width="14"
-          height="14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add Group
-      </button>
     </div>
 
     <!-- 5 & 6. TA Receiver + MOV's, side by side -->
-    <div class="irc4-card irc4-card--receiver">
-      <label class="irc4-label"
-        >5. TA Receiver
-        <span class="irc4-hint"
-          >(Identify the individuals who will be provided with TA)</span
-        ></label
-      >
-      <div class="irc4-field" id="irc4TaReceiverField">
-        <div class="irc4-field-view" data-role="view">
-          <p
-            class="irc4-field-text"
-            data-role="text"
-            data-placeholder="Names / positions of the TA receivers..."
-          >
-            Names / positions of the TA receivers...
-          </p>
-          <textarea
-            class="irc4-textarea"
-            id="irc4TaReceiver"
-            data-role="input"
-            rows="1"
-            hidden
-          ></textarea>
-          <button
-            type="button"
-            class="irc4-field-edit-btn"
-            data-role="edit-btn"
-            title="Edit"
-          >
-            <svg
-              class="irc4-icon"
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+    <div class="irc4-flow-section irc4-flow-section-3">
+      <p class="irc4-flow-label">Assignment &amp; verification</p>
+      <div class="irc4-cards-row">
+        <div class="irc4-card irc4-card--receiver">
+          <div class="irc4-dark-header">
+            <div class="irc4-dark-header-text">
+              <h3>5. TA Receiver</h3>
+              <p class="irc4-subtitle irc4-subtitle-dark">
+                Identify the individuals who will be provided with TA
+              </p>
+            </div>
+            <button
+              type="button"
+              class="irc4-header-action-btn"
+              id="irc4TaReceiverActionBtn"
             >
-              <path
-                d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-              ></path>
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="irc4-field-save-btn"
-            data-role="save-btn"
-            title="Save"
-            hidden
-          >
-            <svg
-              class="irc4-icon"
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          </button>
+              <svg
+                class="irc4-icon"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                ></path>
+              </svg>
+              <span data-role="action-label">Add</span>
+            </button>
+          </div>
+          <div class="irc4-card-body">
+            <div class="irc4-field" id="irc4TaReceiverField">
+              <p
+                class="irc4-field-text"
+                data-role="text"
+                data-placeholder="Names / positions of the TA receivers..."
+              >
+                Names / positions of the TA receivers...
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="irc4-card irc4-card--movs">
-      <label class="irc4-label"
-        >6. MOV&rsquo;s
-        <span class="irc4-hint">(List down the evidences)</span></label
-      >
-      <div class="irc4-field" id="irc4MovsField">
-        <div class="irc4-field-view" data-role="view">
-          <p
-            class="irc4-field-text"
-            data-role="text"
-            data-placeholder="Means of verification..."
-          >
-            Means of verification...
-          </p>
-          <textarea
-            class="irc4-textarea"
-            id="irc4Movs"
-            data-role="input"
-            rows="1"
-            hidden
-          ></textarea>
-          <button
-            type="button"
-            class="irc4-field-edit-btn"
-            data-role="edit-btn"
-            title="Edit"
-          >
-            <svg
-              class="irc4-icon"
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+        <div class="irc4-card irc4-card--movs">
+          <div class="irc4-dark-header">
+            <div class="irc4-dark-header-text">
+              <h3>6. MOV&rsquo;s</h3>
+              <p class="irc4-subtitle irc4-subtitle-dark">
+                List down the evidences
+              </p>
+            </div>
+            <button
+              type="button"
+              class="irc4-header-action-btn"
+              id="irc4MovsActionBtn"
             >
-              <path
-                d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-              ></path>
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="irc4-field-save-btn"
-            data-role="save-btn"
-            title="Save"
-            hidden
-          >
-            <svg
-              class="irc4-icon"
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          </button>
+              <svg
+                class="irc4-icon"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                ></path>
+              </svg>
+              <span data-role="action-label">Add</span>
+            </button>
+          </div>
+          <div class="irc4-card-body">
+            <div class="irc4-field" id="irc4MovsField">
+              <p
+                class="irc4-field-text"
+                data-role="text"
+                data-placeholder="Means of verification..."
+              >
+                Means of verification...
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -453,6 +421,63 @@ block content %}
       <ul class="irc4-group-view-list" data-role="school-list"></ul>
     </div>
   </template>
+
+  <!-- Add/Edit single-field modal — reused for Activity, TA Receiver, and
+       MOV's. Which field it's editing is tracked in JS (fieldModalKey),
+       not in this markup. -->
+  <div id="irc4FieldModal" class="irc4-modal" style="display: none">
+    <div class="irc4-modal-overlay" id="irc4FieldModalOverlay"></div>
+    <div class="irc4-modal-content">
+      <div class="irc4-modal-header">
+        <h3 id="irc4FieldModalTitle">Activity</h3>
+        <button
+          type="button"
+          class="irc4-modal-close"
+          id="irc4FieldModalClose"
+          aria-label="Close"
+        >
+          &times;
+        </button>
+      </div>
+
+      <div class="irc4-modal-body">
+        <label class="irc4-group-sublabel" id="irc4FieldModalLabel"
+          >Describe the activity and project title</label
+        >
+        <textarea
+          class="irc4-textarea irc4-field-modal-textarea"
+          id="irc4FieldModalInput"
+          rows="5"
+        ></textarea>
+      </div>
+
+      <div class="irc4-modal-footer irc4-modal-footer--split">
+        <button
+          type="button"
+          class="irc4-modal-btn irc4-modal-btn-danger"
+          id="irc4FieldModalDelete"
+        >
+          Delete
+        </button>
+        <div class="irc4-modal-footer-group">
+          <button
+            type="button"
+            class="irc4-modal-btn irc4-modal-btn-cancel"
+            id="irc4FieldModalCancel"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="irc4-modal-btn irc4-modal-btn-save"
+            id="irc4FieldModalSave"
+          >
+            Apply Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Add/Edit Group modal -->
   <div id="irc4GroupModal" class="irc4-modal" style="display: none">
