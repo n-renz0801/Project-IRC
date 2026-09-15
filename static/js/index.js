@@ -198,4 +198,96 @@ document.addEventListener("DOMContentLoaded", function () {
         /* leave the field blank on failure */
       });
   }
+
+  // ---------- Report Signatory: per-page date pickers ----------
+  // One of these renders under each signatory's position on every
+  // IRC1a-IRC9 page (Prepared by / Checked by, plus Approving Authority
+  // on irc8a only -- see the signatory_date() macro in base.html). Unlike
+  // the preparer name/position above, this date is scoped to BOTH the
+  // current tab (read off <body data-active-tab>, set by view_tab() in
+  // app.py) and which signatory block it's in, so irc1a's "Prepared by"
+  // date and irc1b's are saved/fetched independently even though the name
+  // above them is shared. No-op wherever the footer isn't rendered
+  // (Home, IRC8c), since querySelectorAll then just returns nothing.
+  var signatoryDateEls = document.querySelectorAll(".report-signatory-date");
+  var activeTabId = document.body.dataset.activeTab;
+
+  function formatSignatoryDate(isoDate) {
+    // Parsed as local Y/M/D rather than via `new Date(isoDate)` so the
+    // displayed date can't shift a day off in negative-UTC-offset
+    // timezones (new Date("YYYY-MM-DD") parses as UTC midnight).
+    var parts = isoDate.split("-");
+    var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return d.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  if (activeTabId && signatoryDateEls.length) {
+    signatoryDateEls.forEach(function (wrap) {
+      var role = wrap.dataset.signatoryRole;
+      var btn = wrap.querySelector(".report-signatory-date-btn");
+      var text = wrap.querySelector(".report-signatory-date-text");
+      var input = wrap.querySelector(".report-signatory-date-input");
+      if (!role || !btn || !text || !input) return;
+
+      var endpoint = "/api/signatory-date/" + activeTabId + "/" + role;
+
+      function applyDate(isoDate) {
+        if (isoDate) {
+          input.value = isoDate;
+          text.textContent = formatSignatoryDate(isoDate);
+          btn.classList.add("has-date");
+        } else {
+          input.value = "";
+          text.textContent = "Set date";
+          btn.classList.remove("has-date");
+        }
+      }
+
+      // Load whatever's already saved for this tab/role.
+      fetch(endpoint)
+        .then(function (res) {
+          return res.json();
+        })
+        .then(function (data) {
+          applyDate(data.date || null);
+        })
+        .catch(function () {
+          /* leave it at "Set date" on failure */
+        });
+
+      // Clicking the visible button opens the real input's native
+      // calendar pop-up. showPicker() (Chrome/Edge) is preferred since it
+      // works reliably on a non-visible input; older/other browsers fall
+      // back to focusing + clicking the input directly.
+      btn.addEventListener("click", function () {
+        if (typeof input.showPicker === "function") {
+          try {
+            input.showPicker();
+            return;
+          } catch (err) {
+            /* fall through to the focus/click fallback below */
+          }
+        }
+        input.focus();
+        input.click();
+      });
+
+      // Saves as soon as a date is picked -- no separate Save step.
+      input.addEventListener("change", function () {
+        var isoDate = input.value || null;
+        applyDate(isoDate);
+        fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: isoDate }),
+        }).catch(() => {
+          /* Best-effort, same convention as the preparer autosave above. */
+        });
+      });
+    });
+  }
 });

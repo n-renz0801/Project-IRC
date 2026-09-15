@@ -136,6 +136,41 @@
   border-color: #185fa5;
 }
 
+/* Save to PDF button */
+.irc1a-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc1a-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc1a-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc1a-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Reset button */
 .irc1a-reset-btn {
   display: flex;
@@ -751,6 +786,57 @@
 
 .irc1a-insight-header {
   flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.irc1a-insight-header-text {
+  min-width: 0;
+}
+
+/* "Add" button inside an insight card's dark header -- same solid-white-
+   pill-against-the-gradient look and hover/active feedback as irc4's
+   .irc4-header-action-btn, just under irc1a's own class naming
+   convention (see #irc1aAddPositiveBtn / #irc1aAddOfiBtn in irc1a.html,
+   and addRemark() in irc1a.js). */
+.irc1a-header-action-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1.5px solid #fff;
+  color: #1f2937;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+}
+
+.irc1a-header-action-btn:hover {
+  background: #eef4fb;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.irc1a-header-action-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.irc1a-header-action-btn .irc1a-icon {
+  flex-shrink: 0;
+  display: block;
 }
 
 .irc1a-insight-card .irc1a-card-body {
@@ -759,6 +845,27 @@
 
 .irc1a-insight-card .irc1a-subtitle {
   margin-bottom: 0;
+}
+
+/* Positive Aspects / OFI entry -- plain, non-interactive text (no
+   outline, no box, no click affordance). Adding, editing, and deleting
+   all happen through the Add/Edit Remark modal via the header action
+   button above (see #irc1a-remark-modal-overlay), never on the page
+   itself -- mirrors irc4's read-only .irc4-field-text for its
+   single-value fields (Activity/TA Receiver/MOV's). */
+.irc1a-remark-field-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: default;
+}
+
+.irc1a-remark-field-text.is-placeholder {
+  color: #9aa0ab;
+  font-style: italic;
 }
 
 .irc1a-remarks-textarea {
@@ -797,6 +904,98 @@
 
 .irc1a-remarks-textarea::placeholder {
   color: #aaa;
+}
+
+/* ------------------------------------------------------------------
+   Add/Edit Remark modal (Positive Aspects / OFI)
+   Reuses the shared .irc1a-confirm-overlay/.irc1a-confirm-box shell
+   (see "Shared modal look" above) but needs a left-aligned header +
+   footer instead of that shell's centered title/paragraph/actions, so
+   those pieces are overridden here -- same header/body/footer split as
+   irc4's single-field modal (.irc4-modal-header/-body/-footer--split).
+------------------------------------------------------------------ */
+
+.irc1a-remark-modal-box {
+  max-width: 460px;
+  text-align: left;
+}
+
+.irc1a-remark-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.irc1a-remark-modal-header h4 {
+  margin: 0;
+}
+
+.irc1a-remark-modal-close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #999;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.irc1a-remark-modal-close:hover {
+  background: #f2f2f2;
+  color: #333;
+}
+
+.irc1a-remark-modal-textarea {
+  min-height: 120px;
+  margin-bottom: 20px;
+}
+
+.irc1a-remark-modal-actions {
+  justify-content: space-between;
+}
+
+.irc1a-remark-modal-actions-right {
+  display: flex;
+  gap: 10px;
+}
+
+/* Hidden in add-mode (nothing to delete yet), but keeps the footer's
+   space-between layout intact via this empty flex item. The ID
+   selector's specificity beats the browser's built-in [hidden]{display:
+   none} rule, so toggling the `hidden` attribute in irc1a.js only ever
+   affects visibility here, never display -- the same specificity-tie
+   fix irc4.css uses for its own [hidden]-toggled buttons/panels. */
+#irc1a-remark-modal-delete {
+  display: inline-flex;
+  align-items: center;
+}
+
+#irc1a-remark-modal-delete[hidden] {
+  visibility: hidden;
+}
+
+.irc1a-btn-primary {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #1f2937;
+  color: #fff;
+}
+
+.irc1a-btn-primary:hover {
+  background: #111827;
+}
+
+.irc1a-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ------------------------------------------------------------------
@@ -1224,6 +1423,7 @@
   }
 
   .irc1a-legend-btn,
+  .irc1a-pdf-btn,
   .irc1a-reset-btn {
     flex: 1;
     justify-content: center;
@@ -1246,5 +1446,433 @@
 
   .irc1a-badge-card {
     padding: 18px 16px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   5. Print / Save-to-PDF
+   Triggered by #irc1a-pdf-btn -> window.print() (see irc1a.js). Only
+   ever active on this page since irc1a.css is only loaded here, so
+   these rules can safely target the shared <header>/<nav> from
+   base.html without leaking into other tabs.
+------------------------------------------------------------------ */
+
+@media print {
+  /* "Long" bond paper, as requested -- 8.5in x 13in. */
+  @page {
+    size: 8.5in 13in;
+    margin: 0.5in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height. Printing engines
+     honor that overflow/height the same way screens do, which would
+     clip everything past one viewport-tall "page" of .content --
+     so it all has to be forced back to natural, unclipped flow here. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Logo bar + navbar (base.html) and this page's own header action
+     buttons (Legend / Save to PDF / Reset / the insight cards' Add
+     buttons) -- none of these belong in a printed report. */
+  header,
+  nav,
+  .irc1a-header-actions,
+  .irc1a-header-action-btn {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: these are only ever visible via a
+     ".visible" class toggle and default to display:none already, but
+     force them off in case a print is triggered while one is open. */
+  #irc1a-legend-overlay,
+  #irc1a-reset-confirm-overlay {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* Horizontally-scrolling table + vertically-clipped remarks boxes
+     both need to render in full instead of scrolling. */
+  .irc1a-table-wrapper {
+    overflow: visible !important;
+  }
+
+  .irc1a-remarks-textarea {
+    overflow: visible !important;
+  }
+
+  .scroll-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Scrollbars never belong in a printed/PDF page. Most browsers omit
+     them for print automatically, but this removes any doubt. */
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default
+     unless told otherwise, which is why the dark analytics headers,
+     the colored rating-description pills, and the trend chart's
+     accent colors were all coming out flat/white. This forces every
+     background to print as it looks on screen. "Background graphics"
+     still needs to be left ON in the print dialog -- this can't
+     override that toggle, only make sure nothing here fights it. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Scale down: everything below is sized for a 1600px+ screen, so
+     printed at full size onto a 8.5in-wide sheet it runs oversized
+     and can spill past the page edge. These trim fonts/paddings down
+     to a print-appropriate scale, independent of the on-screen
+     responsive breakpoints (which key off the print viewport width
+     and can't be relied on to land consistently across browsers).
+  --------------------------------------------------------------- */
+
+  .irc1a-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .irc1a-header-badge {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .irc1a-header-badge-group {
+    font-size: 8px;
+  }
+
+  .irc1a-header-badge-page {
+    font-size: 13px;
+  }
+
+  .irc1a-header-divider {
+    height: 38px;
+  }
+
+  .irc1a-header h2 {
+    font-size: 18px;
+  }
+
+  .irc1a-subtitle {
+    font-size: 10px;
+  }
+
+  /* Height + top margin have to mirror .irc1a-flow-badge exactly (both
+     normally share height:36px / margin-top:20px so they land on the
+     same row) -- shrinking the badge below without matching the label
+     here is what knocks them out of alignment. */
+  .irc1a-flow-label {
+    height: 20px !important;
+    margin: 10px 0 6px 2px !important;
+    font-size: 10px;
+  }
+
+  .irc1a-flow-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  /* Spacing between the 3 flow rows: this has to live on .irc1a-flow's
+     own row-gap, NOT as margin-top on each .irc1a-flow-section. A
+     per-section margin-top pushes that section's content down inside
+     its own grid row without the rail (a separate grid item) moving
+     with it, which is exactly what was knocking every label out of
+     alignment with its badge except the first (which has no preceding
+     sibling, so no extra margin to begin with). row-gap instead adds
+     space strictly between rows, so it can't create that offset. */
+  .irc1a-flow {
+    row-gap: 14px;
+  }
+
+  .irc1a-hero-row,
+  .irc1a-insights-row {
+    gap: 10px;
+  }
+
+  /* Overall Performance / Monthly Rating Trend: even 50/50 split. */
+  .irc1a-hero-row {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Positive Aspects / OFI: occupy the whole available row width. */
+  .irc1a-insights-row {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .irc1a-dark-header,
+  .irc1a-card-body,
+  .irc1a-insight-card .irc1a-card-body {
+    padding: 8px 10px !important;
+  }
+
+  .irc1a-trend-header h3,
+  .irc1a-remarks-label,
+  .irc1a-table-card-header h3 {
+    font-size: 11px !important;
+  }
+
+  .irc1a-subtitle-dark {
+    font-size: 9px !important;
+  }
+
+  .irc1a-trend-toggle,
+  .irc1a-toggle-btn {
+    display: none !important;
+  }
+
+  .irc1a-trend-chart-wrap {
+    min-height: 0;
+  }
+
+  .irc1a-badge-card {
+    padding: 10px 8px !important;
+  }
+
+  .irc1a-badge-label {
+    font-size: 9px !important;
+  }
+
+  .irc1a-badge-score {
+    font-size: 22px !important;
+  }
+
+  .irc1a-badge-scale {
+    font-size: 9px !important;
+  }
+
+  .irc1a-badge-pill {
+    font-size: 9px !important;
+    padding: 2px 8px;
+  }
+
+  .irc1a-badge-lowest {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .irc1a-badge-lowest-title,
+  .irc1a-lowest-item,
+  .irc1a-lowest-placeholder {
+    font-size: 8.5px !important;
+  }
+
+  .irc1a-remarks-textarea {
+    font-size: 9.5px !important;
+    min-height: 40px !important;
+    padding: 6px 8px;
+  }
+
+  .irc1a-table-wrapper {
+    font-size: 8px !important;
+  }
+
+  /* Unify every piece of text inside the table to the same size --
+     .irc1a-table carries its own explicit font-size (set higher up,
+     for on-screen breakpoints) that would otherwise win over the
+     inherited 8px above, and form elements like the rating <input>s
+     don't inherit font-size from their ancestors at all, so each one
+     needs to be pinned to the same value directly. */
+  .irc1a-table,
+  .irc1a-table thead th,
+  .irc1a-table tbody td,
+  .irc1a-table tfoot td,
+  .irc1a-table tbody input[type="number"],
+  .irc1a-indicator-num,
+  .irc1a-indicator-text,
+  .irc1a-row-avg,
+  .irc1a-row-desc,
+  .irc1a-avg {
+    font-size: 8px !important;
+  }
+
+  .irc1a-table thead th,
+  .irc1a-table tbody td,
+  .irc1a-table tfoot td {
+    padding: 3px 2px !important;
+  }
+
+  .irc1a-row-avg,
+  .irc1a-row-desc {
+    padding: 1px 4px;
+    white-space: normal;
+  }
+
+  .irc1a-indicator-wrap {
+    gap: 3px;
+  }
+
+  /* Long unbroken segments like "tools/process/procedure" were
+     running past the (now narrower) indicator column instead of
+     wrapping. Turning on hyphenation gives the browser somewhere to
+     break inside long words too, not just at existing slashes/spaces,
+     so nothing renders outside the column. Needs the page's lang
+     attribute to work, which base.html already sets (<html lang="en">). */
+  .irc1a-indicator-text {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+  }
+
+  /* Narrow the TA Indicator column and give that reclaimed width to
+     Average + Description -- their pill badges (e.g. "Very
+     Satisfactory") were the tightest fit at print scale. Month columns
+     are left untouched; the 3 numbers below still sum to 34% same as
+     the original 22 + 5 + 7. */
+  .irc1a-indicator-col,
+  .irc1a-table tfoot td.irc1a-indicator-col {
+    width: 16% !important;
+  }
+
+  .irc1a-rowavg-col {
+    width: 7% !important;
+  }
+
+  .irc1a-rowdesc-col {
+    width: 11% !important;
+  }
+
+  /* By default a <tfoot> (display: table-footer-group) is meant to
+     repeat on every printed page when its table spans more than one,
+     the same way <thead> repeats as a running header -- which is why
+     the "Overall Average" row was showing up at the bottom of every
+     page instead of just once, after the real last row. Switching its
+     display to a plain row group opts out of that repeat-per-page
+     behavior, so it only renders once, in its normal document-order
+     position after the last indicator row. */
+  .irc1a-table tfoot {
+    display: table-row-group;
+  }
+
+  /* ---------------------------------------------------------------
+     Rating inputs: on screen these look like boxed form fields
+     (border + off-white fill + inset shadow); on a printed report
+     they should just read as plain numbers, so all of that is
+     stripped back to bare text. Critically, width has to be pinned
+     to 100% (of the fixed-width table cell) rather than just removing
+     max-width -- a bare <input type="number"> without an explicit
+     width falls back to the browser's own intrinsic default, which is
+     far wider than this cell (~0.4in). That oversized input was
+     bleeding past its cell into neighboring columns and off the right
+     edge of the page, which is what was actually getting cut off. */
+  .irc1a-table tbody input[type="number"] {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 1px 0 !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* ---------------------------------------------------------------
+     Report signatory footer: base.css collapses this to a single
+     column once the viewport (here, the print page) drops below
+     860px, which turns the intended 1-row/2-column layout into
+     2 stacked rows. The print page is narrower than that threshold,
+     so it has to be forced back to the 2-column layout explicitly.
+  --------------------------------------------------------------- */
+  .report-signatory-grid,
+  .report-signatory-grid--three {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .report-signatory-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .report-signatory-block:not(:last-child) {
+    border-right: 1px solid var(--border) !important;
+    border-bottom: none !important;
+  }
+
+  .report-signatory {
+    margin-top: 16px;
+  }
+
+  .report-signatory-title {
+    font-size: 9px !important;
+    padding: 6px 12px !important;
+  }
+
+  .report-signatory-title i {
+    font-size: 10px !important;
+  }
+
+  .report-signatory-block {
+    padding: 8px 12px !important;
+  }
+
+  .report-signatory-label {
+    font-size: 7.5px !important;
+    margin: 0 0 6px !important;
+  }
+
+  .report-signatory-person {
+    gap: 8px !important;
+  }
+
+  .report-signatory-avatar {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .report-signatory-avatar i {
+    font-size: 13px !important;
+  }
+
+  .report-signatory-info {
+    gap: 2px !important;
+  }
+
+  .report-signatory-name,
+  .report-signatory-name-input {
+    font-size: 9.5px !important;
+  }
+
+  .report-signatory-position {
+    font-size: 8px !important;
+  }
+
+  .report-signatory-date-btn {
+    font-size: 7.5px !important;
+    transform: none !important;
+  }
+
+  /* Avoid splitting a table row or a summary card awkwardly across a
+     page break. */
+  .irc1a-table tr,
+  .irc1a-trend-card,
+  .irc1a-badge-card,
+  .irc1a-insight-card {
+    break-inside: avoid;
   }
 }

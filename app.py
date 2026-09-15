@@ -3,6 +3,8 @@ import sys
 from datetime import datetime
 from flask import Flask, render_template, abort, request, jsonify
 import pdfplumber
+from docx import Document as DocxDocument
+from docx.oxml.ns import qn
 import re
 
 from models import (
@@ -10,6 +12,7 @@ from models import (
     School,
     UploadedFile,
     IRC1ARating,
+    IRC1ARemark,
     IRC1BCustomerCount,
     IRC2ASchoolStatus,
     IRC2BTAFrequency,
@@ -33,9 +36,11 @@ from models import (
     IRC9Entry,
     ReportPreparer,
     IRC8AApprovingAuthority,
+    ReportSignatoryDate,
     MONTH_KEYS,
     TA_STATUS_PROVIDED,
     TA_STATUS_UNPROVIDED,
+    IRC1A_REMARK_CATEGORIES,
     IRC5_NATURE_FUNDED,
     IRC5_NATURE_NONFUNDED,
     IRC6_KIND_GOAL,
@@ -400,14 +405,28 @@ def _normalize_irc9_text(text):
 
 
 def _parse_date_to_iso(date_str):
-    """Best-effort parse of a PMCF date cell (e.g. 'July 7, 2026') into
-    yyyy-mm-dd for the <input type="date"> field. Returns None if it
-    can't be parsed, so the frontend can leave the field blank for the
-    user to fill in manually."""
+    """Best-effort parse of a PMCF date cell (e.g. 'July 7, 2026',
+    'Jan. 22, 2026') into yyyy-mm-dd for the <input type="date"> field.
+    Returns None if it can't be parsed, so the frontend can leave the
+    field blank for the user to fill in manually."""
     if not date_str:
         return None
     cleaned = re.sub(r"\s+", " ", date_str).strip().rstrip(",")
-    for fmt in ("%B %d, %Y", "%b %d, %Y", "%B %d %Y", "%m/%d/%Y", "%Y-%m-%d"):
+    # PMCF authors write the month either in full ("June 19, 2026") or
+    # abbreviated with a trailing period ("Jan. 22, 2026"). strptime's
+    # %b won't match that period, so drop any period that follows a
+    # letter, and fold the 4-letter "Sept" onto the 3-letter %b form.
+    cleaned = re.sub(r"(?<=[A-Za-z])\.", "", cleaned)
+    cleaned = re.sub(r"\bSept\b", "Sep", cleaned)
+    for fmt in (
+        "%B %d, %Y",
+        "%b %d, %Y",
+        "%B %d %Y",
+        "%b %d %Y",
+        "%m/%d/%Y",
+        "%d/%m/%Y",
+        "%Y-%m-%d",
+    ):
         try:
             return datetime.strptime(cleaned, fmt).strftime("%Y-%m-%d")
         except ValueError:
@@ -415,8 +434,209 @@ def _parse_date_to_iso(date_str):
     return None
 
 
-def _extract_irc9_entries(pdf):
+# ---------------------------------------------------------------------------
+# IRC9 PMCF extraction from .docx
+#
+# The PDF path above has to reverse-engineer the form's table from vector
+# geometry, which only works when the PDF carries a real text layer -- a
+# PMCF that was scanned or exported as a page image yields nothing at all.
+# A .docx has the table structure natively, so this path reads the real
+# table instead of inferring one, and works regardless of how the document
+# was produced.
+#
+# Nothing here keys off the filename: the table is located by matching the
+# four PMCF column headings (DATE / CRITICAL INCIDENCE DESCRIPTION /
+# OUTPUT / IMPACT ON JOB), wherever that table sits in the document and in
+# whatever column order it appears.
+# ---------------------------------------------------------------------------
+
+_W_T = qn("w:t")
+_W_BR = qn("w:br")
+_W_CR = qn("w:cr")
+_W_TAB = qn("w:tab")
+
+# Each PMCF column, matched against a header cell's uppercased text.
+# Deliberately loose: real forms vary between "IMPACT ON JOB/ACTION PLAN"
+# on one line and "IMPACT ON JOB/" + "ACTION PLAN" split across two
+# paragraphs, and some drop the parenthetical subtitle entirely.
+_IRC9_HEADER_PATTERNS = (
+    ("date", re.compile(r"\bDATE\b")),
+    ("incident", re.compile(r"CRITICAL\s+INCIDEN")),
+    ("output", re.compile(r"\bOUTPUT\b")),
+    ("impact", re.compile(r"IMPACT\s+ON\s+JOB")),
+)
+
+_IRC9_FIELDS = ("date", "incident", "output", "impact")
+
+
+def _docx_paragraph_text(paragraph):
+    """Paragraph text including manual line breaks.
+
+    python-docx's `paragraph.text` concatenates only the <w:t> runs, so a
+    soft line break (Shift+Enter, <w:br/>) silently disappears and glues
+    the two lines together into one word. Walking the XML keeps those
+    breaks as real newlines.
+    """
+    parts = []
+    for node in paragraph._p.iter():
+        if node.tag == _W_T:
+            parts.append(node.text or "")
+        elif node.tag in (_W_BR, _W_CR):
+            parts.append("\n")
+        elif node.tag == _W_TAB:
+            parts.append(" ")
+    return "".join(parts)
+
+
+def _docx_cell_text(cell):
+    """A table cell's text, with each Word paragraph kept as its own
+    paragraph (blank-line separated) so _normalize_irc9_text preserves
+    them -- the same "\\n\\n" convention the PDF path produces."""
+    paragraphs = []
+    for p in cell.paragraphs:
+        text = _docx_paragraph_text(p).strip()
+        if text:
+            paragraphs.append(text)
+    return "\n\n".join(paragraphs)
+
+
+def _match_irc9_header_row(cell_texts):
+    """Given one table row's cell texts, returns {field: column_index}
+    if the row is the PMCF header, else None. A row only qualifies when
+    all four columns are present, which is what keeps an ordinary data
+    row that happens to contain the word "output" from being mistaken
+    for the header."""
+    column_map = {}
+    for index, text in enumerate(cell_texts):
+        upper = re.sub(r"\s+", " ", text).strip().upper()
+        if not upper:
+            continue
+        for field, pattern in _IRC9_HEADER_PATTERNS:
+            if field not in column_map and pattern.search(upper):
+                column_map[field] = index
+                break
+    return column_map if len(column_map) == len(_IRC9_FIELDS) else None
+
+
+def _extract_irc9_entries_docx(source):
     """Extracts PMCF entries (Date / Critical Incidence Description /
+    Output / Impact on Job) from a DepEd PMCF .docx.
+
+    `source` is anything python-docx accepts -- a path or a file-like
+    object (e.g. the uploaded werkzeug stream).
+
+    Approach:
+    1. Scan every table in the document for the row whose cells carry
+       the four PMCF headings, and take the column order from that row.
+       Other tables (a letterhead layout table, a signature block) are
+       skipped because they never match all four.
+    2. Read each subsequent row's four cells. Word already stores a cell
+       as a list of paragraphs, so multi-paragraph narratives come back
+       intact -- no line-gap heuristics needed, unlike the PDF path.
+    3. A row with a non-empty Date starts a new entry; a row with an
+       empty Date continues the previous one (how a long entry split
+       across rows or pages is stitched back together).
+
+    Returns the same shape as _extract_irc9_entries, so both import
+    paths feed the identical preview modal.
+    """
+    document = DocxDocument(source)
+
+    entries = []
+    current = None
+    column_map = None
+    previous_date_tc = None
+
+    for table in document.tables:
+        header_row_index = -1
+        for row_index, row in enumerate(table.rows):
+            found = _match_irc9_header_row([_docx_cell_text(c) for c in row.cells])
+            if found:
+                column_map = found
+                header_row_index = row_index
+                previous_date_tc = None
+                break
+
+        # A table with no header of its own is only read as a
+        # continuation of the PMCF table if we've already seen one;
+        # otherwise it's some unrelated table earlier in the document.
+        if column_map is None:
+            continue
+
+        last_column = max(column_map.values())
+
+        for row_index, row in enumerate(table.rows):
+            if row_index <= header_row_index:
+                continue
+
+            cells = row.cells
+            if last_column >= len(cells):
+                continue  # malformed/short row
+
+            field_texts = {
+                field: _docx_cell_text(cells[index])
+                for field, index in column_map.items()
+            }
+
+            # Word repeats the same underlying <w:tc> for every row a
+            # vertically-merged cell spans, so a merged Date cell would
+            # otherwise look like a fresh date on each of those rows and
+            # split one entry into several. Comparing cell identity with
+            # the previous row detects that and treats the row as the
+            # continuation it actually is.
+            date_tc = cells[column_map["date"]]._tc
+            if date_tc is previous_date_tc:
+                field_texts["date"] = ""
+            previous_date_tc = date_tc
+
+            if not any(v.strip() for v in field_texts.values()):
+                continue  # spacer row
+
+            # A repeated header (Word's "repeat as header row" on a
+            # table that breaks across pages) must not become an entry.
+            if _match_irc9_header_row([field_texts[f] for f in _IRC9_FIELDS]):
+                continue
+
+            if field_texts["date"].strip():
+                if current:
+                    entries.append(current)
+                current = dict(field_texts)
+            else:
+                if current is None:
+                    current = {f: "" for f in _IRC9_FIELDS}
+                for key in ("incident", "output", "impact"):
+                    value = field_texts[key]
+                    if not value:
+                        continue
+                    current[key] = (
+                        (current[key] + "\n\n" + value).strip()
+                        if current[key]
+                        else value
+                    )
+
+    if current:
+        entries.append(current)
+
+    cleaned_entries = []
+    for e in entries:
+        date_norm = _normalize_irc9_text(e["date"])
+        cleaned_entries.append(
+            {
+                "date_raw": date_norm,
+                "date_iso": _parse_date_to_iso(date_norm),
+                "incident": _normalize_irc9_text(e["incident"]),
+                "output": _normalize_irc9_text(e["output"]),
+                "impact": _normalize_irc9_text(e["impact"]),
+            }
+        )
+
+    return cleaned_entries
+
+
+def _extract_irc9_entries(pdf):
+    """UNUSED as of the docx-only import switch (see extract_irc9_pdf) --
+    kept only in case PDF import is ever reinstated as a fallback.
+    Extracts PMCF entries (Date / Critical Incidence Description /
     Output / Impact on Job) from a DepEd PMCF PDF by reading its actual
     vector-drawn table structure, rather than guessing columns from raw
     text/word positions.
@@ -637,6 +857,23 @@ def _get_irc8a_approving_authority():
     return authority
 
 
+SIGNATORY_ROLES = {"prepared_by", "checked_by", "approving_authority"}
+
+
+def _get_signatory_date(tab_id, role):
+    """Single row per (tab_id, role) holding the calendar-picked date shown
+    under that signatory's position in the report-signatory footer (see
+    ReportSignatoryDate in models.py). Created lazily with a blank date on
+    first access, same convention as _get_preparer() /
+    _get_irc8a_approving_authority() above."""
+    row = ReportSignatoryDate.query.filter_by(tab_id=tab_id, role=role).first()
+    if row is None:
+        row = ReportSignatoryDate(tab_id=tab_id, role=role, date=None)
+        db.session.add(row)
+        db.session.commit()
+    return row
+
+
 def _upsert_irc1a_ratings(year, month_key, ratings_by_indicator, uploaded_file):
     """ratings_by_indicator: { indicator_id (int): rating (float) }"""
     for indicator_id, rating in ratings_by_indicator.items():
@@ -830,6 +1067,44 @@ def save_irc8a_approving_authority():
     return jsonify({"name": authority.name}), 200
 
 
+@app.route("/api/signatory-date/<tab_id>/<role>", methods=["GET"])
+def get_signatory_date(tab_id, role):
+    """Read-only fetch used by base.html's report-signatory footer, on
+    every IRC1a-IRC9 page, to fill in the calendar-picked date under
+    whichever signatory block(s) it renders (Prepared by / Checked by,
+    plus Approving Authority on irc8a only)."""
+    if tab_id not in TAB_LOOKUP or role not in SIGNATORY_ROLES:
+        return jsonify({"error": "Invalid tab or role"}), 400
+    row = _get_signatory_date(tab_id, role)
+    return jsonify({"date": row.date.isoformat() if row.date else None}), 200
+
+
+@app.route("/api/signatory-date/<tab_id>/<role>", methods=["POST"])
+def save_signatory_date(tab_id, role):
+    """Saves the date picked from the pop-up calendar under a signatory's
+    position. Scoped to this exact (tab, role) pair -- see
+    ReportSignatoryDate in models.py for why irc1a's 'Prepared by' date is
+    independent of irc1b's, IRC8a's 'Checked by' date, etc. Expects
+    {"date": "YYYY-MM-DD"}, or {"date": null}/"" to clear it."""
+    if tab_id not in TAB_LOOKUP or role not in SIGNATORY_ROLES:
+        return jsonify({"error": "Invalid tab or role"}), 400
+
+    data = request.get_json(silent=True) or {}
+    date_str = (data.get("date") or "").strip()
+
+    row = _get_signatory_date(tab_id, role)
+    if date_str:
+        try:
+            row.date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return jsonify({"error": "Invalid date format, expected YYYY-MM-DD"}), 400
+    else:
+        row.date = None
+    db.session.commit()
+
+    return jsonify({"date": row.date.isoformat() if row.date else None}), 200
+
+
 @app.route("/irc/<tab_id>")
 def view_tab(tab_id):
     """Renders the dedicated template for whichever tab was requested.
@@ -856,7 +1131,71 @@ def get_irc1a_data():
     ratings = {}
     for row in rows:
         ratings.setdefault(str(row.indicator_id), {})[row.month_key] = row.rating
-    return jsonify({"year": year, "ratings": ratings}), 200
+
+    # "Positive Aspects" / "Opportunities for Improvement" entries -- see
+    # IRC1ARemark in models.py. Grouped by category so irc1a.js can drop
+    # each list straight into its own card without filtering client-side.
+    remark_rows = (
+        IRC1ARemark.query.filter_by(year=year)
+        .order_by(IRC1ARemark.sort_order.asc(), IRC1ARemark.id.asc())
+        .all()
+    )
+    remarks = {category: [] for category in IRC1A_REMARK_CATEGORIES}
+    for remark in remark_rows:
+        remarks.setdefault(remark.category, []).append(remark.to_dict())
+
+    return jsonify({"year": year, "ratings": ratings, "remarks": remarks}), 200
+
+
+@app.route("/irc/irc1a/remark", methods=["POST"])
+def save_irc1a_remark():
+    """Creates a new entry under "Positive Aspects" or "Opportunities for
+    Improvement" (id omitted), or updates an existing one's text (id
+    included). Same create-vs-update convention as /irc/irc4/objective.
+
+    Expected JSON body:
+        { "id": 7, "text": "..." }                                // update
+        { "category": "positive", "text": "...", "year": 2026 }   // create
+    """
+    data = request.get_json(silent=True) or {}
+    remark_id = data.get("id")
+    year = data.get("year") or _current_year()
+
+    if remark_id:
+        remark = IRC1ARemark.query.get(remark_id)
+        if remark is None:
+            return jsonify({"error": "Remark not found"}), 404
+        remark.text = data.get("text", remark.text)
+    else:
+        category = data.get("category")
+        if category not in IRC1A_REMARK_CATEGORIES:
+            return jsonify({"error": f"Invalid category: {category!r}"}), 400
+        max_order = (
+            db.session.query(db.func.max(IRC1ARemark.sort_order))
+            .filter_by(year=year, category=category)
+            .scalar()
+            or 0
+        )
+        remark = IRC1ARemark(
+            year=year,
+            category=category,
+            text=data.get("text", ""),
+            sort_order=max_order + 1,
+        )
+        db.session.add(remark)
+
+    db.session.commit()
+    return jsonify(remark.to_dict()), 200
+
+
+@app.route("/irc/irc1a/remark/<int:remark_id>", methods=["DELETE"])
+def delete_irc1a_remark(remark_id):
+    remark = IRC1ARemark.query.get(remark_id)
+    if remark is None:
+        return jsonify({"error": "Remark not found"}), 404
+    db.session.delete(remark)
+    db.session.commit()
+    return jsonify({"deleted": True, "id": remark_id}), 200
 
 
 @app.route("/irc/irc1b/data", methods=["GET"])
@@ -1378,16 +1717,18 @@ def delete_irc1a_rating(month_key, indicator_id):
 
 @app.route("/irc/irc1a/reset", methods=["DELETE"])
 def reset_irc1a_ratings():
-    """Wipes every IRC1a rating for a given year (defaults to current
-    year) in one shot. This is the "Reset All Data" button's counterpart
-    to delete_irc1a_rating above, which only ever clears a single cell.
+    """Wipes every IRC1a rating, plus every Positive Aspects/OFI entry
+    (see IRC1ARemark), for a given year (defaults to current year) in one
+    shot. This is the "Reset All Data" button's counterpart to
+    delete_irc1a_rating above, which only ever clears a single cell.
 
     Uploaded PDF files themselves (and their UploadedFile rows) are left
-    untouched -- this only clears the rating values, same scoping as
-    delete_irc1a_rating.
+    untouched -- this only clears the rating values and remark entries,
+    same scoping as delete_irc1a_rating.
     """
     year = request.args.get("year", type=int) or _current_year()
     IRC1ARating.query.filter_by(year=year).delete()
+    IRC1ARemark.query.filter_by(year=year).delete()
     db.session.commit()
     return jsonify({"reset": True, "year": year}), 200
 
@@ -1977,32 +2318,45 @@ def get_irc4_school_ta_status():
 @app.route("/irc/irc9/extract", methods=["POST"])
 def extract_irc9_pdf():
     """Extract PMCF entries (Date, Critical Incidence Description,
-    Output, Impact on Job/Action Plan) from a DepEd PMCF PDF.
+    Output, Impact on Job/Action Plan) from a DepEd PMCF .docx.
 
-    See _extract_irc9_entries for how the table structure is parsed,
-    including how paragraph breaks within a field are detected and
-    preserved.
+    Only .docx is accepted. It reads the form's real table structure, so
+    it works for any PMCF regardless of how the document was produced.
+    PDF was tried first but dropped: pdfplumber has to reconstruct the
+    table from vector geometry, which only works on PDFs exported with a
+    genuine text layer -- a scanned or image-only PMCF yields nothing,
+    which is exactly the failure this endpoint used to hit in practice.
+    See _extract_irc9_entries_docx for the extraction logic.
     """
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
     file = request.files["file"]
-    if not file.filename.endswith(".pdf"):
-        return jsonify({"error": "Only PDF files are supported"}), 400
+    filename = file.filename or ""
+    extension = os.path.splitext(filename)[1].lower()
+
+    if extension != ".docx":
+        # Legacy .doc is deliberately not accepted either: it's a
+        # different, binary format that python-docx cannot open at all.
+        return jsonify({
+            "error": "Only Word (.docx) files are supported for PMCF import. "
+                     "If you have an older .doc file, open it in Word and "
+                     "save it as .docx first."
+        }), 400
 
     try:
-        with pdfplumber.open(file) as pdf:
-            entries = _extract_irc9_entries(pdf)
+        entries = _extract_irc9_entries_docx(file.stream)
 
         if not entries:
             return jsonify({
-                "error": "Could not find the PMCF table (Date / Critical Incidence "
-                         "Description / Output / Impact columns) in this PDF. "
-                         "Please ensure the PDF has the correct format."
+                "error": "Could not find the PMCF table (Date / Critical "
+                         "Incidence Description / Output / Impact columns) "
+                         "in this Word document. Please ensure the file "
+                         "uses the standard PMCF form."
             }), 400
 
-        # --- Persist: save the PDF and register its UploadedFile row now
-        # (so file_id is available for the preview modal and a later
+        # --- Persist: save the document and register its UploadedFile row
+        # now (so file_id is available for the preview modal and a later
         # delete still cleans up the file). We deliberately do NOT write
         # IRC9Entry rows here -- the frontend shows a preview modal first
         # and lets the user edit/remove any entry before committing, so
@@ -2010,7 +2364,8 @@ def extract_irc9_pdf():
         # This mirrors IRC1a/IRC2a's extract/import split. No month_key:
         # a PMCF file isn't tied to a single month the way IRC1a's is. ---
         year = _current_year()
-        file_fields = storage.save_uploaded_pdf(
+        file.stream.seek(0)
+        file_fields = storage.save_uploaded_document(
             file, app.config["UPLOAD_ROOT"], irc_type="irc9", year=year
         )
         uploaded_file = UploadedFile(**file_fields)
@@ -2024,7 +2379,7 @@ def extract_irc9_pdf():
         }), 200
 
     except Exception as e:
-        return jsonify({"error": f"Error processing PDF: {str(e)}"}), 500
+        return jsonify({"error": f"Error processing file: {str(e)}"}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -2358,9 +2713,22 @@ def add_irc7_columns():
     Expected JSON body:
         { "columns": [ {"name": "...", "type": "text", "groupName": "..."}, ... ] }
 
-    Columns sharing the same non-empty groupName are meant to render
-    under one spanning group header on the frontend (see irc7.js);
-    nothing about that grouping is enforced here beyond storing the name.
+    Columns sharing the same non-empty groupName render under one
+    spanning group header on the frontend (see irc7.js).
+
+    ORDERING: a new column whose groupName matches a group that already
+    exists is inserted directly after that group's current last column,
+    rather than appended to the end of the table. Without this, adding a
+    column to an existing group would store it at the far right of the
+    sort order, and the frontend -- which builds a group header from a
+    *contiguous* run of same-named columns -- would render that group as
+    two separate header blocks with the same title. Everything else
+    still appends at the end, as before.
+
+    Because inserting shifts the columns after it, sort_order is
+    reassigned across the whole table at the end. The set is small
+    (user-defined indicator columns) so a full renumber is cheaper to
+    reason about than juggling gap values.
     """
     data = request.get_json(silent=True) or {}
     new_columns = data.get("columns")
@@ -2368,7 +2736,9 @@ def add_irc7_columns():
         return jsonify({"error": "'columns' must be a non-empty list"}), 400
 
     valid_types = (IRC7_COLUMN_TYPE_TEXT, IRC7_COLUMN_TYPE_NUMBER, IRC7_COLUMN_TYPE_PARAGRAPH)
-    max_order = db.session.query(db.func.max(IRC7Column.sort_order)).scalar() or 0
+
+    # Current table order; new columns get spliced into this list.
+    ordered = IRC7Column.query.order_by(IRC7Column.sort_order.asc()).all()
 
     created = []
     for col in new_columns:
@@ -2379,16 +2749,40 @@ def add_irc7_columns():
             continue
         if col_type not in valid_types:
             return jsonify({"error": f"Invalid column type: {col_type!r}"}), 400
-        max_order += 1
-        new_col = IRC7Column(name=name, type=col_type, group_name=group_name, sort_order=max_order)
+
+        new_col = IRC7Column(name=name, type=col_type, group_name=group_name)
         db.session.add(new_col)
         created.append(new_col)
+
+        # Find where this group currently ends, if it exists at all.
+        # Scanning `ordered` (not the DB) means a batch adding several
+        # columns to the same group keeps them in the submitted order:
+        # each one lands after the previous one just inserted.
+        insert_at = None
+        if group_name:
+            for index, existing in enumerate(ordered):
+                if existing.group_name == group_name:
+                    insert_at = index + 1
+
+        if insert_at is None:
+            ordered.append(new_col)
+        else:
+            ordered.insert(insert_at, new_col)
 
     if not created:
         return jsonify({"error": "Please add at least one column with a name."}), 400
 
+    for index, column in enumerate(ordered, start=1):
+        column.sort_order = index
+
     db.session.commit()
-    return jsonify({"columns": [c.to_dict() for c in created]}), 200
+    return jsonify({
+        "columns": [c.to_dict() for c in created],
+        # The insert above can renumber existing columns, so the frontend
+        # re-renders from the authoritative full ordering rather than
+        # trying to splice the new cells into the DOM itself.
+        "allColumns": [c.to_dict() for c in ordered],
+    }), 200
 
 
 @app.route("/irc/irc7/column/<int:column_id>", methods=["PUT"])

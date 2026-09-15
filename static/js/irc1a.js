@@ -98,24 +98,194 @@
   const legendOverlay = document.getElementById("irc1a-legend-overlay");
   const legendCloseBtn = document.getElementById("irc1a-legend-close");
 
-  // --- Auto-growing remarks textareas ---
-  // Height tracks content instead of scrolling internally, so the card
-  // simply grows to fit whatever's typed.
-  function autoResizeTextarea(el) {
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+  const pdfBtn = document.getElementById("irc1a-pdf-btn");
+
+  // ============================================================
+  // Positive Aspects / Opportunities for Improvement (OFI)
+  //
+  // Each card holds exactly one year-scoped entry (see IRC1ARemark in
+  // models.py) -- not an addable/removable list. The header button
+  // reads "Add" while the entry is empty and "Edit" once it has a
+  // value (see updateRemarkActionLabel(), same label-swap idea as
+  // irc4's FIELD_MODAL_CONFIG/updateFieldActionLabel), and always opens
+  // the shared Add/Edit modal. The entry itself is shown as plain,
+  // non-interactive text on the page -- no outline, no click handler,
+  // no inline remove button; adding, editing, and deleting all happen
+  // through that modal (mirrors irc4's read-only .irc4-field-text +
+  // pencil action button for Activity/TA Receiver/MOV's).
+  // ============================================================
+
+  const remarksData = { positive: null, ofi: null };
+  const remarkTextEls = {
+    positive: document.getElementById("irc1aPositiveText"),
+    ofi: document.getElementById("irc1aOfiText"),
+  };
+  const addRemarkBtns = {
+    positive: document.getElementById("irc1aAddPositiveBtn"),
+    ofi: document.getElementById("irc1aAddOfiBtn"),
+  };
+  const REMARK_CATEGORY_LABELS = {
+    positive: "Positive Aspect",
+    ofi: "Opportunity for Improvement",
+  };
+  const REMARK_PLACEHOLDER = "No entry yet.";
+
+  function updateRemarkActionLabel(category) {
+    const btn = addRemarkBtns[category];
+    if (!btn) return;
+    const label = btn.querySelector('[data-role="action-label"]');
+    if (!label) return;
+    const remark = remarksData[category];
+    const hasValue = !!(remark && remark.text && remark.text.trim());
+    label.textContent = hasValue ? "Edit" : "Add";
   }
 
-  const remarksTextareas = [
-    document.getElementById("irc1a-positive"),
-    document.getElementById("irc1a-ofi"),
-  ];
-  remarksTextareas.forEach((el) => {
-    if (!el) return;
-    autoResizeTextarea(el);
-    el.addEventListener("input", () => autoResizeTextarea(el));
-  });
+  function renderRemarkField(category) {
+    const textEl = remarkTextEls[category];
+    if (textEl) {
+      const remark = remarksData[category];
+      const hasText = !!(remark && remark.text && remark.text.trim());
+      textEl.textContent = hasText ? remark.text : REMARK_PLACEHOLDER;
+      textEl.classList.toggle("is-placeholder", !hasText);
+    }
+    updateRemarkActionLabel(category);
+  }
+
+  // Renders whatever's currently in remarksData -- used at init (after
+  // loadPersistedRatings() populates it from the server) and again any
+  // time the entry is added, edited, or deleted via the modal.
+  function renderRemarksFromData() {
+    ["positive", "ofi"].forEach(renderRemarkField);
+  }
+
+  if (addRemarkBtns.positive) {
+    addRemarkBtns.positive.addEventListener("click", () =>
+      openRemarkModal("positive", remarksData.positive),
+    );
+  }
+  if (addRemarkBtns.ofi) {
+    addRemarkBtns.ofi.addEventListener("click", () =>
+      openRemarkModal("ofi", remarksData.ofi),
+    );
+  }
+
+  // --- Add/Edit Remark modal ---
+  // Shared by both cards (Positive Aspects + OFI), same as irc4's single
+  // field modal is shared by Activity/TA Receiver/MOV's. Which category
+  // it's open for -- and whether that category's entry already exists --
+  // is tracked in JS state below, not in the markup (see
+  // irc1a-remark-modal-overlay in irc1a.html).
+  const remarkModalOverlay = document.getElementById(
+    "irc1a-remark-modal-overlay",
+  );
+  const remarkModalTitle = document.getElementById("irc1a-remark-modal-title");
+  const remarkModalInput = document.getElementById("irc1a-remark-modal-input");
+  const remarkModalClose = document.getElementById("irc1a-remark-modal-close");
+  const remarkModalCancel = document.getElementById(
+    "irc1a-remark-modal-cancel",
+  );
+  const remarkModalSave = document.getElementById("irc1a-remark-modal-save");
+  const remarkModalDelete = document.getElementById(
+    "irc1a-remark-modal-delete",
+  );
+
+  let remarkModalCategory = null;
+
+  function openRemarkModal(category, remark) {
+    if (!remarkModalOverlay) return;
+    remarkModalCategory = category;
+
+    const label = REMARK_CATEGORY_LABELS[category] || "Entry";
+    if (remarkModalTitle) {
+      remarkModalTitle.textContent = remark ? `Edit ${label}` : `Add ${label}`;
+    }
+    if (remarkModalInput) {
+      remarkModalInput.value = remark ? remark.text || "" : "";
+    }
+    if (remarkModalDelete) remarkModalDelete.hidden = !remark;
+
+    remarkModalOverlay.classList.add("visible");
+    if (remarkModalInput) remarkModalInput.focus();
+  }
+
+  function closeRemarkModal() {
+    if (remarkModalOverlay) remarkModalOverlay.classList.remove("visible");
+    remarkModalCategory = null;
+    if (remarkModalInput) remarkModalInput.value = "";
+  }
+
+  async function saveRemarkModal() {
+    const category = remarkModalCategory;
+    if (!category || !remarkModalInput) return;
+    const text = remarkModalInput.value;
+    const existing = remarksData[category];
+
+    if (remarkModalSave) remarkModalSave.disabled = true;
+
+    try {
+      if (existing) {
+        // Update the category's existing entry.
+        const res = await fetch("/irc/irc1a/remark", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: existing.id, text }),
+        });
+        const updated = await res.json();
+        remarksData[category] = updated;
+      } else {
+        // First entry for this category.
+        const res = await fetch("/irc/irc1a/remark", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category, text }),
+        });
+        remarksData[category] = await res.json();
+      }
+      renderRemarkField(category);
+      closeRemarkModal();
+    } catch (e) {
+      /* Best-effort: leave the modal open so the user can retry Save
+         rather than silently losing what they typed. */
+    } finally {
+      if (remarkModalSave) remarkModalSave.disabled = false;
+    }
+  }
+
+  function deleteRemarkModal() {
+    const category = remarkModalCategory;
+    const existing = category ? remarksData[category] : null;
+    if (!category || !existing) return;
+
+    remarksData[category] = null;
+    renderRemarkField(category);
+    closeRemarkModal();
+
+    fetch(`/irc/irc1a/remark/${encodeURIComponent(existing.id)}`, {
+      method: "DELETE",
+    }).catch(() => {
+      /* Best-effort, same as irc4's removeObjective -- the entry is
+         already cleared from the UI; a failed delete just risks it
+         reappearing on reload. */
+    });
+  }
+
+  if (remarkModalClose) {
+    remarkModalClose.addEventListener("click", closeRemarkModal);
+  }
+  if (remarkModalCancel) {
+    remarkModalCancel.addEventListener("click", closeRemarkModal);
+  }
+  if (remarkModalOverlay) {
+    remarkModalOverlay.addEventListener("click", (e) => {
+      if (e.target === remarkModalOverlay) closeRemarkModal();
+    });
+  }
+  if (remarkModalSave) {
+    remarkModalSave.addEventListener("click", saveRemarkModal);
+  }
+  if (remarkModalDelete) {
+    remarkModalDelete.addEventListener("click", deleteRemarkModal);
+  }
 
   function descriptiveValue(avg) {
     if (avg === null) return "—";
@@ -562,8 +732,9 @@
   }
 
   // Loads whatever's already saved in the database for this year, so a
-  // page reload shows previously-imported/edited ratings instead of an
-  // empty table (see /irc/irc1a/data in app.py).
+  // page reload shows previously-imported/edited ratings -- and
+  // previously-saved Positive Aspects/OFI entries (see remarksData above)
+  // -- instead of an empty page (see /irc/irc1a/data in app.py).
   function loadPersistedRatings() {
     fetch("/irc/irc1a/data")
       .then((res) => res.json())
@@ -581,6 +752,15 @@
           });
         });
         recalcAll();
+
+        // Each category only ever shows a single entry now -- if the
+        // server has more than one (e.g. left over from before this was
+        // single-entry), take the first and leave the rest alone.
+        const positiveList = (data.remarks && data.remarks.positive) || [];
+        const ofiList = (data.remarks && data.remarks.ofi) || [];
+        remarksData.positive = positiveList[0] || null;
+        remarksData.ofi = ofiList[0] || null;
+        renderRemarksFromData();
       })
       .catch(() => {
         /* Table just stays at its blank baseline. */
@@ -602,6 +782,31 @@
     legendOverlay.addEventListener("click", (e) => {
       if (e.target === legendOverlay) closeLegend();
     });
+  }
+
+  // --- Save to PDF ---
+  // Uses the browser's native print-to-PDF instead of a screenshot
+  // library: the print stylesheet (see the "Print / Save-to-PDF"
+  // section in irc1a.css) hides the logo bar, navbar, and this page's
+  // header action buttons, sizes the page to 8.5x13in "long" paper,
+  // and un-clips anything that only scrolls on screen (the table
+  // wrapper, remarks boxes). document.title is swapped briefly since
+  // most browsers suggest it as the default "Save as PDF" filename.
+  function saveToPdf() {
+    const previousTitle = document.title;
+    document.title = `IRC1a Monthly Customer Feedback Rating ${new Date().getFullYear()}`;
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+    window.addEventListener("afterprint", restoreTitle);
+
+    window.print();
+  }
+
+  if (pdfBtn) {
+    pdfBtn.addEventListener("click", saveToPdf);
   }
 
   // --- Reset All Data ---
@@ -635,16 +840,11 @@
           input.value = "";
         });
 
-        const positive = document.getElementById("irc1a-positive");
-        const ofi = document.getElementById("irc1a-ofi");
-        if (positive) {
-          positive.value = "";
-          autoResizeTextarea(positive);
-        }
-        if (ofi) {
-          ofi.value = "";
-          autoResizeTextarea(ofi);
-        }
+        // Wiped server-side in one shot above -- clear the entries
+        // client-side without re-triggering per-entry delete requests.
+        remarksData.positive = null;
+        remarksData.ofi = null;
+        renderRemarksFromData();
 
         recalcAll();
       })
