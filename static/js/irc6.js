@@ -395,7 +395,10 @@
   }
 
   function cell(value) {
-    return `<td class="irc6-cell-text">${escapeHtml(value) || "N/A"}</td>`;
+    const text = escapeHtml(value);
+    return text
+      ? `<td class="irc6-cell-text">${text}</td>`
+      : `<td class="irc6-cell-text"><span class="irc6-empty-value">&ndash;</span></td>`;
   }
 
   function renderTable() {

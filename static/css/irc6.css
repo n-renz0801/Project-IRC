@@ -427,6 +427,14 @@
   line-height: 1.5;
 }
 
+/* Empty-cell placeholder on the main table -- a light gray dash reads
+   as "nothing entered" without the visual weight of a full "N/A"
+   label. The Add/Edit modal doesn't use this at all; a blank field
+   there just stays blank. */
+.irc6-empty-value {
+  color: #b0b7c3;
+}
+
 /* ------------------------------------------------------------------
    Project title cell: kind badge + (for outputs) title beneath
 ------------------------------------------------------------------ */
@@ -854,7 +862,9 @@
 ------------------------------------------------------------------ */
 
 @media print {
-  /* "Long" bond paper, as requested -- 8.5in x 13in. */
+  /* "Long" bond paper, as requested -- 8.5in x 13in, landscape (so
+     width/height are swapped from the portrait 8.5in x 13in: the
+     first @page size value is always the page's width). */
   @page {
     size: 13in 8.5in;
     margin: 0.5in;

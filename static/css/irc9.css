@@ -107,6 +107,7 @@
    Reset buttons (smaller than the previous full-size buttons). */
 .irc9-add-btn,
 .irc9-import-btn,
+.irc9-pdf-btn,
 .irc9-reset-btn {
   display: flex;
   align-items: center;
@@ -127,6 +128,7 @@
 
 .irc9-add-btn i,
 .irc9-import-btn i,
+.irc9-pdf-btn i,
 .irc9-reset-btn i {
   font-size: 13px;
 }
@@ -168,6 +170,27 @@
   transform: none;
 }
 
+/* Save to PDF -- lives in the plain header, not the dark table-card
+   header, so it uses the same light outline look as IRC1a/IRC3/IRC5/
+   IRC6's Save to PDF button rather than the Add/Import buttons'
+   raised-on-dark-gradient style. */
+.irc9-pdf-btn {
+  flex-shrink: 0;
+  border: 1.5px solid #cfe0f2;
+  background: #fff;
+  color: #185fa5;
+}
+
+.irc9-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc9-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .irc9-reset-btn {
   flex-shrink: 0;
   border: 1.5px solid #f3b4b4;
@@ -182,6 +205,7 @@
 
 .irc9-add-btn:active,
 .irc9-import-btn:active,
+.irc9-pdf-btn:active,
 .irc9-reset-btn:active {
   transform: scale(0.97);
 }
@@ -823,6 +847,7 @@
     width: 100%;
   }
 
+  .irc9-pdf-btn,
   .irc9-reset-btn {
     flex: 1;
     justify-content: center;
@@ -840,5 +865,239 @@
   .irc9-import-btn {
     flex: 1;
     justify-content: center;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Print / Save-to-PDF
+   Triggered by #irc9-pdf-btn -> window.print() (see irc9.js). Only
+   ever active on this page since irc9.css is only loaded here, so
+   these rules can safely target the shared <header>/<nav> from
+   base.html without leaking into other tabs. Mirrors IRC1a's,
+   IRC3's, IRC5's, and IRC6's own "Print / Save-to-PDF" section (same
+   paper size, same unclip / color-adjust / scale-down approach)
+   minus whatever pieces don't exist here (dashboard, grouped table
+   header, etc) plus IRC9-specific pieces those pages don't have (the
+   fluid --irc9-shrink column-width system, the Import DOCX button +
+   its preview modal).
+------------------------------------------------------------------ */
+
+@media print {
+  /* "Long" bond paper, as requested -- 8.5in x 13in. */
+  @page {
+    size: 8.5in 13in;
+    margin: 0.5in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height. Printing engines
+     honor that overflow/height the same way screens do, which would
+     clip everything past one viewport-tall "page" of .content --
+     so it all has to be forced back to natural, unclipped flow here. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Logo bar + navbar (base.html), this page's own header action
+     buttons (Save to PDF / Reset), and the table card's Add Entry /
+     Import DOCX buttons -- none of these belong in a printed report. */
+  header,
+  nav,
+  .irc9-header-actions,
+  .irc9-table-card-actions {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: these are only ever visible via a
+     ".visible" class toggle and default to display:none already, but
+     force them off in case a print is triggered while one is open. */
+  #irc9-modal-overlay,
+  #irc9-confirm-overlay,
+  #irc9-import-modal-overlay,
+  #irc9-reset-confirm-overlay {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* Horizontally-scrolling table needs to render in full instead of
+     scrolling. */
+  .irc9-table-wrapper {
+    overflow: visible !important;
+  }
+
+  .scroll-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Scrollbars never belong in a printed/PDF page. Most browsers omit
+     them for print automatically, but this removes any doubt. */
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default
+     unless told otherwise, which is why the dark table-card header
+     was coming out flat/white. This forces every background to
+     print as it looks on screen. "Background graphics" still needs
+     to be left ON in the print dialog -- this can't override that
+     toggle, only make sure nothing here fights it. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Scale down: everything below is sized for a 1600px+ screen, so
+     printed at full size onto a 8.5in-wide sheet it runs oversized
+     and can spill past the page edge. These trim fonts/paddings down
+     to a print-appropriate scale, independent of the on-screen
+     responsive system -- IRC9's column widths normally ride
+     --irc9-shrink (a clamp() keyed off 100vw), which doesn't resolve
+     usefully against a print page, so the table gets flat, explicit
+     print widths below instead.
+  --------------------------------------------------------------- */
+
+  .irc9-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .irc9-header-badge {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .irc9-header-badge-group {
+    font-size: 8px;
+  }
+
+  .irc9-header-badge-page {
+    font-size: 13px;
+  }
+
+  .irc9-header-divider {
+    height: 38px;
+  }
+
+  .irc9-header h2 {
+    font-size: 18px;
+  }
+
+  .irc9-subtitle {
+    font-size: 10px;
+  }
+
+  /* Height + top margin have to mirror .irc9-flow-badge exactly (both
+     normally share height:36px / margin-top:20px so they land on the
+     same row) -- shrinking the badge below without matching the label
+     here is what knocks them out of alignment. */
+  .irc9-flow-label {
+    height: 20px !important;
+    margin: 10px 0 6px 2px !important;
+    font-size: 10px;
+  }
+
+  .irc9-flow-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  .irc9-flow {
+    row-gap: 14px;
+  }
+
+  .irc9-dark-header {
+    padding: 8px 10px !important;
+  }
+
+  .irc9-table-card-header h3 {
+    font-size: 11px !important;
+  }
+
+  .irc9-subtitle-dark {
+    font-size: 9px !important;
+  }
+
+  /* Critical incident log table. The Actions column (Edit/Delete
+     buttons) doesn't belong in a printed report, so it's dropped
+     entirely -- excluding the empty-state row, whose single <td
+     colspan="5"> isn't really "the Actions column" and should keep
+     spanning the full width. Column widths are flattened from
+     --irc9-shrink's clamp() to fixed print percentages that sum to
+     100% once Actions is gone. */
+  .irc9-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 8px !important;
+  }
+
+  .irc9-table thead th,
+  .irc9-table tbody td {
+    padding: 4px 5px !important;
+    font-size: 8px !important;
+  }
+
+  .irc9-col-date {
+    width: 12% !important;
+  }
+  .irc9-col-incident {
+    width: 50% !important;
+  }
+  .irc9-col-output,
+  .irc9-col-impact {
+    width: 19% !important;
+  }
+
+  .irc9-table thead th:last-child,
+  .irc9-table tbody tr:not(.irc9-empty-row) td:last-child {
+    display: none !important;
+  }
+
+  .irc9-cell-date {
+    font-size: 8px !important;
+  }
+
+  .irc9-table tbody td.irc9-cell-text {
+    font-size: 8px !important;
+    line-height: 1.35 !important;
+  }
+
+  .irc9-cell-text p {
+    margin: 0 0 4px 0 !important;
+  }
+
+  /* Long unbroken text needs somewhere to break besides existing
+     spaces once the columns are this narrow. Same hyphenation
+     approach as IRC1a's/IRC5's/IRC6's text columns. Needs the page's
+     lang attribute to work, which base.html already sets
+     (<html lang="en">). */
+  .irc9-cell-text {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+  }
+
+  /* Avoid splitting a table row awkwardly across a page break. */
+  .irc9-table tr {
+    break-inside: avoid;
   }
 }
