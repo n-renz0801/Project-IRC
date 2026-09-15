@@ -95,6 +95,41 @@
   flex-shrink: 0;
 }
 
+/* Save to PDF button — same design as IRC1a's Save to PDF button */
+.irc3-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc3-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc3-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc3-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Reset button — same design as IRC1a/IRC2b's reset button */
 .irc3-reset-btn {
   display: flex;
@@ -649,6 +684,7 @@
     width: 100%;
   }
 
+  .irc3-pdf-btn,
   .irc3-reset-btn {
     flex: 1;
     justify-content: center;
@@ -693,5 +729,301 @@
   .irc3-dark-header,
   .irc3-card-body {
     padding: 14px 16px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   4. Print / Save-to-PDF
+   Triggered by #irc3-pdf-btn -> window.print() (see irc3.js). Only
+   ever active on this page since irc3.css is only loaded here, so
+   these rules can safely target the shared <header>/<nav> from
+   base.html without leaking into other tabs. Mirrors IRC1a's own
+   "Print / Save-to-PDF" section (same paper size, same unclip /
+   color-adjust / scale-down approach) minus whatever IRC1a-only
+   pieces don't exist here (trend chart toggle, remarks textareas,
+   legend modal, etc).
+------------------------------------------------------------------ */
+
+@media print {
+  /* "Long" bond paper, as requested -- 8.5in x 13in. */
+  @page {
+    size: 8.5in 13in;
+    margin: 0.5in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height. Printing engines
+     honor that overflow/height the same way screens do, which would
+     clip everything past one viewport-tall "page" of .content --
+     so it all has to be forced back to natural, unclipped flow here. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Logo bar + navbar (base.html) and this page's own header action
+     buttons (Save to PDF / Reset) -- none of these belong in a
+     printed report. */
+  header,
+  nav,
+  .irc3-header-actions {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: only ever visible via a ".visible" class
+     toggle and defaults to display:none already, but force it off in
+     case a print is triggered while it's open. */
+  #irc3-reset-confirm-overlay {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* Horizontally-scrolling table needs to render in full instead of
+     scrolling. */
+  .irc3-table-wrapper {
+    overflow: visible !important;
+  }
+
+  .scroll-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Scrollbars never belong in a printed/PDF page. Most browsers omit
+     them for print automatically, but this removes any doubt. */
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default
+     unless told otherwise, which is why the dark analytics headers,
+     the score badges, and the basis-grid score bars were all coming
+     out flat/white. This forces every background to print as it
+     looks on screen. "Background graphics" still needs to be left ON
+     in the print dialog -- this can't override that toggle, only
+     make sure nothing here fights it. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Scale down: everything below is sized for a 1600px+ screen, so
+     printed at full size onto a 8.5in-wide sheet it runs oversized
+     and can spill past the page edge. These trim fonts/paddings down
+     to a print-appropriate scale, independent of the on-screen
+     responsive breakpoints (which key off the print viewport width
+     and can't be relied on to land consistently across browsers).
+  --------------------------------------------------------------- */
+
+  .irc3-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .irc3-header-badge {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .irc3-header-badge-group {
+    font-size: 8px;
+  }
+
+  .irc3-header-badge-page {
+    font-size: 13px;
+  }
+
+  .irc3-header-divider {
+    height: 38px;
+  }
+
+  .irc3-header h2 {
+    font-size: 18px;
+  }
+
+  .irc3-subtitle {
+    font-size: 10px;
+  }
+
+  /* Height + top margin have to mirror .irc3-flow-badge exactly (both
+     normally share height:36px / margin-top:20px so they land on the
+     same row) -- shrinking the badge below without matching the label
+     here is what knocks them out of alignment. */
+  .irc3-flow-label {
+    height: 20px !important;
+    margin: 10px 0 6px 2px !important;
+    font-size: 10px;
+  }
+
+  .irc3-flow-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  /* Spacing between the 2 flow rows: this has to live on .irc3-flow's
+     own row-gap, NOT as margin-top on each .irc3-flow-section. A
+     per-section margin-top pushes that section's content down inside
+     its own grid row without the rail (a separate grid item) moving
+     with it, which is exactly what would knock the second label out
+     of alignment with its badge (the first has no preceding sibling,
+     so no extra margin to begin with). row-gap instead adds space
+     strictly between rows, so it can't create that offset. */
+  .irc3-flow {
+    row-gap: 14px;
+  }
+
+  .irc3-dark-header,
+  .irc3-card-body {
+    padding: 8px 10px !important;
+  }
+
+  .irc3-dark-header h3 {
+    font-size: 11px !important;
+  }
+
+  .irc3-subtitle-dark {
+    font-size: 9px !important;
+  }
+
+  /* Rating basis cards */
+  /* @page's 8.5in width (minus margins) is narrower than the 900px
+     and 500px screen breakpoints above that drop this grid to 2 or 1
+     columns -- browsers print at that reduced content width, so
+     those breakpoints would otherwise fire here too and wrap the 5
+     cards onto multiple rows. Force back to a single row of 5 and
+     shrink the cards' contents to fit the narrower print width. */
+  .irc3-basis-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 4px !important;
+  }
+
+  .irc3-basis-grid-card-score {
+    font-size: 11px !important;
+    padding: 3px 0 !important;
+  }
+
+  .irc3-basis-grid-card-body {
+    padding: 4px 4px 6px !important;
+    gap: 3px !important;
+  }
+
+  .irc3-basis-grid-card-percent {
+    font-size: 7px !important;
+    padding-bottom: 3px;
+  }
+
+  .irc3-basis-grid-card-row {
+    font-size: 6.5px !important;
+    gap: 2px;
+  }
+
+  .irc3-basis-grid-card-row strong {
+    font-size: 7.5px !important;
+  }
+
+  /* Data table */
+  .irc3-table-wrapper {
+    font-size: 8.5px !important;
+  }
+
+  .irc3-table,
+  .irc3-table thead th,
+  .irc3-table tbody td {
+    font-size: 8.5px !important;
+  }
+
+  .irc3-table thead th,
+  .irc3-table tbody td {
+    padding: 5px 4px !important;
+  }
+
+  /* OPCR/IPCR Score column carries a full badge (e.g. "5 – Outstanding")
+     that's noticeably longer than the plain numbers/percentages in the
+     other columns, so table-layout:fixed's even default split left it
+     too cramped to print. Give it more room and take the difference
+     from the Category label column plus the four narrower numeric
+     columns (24 + 22 + 4 × 13.5 = 100%). */
+  .irc3-label-col,
+  .irc3-table tfoot td.irc3-label-col {
+    width: 24% !important;
+  }
+
+  .irc3-table thead th:nth-child(5),
+  .irc3-table tbody td:nth-child(5),
+  .irc3-table thead th:nth-child(6),
+  .irc3-table tbody td:nth-child(6) {
+    width: 15% !important;
+  }
+
+  .irc3-table thead th:nth-child(2),
+  .irc3-table tbody td:nth-child(2) {
+    width: 13.5% !important;
+  }
+
+  .irc3-table thead th:nth-child(3),
+  .irc3-table tbody td:nth-child(3) {
+    width: 10% !important;
+  }
+
+  .irc3-table thead th:nth-child(4),
+  .irc3-table tbody td:nth-child(4) {
+    width: 20.5% !important;
+  }
+
+  .irc3-row-base {
+    font-size: 8px !important;
+  }
+
+  .irc3-auto-value,
+  .irc3-percent-badge,
+  .irc3-score-badge {
+    font-size: 8px !important;
+    padding: 3px 8px !important;
+  }
+
+  /* Target input reads as plain text on the printed page, matching
+     IRC1a's approach for its rating inputs -- the boxed form-field
+     look (border + fill + inset shadow) doesn't belong in a report,
+     and a bare number input's browser-default intrinsic width is far
+     wider than this cell, which would otherwise bleed past it. */
+  .irc3-input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 1px 0 !important;
+    font-size: 8.5px !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Report signatory footer print scaling lives centrally in
+     base.css (the same @media print block runs on every IRC1a-IRC9
+     page), so this page doesn't need its own copy. */
+
+  /* Avoid splitting a table row or a basis card awkwardly across a
+     page break. */
+  .irc3-table tr,
+  .irc3-basis-grid-card {
+    break-inside: avoid;
   }
 }

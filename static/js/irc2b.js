@@ -563,6 +563,33 @@
       });
   }
 
+  // --- Save to PDF ---
+  // Uses the browser's native print-to-PDF instead of a screenshot
+  // library: the print stylesheet (see the "Print / Save-to-PDF"
+  // section in irc2b.css) hides the logo bar, navbar, and this page's
+  // header action buttons, sizes the page to 8.5x13in "long" paper,
+  // and un-clips anything that only scrolls on screen (the table
+  // wrappers). document.title is swapped briefly since most browsers
+  // suggest it as the default "Save as PDF" filename. Mirrors IRC1a's
+  // saveToPdf() (irc1a.js) exactly, just scoped to this page's title.
+  function saveToPdf() {
+    const previousTitle = document.title;
+    document.title = `IRC2b Frequency of TA Provided to DEDP Priority Schools ${new Date().getFullYear()}`;
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+    window.addEventListener("afterprint", restoreTitle);
+
+    window.print();
+  }
+
+  const pdfBtn = document.getElementById("irc2b-pdf-btn");
+  if (pdfBtn) {
+    pdfBtn.addEventListener("click", saveToPdf);
+  }
+
   // --- Reset All Data ---
   // Wipes every checkbox (both sections) both on screen and in the
   // database. No per-cell undo -- this is a deliberate, confirmed,

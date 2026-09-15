@@ -102,6 +102,41 @@
   flex-shrink: 0;
 }
 
+/* Save to PDF button — matches IRC1a's Save to PDF button styling */
+.irc2b-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc2b-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc2b-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc2b-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ---- Reset All Data — quiet by default, reads as destructive on hover ---- */
 /* Reset-all-data button — matches IRC1a's reset button styling */
 .irc2b-reset-all-btn {
@@ -1122,6 +1157,7 @@
     width: 100%;
   }
 
+  .irc2b-pdf-btn,
   .irc2b-reset-all-btn {
     flex: 1;
     justify-content: center;
@@ -1132,5 +1168,505 @@
   .irc2b-coverage-card-body,
   .irc2b-section-card-body {
     padding: 14px 16px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Print / Save-to-PDF
+   Triggered by #irc2b-pdf-btn -> window.print() (see irc2b.js). Only
+   ever active on this page since irc2b.css is only loaded here, so
+   these rules can safely target the shared <header>/<nav> from
+   base.html without leaking into other tabs. Mirrors IRC1a's own
+   "Print / Save-to-PDF" block (irc1a.css) -- same paper size, same
+   unclip/color-adjust/scrollbar resets, same badge<->label alignment
+   technique -- adapted for this page's coverage dashboard + two
+   checklist tables instead of a single ratings table.
+------------------------------------------------------------------ */
+
+@media print {
+  /* "Long" bond paper, as requested -- 8.5in x 13in. */
+  @page {
+    size: 8.5in 13in;
+    margin: 0.5in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height. Printing engines
+     honor that overflow/height the same way screens do, which would
+     clip everything past one viewport-tall "page" of .content --
+     so it all has to be forced back to natural, unclipped flow here. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Logo bar + navbar (base.html) and this page's own header action
+     buttons (Save to PDF / Reset) -- none of these belong in a
+     printed report. */
+  header,
+  nav,
+  .irc2b-header-actions {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: only ever visible via a ".visible" class
+     toggle and defaults to display:none already, but force it off in
+     case a print is triggered while it's open. */
+  #irc2b-reset-confirm-overlay {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* Horizontally-scrolling tables need to render in full instead of
+     scrolling. */
+  .irc2b-table-wrapper {
+    overflow: visible !important;
+  }
+
+  .scroll-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Scrollbars never belong in a printed/PDF page. Most browsers omit
+     them for print automatically, but this removes any doubt. */
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default
+     unless told otherwise, which is why the dark section headers, the
+     elementary/secondary accent colors, and the checked checkboxes'
+     accent-color were all coming out flat/white. This forces every
+     background to print as it looks on screen. "Background graphics"
+     still needs to be left ON in the print dialog -- this can't
+     override that toggle, only make sure nothing here fights it. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Header scale-down. IRC2b's header shares IRC1a's exact base
+     values (54px badge, 32px h2, 14px subtitle, etc.), so the same
+     print sizes apply here unchanged.
+  --------------------------------------------------------------- */
+
+  .irc2b-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .irc2b-header-badge {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .irc2b-header-badge-group {
+    font-size: 8px;
+  }
+
+  .irc2b-header-badge-page {
+    font-size: 13px;
+  }
+
+  .irc2b-header-divider {
+    height: 38px;
+  }
+
+  .irc2b-header h2 {
+    font-size: 18px;
+  }
+
+  .irc2b-subtitle {
+    font-size: 10px;
+  }
+
+  /* -----------------------------------------------------------------
+     Guided-flow numbering: the on-screen design ties badge<->label
+     together via a shared CSS Grid rail (.irc2b-flow-rail) that spans
+     all 3 rows as one tall grid item, with the vertical connecting
+     line drawn down its own height. That works fine in a single
+     continuous viewport, but this page's Elementary section (19
+     schools + its own chart) routinely runs past one printed page on
+     its own -- and a paginated browser has to fragment that one tall
+     rail item across the resulting page break. Each fragment gets
+     repositioned independently by the print engine, which is what was
+     landing badge "3" near the tail end of Elementary's carried-over
+     chart on page 2 instead of next to the actual "Secondary" label
+     further down that same page -- a real Chromium print-pagination
+     bug, not a sizing mismatch, and not something any amount of
+     height/margin tuning on the shared rail can fix.
+
+     For print only, the shared rail is dropped in favor of numbering
+     each label in place: the badge circle is drawn as a ::before on
+     .irc2b-flow-label itself via a CSS counter, so the number and its
+     label are permanently the same fragment and can never separate
+     across a page break, no matter where either one falls.
+
+     The connecting line is kept, but -- for the same reason the old
+     shared rail broke -- it can no longer be one element spanning all
+     3 sections. Instead each section draws its own short line, from
+     its own badge down to its own bottom edge, via a ::after on that
+     section's label positioned against that one section only
+     (.irc2b-flow-section-N as the containing block). Scoped this way,
+     a line never has to reposition itself relative to a *different*
+     section's content the way the old cross-section rail did -- at
+     worst, a line that happens to run through a page break just
+     continues on the next page along with the rest of that section,
+     which is ordinary, well-supported print fragmentation rather than
+     the multi-row subgrid-item bug above. */
+  .irc2b-flow {
+    display: block !important;
+    counter-reset: irc2b-flow-step;
+  }
+
+  .irc2b-flow-rail {
+    display: none !important;
+  }
+
+  .irc2b-flow-section-1,
+  .irc2b-flow-section-2,
+  .irc2b-flow-section-3 {
+    grid-column: auto;
+    position: relative;
+  }
+
+  .irc2b-flow-label {
+    counter-increment: irc2b-flow-step;
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    height: auto !important;
+    margin: 0 0 6px 0 !important;
+    font-size: 10px;
+  }
+
+  .irc2b-flow-section-1 .irc2b-flow-label {
+    margin-top: 0 !important;
+  }
+
+  .irc2b-flow-section-2 .irc2b-flow-label,
+  .irc2b-flow-section-3 .irc2b-flow-label {
+    margin-top: 14px !important;
+  }
+
+  .irc2b-flow-label::before {
+    content: counter(irc2b-flow-step);
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #1f2937;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9.5px;
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* The connecting line -- starts just below the badge (18px badge +
+     its own 6px bottom margin) and runs to the bottom of this section
+     only, centered under the 18px-wide badge. */
+  .irc2b-flow-label::after {
+    content: "";
+    position: absolute;
+    left: 9px;
+    top: 24px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-strong, #d0d5dd);
+    z-index: 0;
+  }
+
+  /* The last section has nothing further down the page for its line
+     to connect to, so it's dropped there -- matching the on-screen
+     rail, whose own line already stops 20px short of the last badge. */
+  .irc2b-flow-section-3 .irc2b-flow-label::after {
+    display: none;
+  }
+
+  /* Everything below the label (the coverage/section cards, the
+     overall trend chart) needs to clear the connecting line the same
+     way the on-screen design clears its separate 40px rail column --
+     otherwise, sitting flush with the section's left edge like the
+     label's own badge does, they'd run right through the line instead
+     of alongside it. 35px gives the line a bit more breathing room
+     past the label's text than a bare 18px badge + 8px gap would. */
+  .irc2b-flow-section-1 > *:not(.irc2b-flow-label),
+  .irc2b-flow-section-2 > *:not(.irc2b-flow-label),
+  .irc2b-flow-section-3 > *:not(.irc2b-flow-label) {
+    margin-left: 50px !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Remove interactive-only affordances that don't belong in a
+     printed report: the Monthly/Quarterly chart toggles (3x, one per
+     chart) and the Total column's hover-swap toggle icon. The Total
+     column itself, and whatever mode each chart/table was left in on
+     screen, still prints -- only the controls for changing that mode
+     are removed.
+  --------------------------------------------------------------- */
+
+  .irc2b-chart-toggle,
+  .irc2b-total-toggle-icon-wrap {
+    display: none !important;
+  }
+
+  .irc2b-total-col-clickable {
+    cursor: default;
+  }
+
+  /* ---------------------------------------------------------------
+     Coverage summary card -- scaled down a notch further than the
+     other cards since its hero numbers (36px/30px on screen) are the
+     single largest text on the page.
+  --------------------------------------------------------------- */
+
+  .irc2b-coverage-card {
+    margin-bottom: 10px !important;
+  }
+
+  .irc2b-dark-header,
+  .irc2b-card-body,
+  .irc2b-section-card-body {
+    padding: 8px 10px !important;
+  }
+
+  .irc2b-coverage-card-body {
+    padding: 5px 8px !important;
+  }
+
+  .irc2b-coverage-row {
+    gap: 8px;
+    padding: 2px 0;
+  }
+
+  .irc2b-coverage-hero {
+    flex: 0 0 50px;
+  }
+
+  .irc2b-coverage-hero-value {
+    font-size: 15px !important;
+    line-height: 18px !important;
+  }
+
+  .irc2b-coverage-hero-label {
+    font-size: 7.5px !important;
+    margin-top: 1px;
+  }
+
+  .irc2b-coverage-bar-meta {
+    flex: 0 0 32px;
+    width: 32px;
+  }
+
+  .irc2b-coverage-bar-meta-value {
+    font-size: 11px !important;
+    line-height: 14px !important;
+  }
+
+  .irc2b-coverage-bar-meta-label {
+    font-size: 7.5px !important;
+    margin-top: 1px;
+  }
+
+  .irc2b-coverage-divider {
+    margin: 1px 0;
+  }
+
+  .irc2b-coverage-overall {
+    padding-top: 1px;
+  }
+
+  .irc2b-coverage-overall-label,
+  .irc2b-coverage-overall-value {
+    font-size: 8.5px !important;
+  }
+
+  .irc2b-dark-header h3 {
+    font-size: 11px !important;
+  }
+
+  .irc2b-subtitle-dark {
+    font-size: 9px !important;
+  }
+
+  .irc2b-coverage-row {
+    gap: 14px;
+    padding: 4px 0;
+  }
+
+  .irc2b-coverage-hero {
+    flex: 0 0 70px;
+  }
+
+  .irc2b-coverage-hero-value {
+    font-size: 22px !important;
+    line-height: 26px !important;
+  }
+
+  .irc2b-coverage-hero-label {
+    font-size: 9px !important;
+    margin-top: 3px;
+  }
+
+  .irc2b-coverage-bar-meta {
+    flex: 0 0 44px;
+    width: 44px;
+  }
+
+  .irc2b-coverage-bar-meta-value {
+    font-size: 16px !important;
+    line-height: 20px !important;
+  }
+
+  .irc2b-coverage-bar-meta-label {
+    font-size: 9px !important;
+    margin-top: 3px;
+  }
+
+  .irc2b-coverage-overall-label,
+  .irc2b-coverage-overall-value {
+    font-size: 10px !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Section cards (Elementary / Secondary) + line charts
+  --------------------------------------------------------------- */
+
+  .irc2b-section-card {
+    margin-bottom: 10px !important;
+  }
+
+  .irc2b-section-card-body .irc2b-table-wrapper,
+  .irc2b-linechart-wrapper {
+    margin-bottom: 10px !important;
+  }
+
+  .irc2b-linechart-wrapper {
+    padding: 8px 10px 6px !important;
+  }
+
+  .irc2b-linechart-title {
+    font-size: 10.5px !important;
+  }
+
+  .irc2b-linechart-title i {
+    font-size: 11px !important;
+  }
+
+  .irc2b-linechart-caption {
+    font-size: 8.5px !important;
+  }
+
+  .irc2b-linechart-axis-label,
+  .irc2b-linechart-x-label,
+  .irc2b-linechart-point-val {
+    font-size: 8px !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Tables: shrink type/padding to a print-appropriate scale, and
+     collapse the on-screen fixed-px column widths (240px label col +
+     92px total col + 12 x 56px month cols = 1004px, meant to scroll
+     inside .irc2b-table-wrapper on screen) down to percentages that
+     always sum to exactly 100% of the page's printable width -- with
+     no horizontal scrollbar available on a printed page, the fixed
+     widths would otherwise run every table off the right edge.
+  --------------------------------------------------------------- */
+
+  .irc2b-table-wrapper {
+    font-size: 8px !important;
+  }
+
+  .irc2b-table,
+  .irc2b-table thead th,
+  .irc2b-table tbody td,
+  .irc2b-table tfoot td,
+  .irc2b-school-num,
+  .irc2b-row-total,
+  .irc2b-total-header-label,
+  .irc2b-quarter-footer-total,
+  .irc2b-footer-grand-total,
+  .irc2b-footer-label {
+    font-size: 8px !important;
+  }
+
+  .irc2b-table thead th {
+    padding: 4px 2px !important;
+  }
+
+  .irc2b-quarter-row th {
+    padding-top: 5px;
+    padding-bottom: 3px;
+  }
+
+  .irc2b-month-row th {
+    padding-top: 2px;
+    padding-bottom: 4px;
+  }
+
+  .irc2b-table tbody td {
+    padding: 3px 2px !important;
+  }
+
+  .irc2b-footer-row td {
+    padding: 4px 2px !important;
+  }
+
+  .irc2b-label-col {
+    width: 24% !important;
+    padding-left: 6px !important;
+  }
+
+  .irc2b-total-col {
+    width: 8% !important;
+  }
+
+  .irc2b-table th:not(.irc2b-label-col):not(.irc2b-total-col),
+  .irc2b-table td:not(.irc2b-label-col):not(.irc2b-total-cell) {
+    width: 5.667% !important;
+  }
+
+  .irc2b-row-total,
+  .irc2b-quarter-footer-total,
+  .irc2b-footer-grand-total {
+    padding: 1px 5px !important;
+  }
+
+  /* Native checkboxes read fine in print as-is (the checked accent
+     color is preserved by the color-adjust rule above); just shrink
+     them to match the narrowed month columns. */
+  .irc2b-table input[type="checkbox"] {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  /* Avoid splitting a table row, or a bounded-height summary/chart
+     card, awkwardly across a page break. The section cards themselves
+     (table + chart together) are left out on purpose -- they're
+     taller than a page, so forcing them whole would just push blank
+     space instead of flowing naturally. */
+  .irc2b-table tr,
+  .irc2b-coverage-card,
+  .irc2b-linechart-wrapper {
+    break-inside: avoid;
   }
 }
