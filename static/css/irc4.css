@@ -661,6 +661,42 @@
   margin: 4px 0 0 0;
 }
 
+/* Read-only objective text on the main page (no edit/remove controls
+   live here anymore — see .irc4-objective-item's simplified markup). A
+   couple pixels less bottom padding than .irc4-field-text alone since
+   there's no adjacent icon button to vertically balance against. */
+.irc4-objective-view-text {
+  padding: 5px 0;
+}
+
+/* ---- Objectives modal: editable rows + "add another" button ---------- */
+
+/* Rows reuse .irc4-objective-item/-label/-input/-remove (already styled
+   above) so the modal's rows look identical to the old inline-editable
+   ones; this just adds the small amount the modal-specific list needs. */
+.irc4-objectives-modal-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  margin-top: 2px;
+  background: white;
+  border: 1px dashed var(--irc4-field-border);
+  border-radius: 6px;
+  color: var(--irc4-accent-dark);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc4-objectives-modal-add-btn:hover {
+  background: #eff4f9;
+  border-color: var(--irc4-accent);
+}
+
 /* ---- centerpiece zone: School + Schedule groups ---------------------------
    Visually distinct from the plain cards above/below it — tinted
    background, accent border, more generous padding — since it's the
@@ -1280,9 +1316,21 @@
 }
 
 /* Hidden (add-mode, nothing to delete yet) but keeps the footer's
-   space-between layout intact via this empty flex item. */
+   space-between layout intact via this empty flex item.
+   IMPORTANT: the browser's built-in `[hidden] { display: none; }` rule
+   still applies here, since `visibility` alone never overrides `display`
+   -- an author rule only beats a UA rule on properties it actually sets.
+   Without an explicit `display` below, the button drops out of the flex
+   layout entirely, leaving Cancel/Apply as the footer's only flex item;
+   with a single item, `justify-content: space-between` collapses to
+   flex-start, so Cancel/Apply end up pinned to the LEFT instead of the
+   right. Restoring `display` keeps it a real (invisible) flex item so
+   the two-item space-between layout -- and Cancel/Apply's right-aligned
+   position -- holds in both add- and edit-mode. */
 .irc4-modal-btn-danger[hidden] {
+  display: revert;
   visibility: hidden;
+  pointer-events: none;
 }
 
 .irc4-field-modal-textarea {
