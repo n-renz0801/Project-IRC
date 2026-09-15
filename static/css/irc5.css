@@ -103,6 +103,41 @@
   flex-shrink: 0;
 }
 
+/* Save to PDF button — same design as IRC1a/IRC3's Save to PDF button */
+.irc5-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc5-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc5-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc5-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .irc5-reset-btn {
   display: flex;
   align-items: center;
@@ -294,7 +329,7 @@
 
 .irc5-hero-row {
   display: grid;
-  grid-template-columns: 1fr 1.6fr 1fr;
+  grid-template-columns: 1.4fr 1.6fr 0.8fr;
   gap: 1.25rem;
   align-items: stretch;
 }
@@ -1346,7 +1381,7 @@
 
 @media (max-width: 1150px) {
   .irc5-hero-row {
-    grid-template-columns: 1fr 1.4fr 1fr;
+    grid-template-columns: 1.3fr 1.4fr 0.8fr;
     gap: 1rem;
   }
 
@@ -1393,6 +1428,7 @@
     width: 100%;
   }
 
+  .irc5-pdf-btn,
   .irc5-reset-btn {
     flex: 1;
     justify-content: center;
@@ -1435,5 +1471,376 @@
 
   .irc5-header-divider {
     height: 44px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Print / Save-to-PDF
+   Triggered by #irc5-pdf-btn -> window.print() (see irc5.js). Only
+   ever active on this page since irc5.css is only loaded here, so
+   these rules can safely target the shared <header>/<nav> from
+   base.html without leaking into other tabs. Mirrors IRC1a's and
+   IRC3's own "Print / Save-to-PDF" section (same paper size, same
+   unclip / color-adjust / scale-down approach) minus whatever
+   pieces don't exist here (Legend modal, rating-basis cards, etc)
+   plus IRC5-specific pieces those pages don't have (the dashboard's
+   donut/distribution/badge trio, the Add Entry button, the Actions
+   column, the entry modal + its calendar).
+------------------------------------------------------------------ */
+
+@media print {
+  /* "Long" bond paper, as requested -- 8.5in x 13in. */
+  @page {
+    size: 8.5in 13in;
+    margin: 0.5in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height. Printing engines
+     honor that overflow/height the same way screens do, which would
+     clip everything past one viewport-tall "page" of .content --
+     so it all has to be forced back to natural, unclipped flow here. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Logo bar + navbar (base.html), this page's own header action
+     buttons (Save to PDF / Reset), and the table's Add Entry button
+     -- none of these belong in a printed report. */
+  header,
+  nav,
+  .irc5-header-actions,
+  .irc5-add-btn {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: these are only ever visible via a
+     ".visible" class toggle and default to display:none already, but
+     force them off in case a print is triggered while one is open. */
+  #irc5-modal-overlay,
+  #irc5-confirm-overlay,
+  #irc5-reset-confirm-overlay {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* Horizontally-scrolling table needs to render in full instead of
+     scrolling. */
+  .irc5-table-wrapper {
+    overflow: visible !important;
+  }
+
+  .scroll-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Scrollbars never belong in a printed/PDF page. Most browsers omit
+     them for print automatically, but this removes any doubt. */
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default
+     unless told otherwise, which is why the dark analytics headers,
+     the donut ring, the distribution bars, and the various colored
+     badges were all coming out flat/white. This forces every
+     background to print as it looks on screen. "Background graphics"
+     still needs to be left ON in the print dialog -- this can't
+     override that toggle, only make sure nothing here fights it. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Scale down: everything below is sized for a 1600px+ screen, so
+     printed at full size onto a 8.5in-wide sheet it runs oversized
+     and can spill past the page edge. These trim fonts/paddings down
+     to a print-appropriate scale, independent of the on-screen
+     responsive breakpoints (which key off the print viewport width
+     and can't be relied on to land consistently across browsers --
+     several of IRC5's own breakpoints, e.g. the hero row collapsing
+     to one column and the donut going side-by-side below 950px,
+     would otherwise fire here too since the printed page is narrower
+     than that, so they're explicitly overridden back below).
+  --------------------------------------------------------------- */
+
+  .irc5-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .irc5-header-badge {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .irc5-header-badge-group {
+    font-size: 8px;
+  }
+
+  .irc5-header-badge-page {
+    font-size: 13px;
+  }
+
+  .irc5-header-divider {
+    height: 38px;
+  }
+
+  .irc5-header h2 {
+    font-size: 18px;
+  }
+
+  .irc5-subtitle {
+    font-size: 10px;
+    white-space: normal !important;
+  }
+
+  /* Height + top margin have to mirror .irc5-flow-badge exactly (both
+     normally share height:36px / margin-top:20px so they land on the
+     same row) -- shrinking the badge below without matching the label
+     here is what knocks them out of alignment. */
+  .irc5-flow-label {
+    height: 20px !important;
+    margin: 10px 0 6px 2px !important;
+    font-size: 10px;
+  }
+
+  .irc5-flow-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  /* Spacing between the 2 flow rows: this has to live on .irc5-flow's
+     own row-gap, NOT as margin-top on each .irc5-flow-section. A
+     per-section margin-top pushes that section's content down inside
+     its own grid row without the rail (a separate grid item) moving
+     with it, which is exactly what would knock the second label out
+     of alignment with its badge (the first has no preceding sibling,
+     so no extra margin to begin with). row-gap instead adds space
+     strictly between rows, so it can't create that offset. */
+  .irc5-flow {
+    row-gap: 14px;
+  }
+
+  .irc5-dark-header,
+  .irc5-card-body {
+    padding: 8px 10px !important;
+  }
+
+  .irc5-dark-header h3 {
+    font-size: 11px !important;
+  }
+
+  .irc5-subtitle-dark {
+    font-size: 9px !important;
+  }
+
+  /* Performance overview: keep the on-screen 3-column split instead
+     of letting it collapse to a single stacked column the way it
+     does on an actual narrow/mobile screen. */
+  .irc5-hero-row {
+    grid-template-columns: 1.4fr 1.6fr 0.8fr !important;
+    gap: 8px !important;
+  }
+
+  /* Donut card: stay in its vertical (ring-above-legend) layout
+     rather than the row layout the ≤950px screen breakpoint would
+     otherwise switch it to, and shrink the ring itself. */
+  .irc5-donut-body {
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  .irc5-donut-wrap {
+    width: 60px !important;
+    height: 60px !important;
+  }
+
+  .irc5-donut-center-value {
+    font-size: 13px !important;
+  }
+
+  .irc5-donut-center-label {
+    font-size: 6px !important;
+  }
+
+  .irc5-donut-legend {
+    gap: 4px !important;
+  }
+
+  .irc5-donut-legend-item {
+    font-size: 8px !important;
+    gap: 5px !important;
+  }
+
+  .irc5-donut-dot {
+    width: 7px !important;
+    height: 7px !important;
+  }
+
+  .irc5-donut-legend-label {
+    min-width: 50px !important;
+  }
+
+  /* Rating distribution bars */
+  .irc5-dist-body {
+    gap: 6px !important;
+    min-height: 80px !important;
+  }
+
+  .irc5-dist-track {
+    height: 50px !important;
+    max-width: 26px !important;
+  }
+
+  .irc5-dist-count {
+    font-size: 9px !important;
+    height: 12px !important;
+    line-height: 12px !important;
+  }
+
+  .irc5-dist-label {
+    font-size: 7px !important;
+    min-height: 16px !important;
+  }
+
+  .irc5-dist-range {
+    font-size: 6px !important;
+    min-height: 9px !important;
+  }
+
+  /* Average Overall Rating badge */
+  .irc5-badge-card {
+    padding: 8px 8px !important;
+  }
+
+  .irc5-badge-label {
+    font-size: 8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .irc5-badge-score {
+    font-size: 20px !important;
+  }
+
+  .irc5-badge-scale {
+    font-size: 8px !important;
+    margin-top: 2px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .irc5-badge-pill {
+    font-size: 8px !important;
+    padding: 2px 8px !important;
+  }
+
+  /* Activity entries table. The Actions column (Edit/Delete buttons)
+     doesn't belong in a printed report, so it's dropped entirely --
+     table-layout:fixed then redistributes its width among the
+     remaining 9 columns, whose print-only widths below already sum
+     to 100% assuming it's gone. */
+  .irc5-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 7px !important;
+  }
+
+  .irc5-table thead th,
+  .irc5-table tbody td {
+    padding: 3px 3px !important;
+    font-size: 7px !important;
+  }
+
+  .irc5-table thead th:last-child,
+  .irc5-table tbody td:last-child {
+    display: none !important;
+  }
+
+  .irc5-col-no {
+    width: 3% !important;
+  }
+  .irc5-col-title {
+    width: 14% !important;
+  }
+  .irc5-col-nature {
+    width: 7% !important;
+  }
+  .irc5-col-date {
+    width: 10% !important;
+  }
+  .irc5-col-participants {
+    width: 9% !important;
+  }
+  .irc5-col-rating {
+    width: 6% !important;
+  }
+  .irc5-col-descval {
+    width: 8% !important;
+  }
+  .irc5-col-indicator {
+    width: 14% !important;
+  }
+  .irc5-col-cause {
+    width: 14% !important;
+  }
+  .irc5-col-measures {
+    width: 15% !important;
+  }
+
+  .irc5-cell-text {
+    font-size: 7px !important;
+    line-height: 1.3 !important;
+  }
+
+  .irc5-nature-badge,
+  .irc5-descval-badge {
+    font-size: 6px !important;
+    padding: 2px 5px !important;
+  }
+
+  .irc5-rating-value {
+    font-size: 7px !important;
+    padding: 2px 6px !important;
+  }
+
+  /* Long unbroken text in the title/indicator/cause/measures columns
+     needs somewhere to break besides existing spaces once the columns
+     are this narrow. Same hyphenation approach as IRC1a's indicator
+     column. Needs the page's lang attribute to work, which base.html
+     already sets (<html lang="en">). */
+  .irc5-cell-title,
+  .irc5-cell-text {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+  }
+
+  /* Avoid splitting a table row or a dashboard card awkwardly across
+     a page break. */
+  .irc5-table tr,
+  .irc5-donut-card,
+  .irc5-dist-card,
+  .irc5-badge-card {
+    break-inside: avoid;
   }
 }
