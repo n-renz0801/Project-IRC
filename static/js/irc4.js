@@ -316,6 +316,9 @@
       "irc4ModalScheduleSuggestions",
     );
 
+    // Save to PDF button — see saveToPdf() near the bottom of this file.
+    els.pdfBtn = document.getElementById("irc4PdfBtn");
+
     // Reset button + its confirmation modal (separate from the Add/Edit
     // Group modal above — no shared state).
     els.resetBtn = document.getElementById("irc4ResetBtn");
@@ -1252,6 +1255,27 @@
   // dedicated "wipe everything" server route.
   // ============================================================
 
+  // --- Save to PDF ---
+  // Uses the browser's native print-to-PDF instead of a screenshot
+  // library: the print stylesheet (see the "Print / Save-to-PDF" section
+  // in irc4.css) hides the logo bar, navbar, and this page's own header
+  // action buttons, sizes the page to 8.5x13in "long" paper, and
+  // un-clips anything that only scrolls on screen. document.title is
+  // swapped briefly since most browsers suggest it as the default
+  // "Save as PDF" filename. Same approach as irc1a.js's saveToPdf().
+  function saveToPdf() {
+    const previousTitle = document.title;
+    document.title = `IRC4 TA Catch-up Plan ${new Date().getFullYear()}`;
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+    window.addEventListener("afterprint", restoreTitle);
+
+    window.print();
+  }
+
   function openResetModal() {
     els.resetModal.style.display = "flex";
   }
@@ -1417,6 +1441,8 @@
     els.modalScheduleInput.addEventListener("keydown", onModalScheduleKeydown);
     els.modalScheduleInput.addEventListener("focus", onModalScheduleOpen);
     els.modalScheduleInput.addEventListener("click", onModalScheduleOpen);
+
+    if (els.pdfBtn) els.pdfBtn.addEventListener("click", saveToPdf);
 
     els.resetBtn.addEventListener("click", openResetModal);
     els.resetModalCancel.addEventListener("click", closeResetModal);
