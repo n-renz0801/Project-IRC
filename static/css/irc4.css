@@ -108,6 +108,41 @@
   flex-shrink: 0;
 }
 
+/* Save to PDF button — same look/sizing as IRC1a's .irc1a-pdf-btn. */
+.irc4-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc4-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc4-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc4-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Reset button — sized down to match IRC1a's compact header actions
    (was 10px/18px padding, 14px/15px font/icon). */
 .irc4-reset-btn {
@@ -1454,6 +1489,7 @@
     width: 100%;
   }
 
+  .irc4-pdf-btn,
   .irc4-reset-btn {
     flex: 1;
     justify-content: center;
@@ -1466,5 +1502,247 @@
 
   .irc4-dark-header {
     flex-wrap: wrap;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Print / Save-to-PDF
+   Triggered by #irc4PdfBtn -> window.print() (see irc4.js). Mirrors
+   IRC1a's print section 1:1 (same page size, same unclip/scale-down
+   approach) adapted to IRC4's markup. Only ever active on this page
+   since irc4.css is only loaded here, so these rules can safely
+   target the shared <header>/<nav> from base.html without leaking
+   into other tabs.
+------------------------------------------------------------------ */
+
+@media print {
+  /* "Long" bond paper, as requested -- 8.5in x 13in. */
+  @page {
+    size: 8.5in 13in;
+    margin: 0.5in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height. Printing engines
+     honor that overflow/height the same way screens do, which would
+     clip everything past one viewport-tall "page" of .content --
+     so it all has to be forced back to natural, unclipped flow here. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Logo bar + navbar (base.html) and this page's own header action
+     buttons (Save to PDF / Reset, and every dark-header Add/Edit/Add
+     Group button) -- none of these belong in a printed report. */
+  header,
+  nav,
+  .irc4-header-actions,
+  .irc4-header-action-btn {
+    display: none !important;
+  }
+
+  /* Per-group Edit/Delete icon buttons on the read-only group cards --
+     screen-only controls, same reasoning as the header action buttons
+     above. */
+  .irc4-group-view-actions {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: every modal/confirm dialog is opened by
+     toggling an inline style.display (see irc4.js), which normally
+     beats a plain stylesheet rule -- !important is required here so
+     a modal left open mid-print never ends up in the PDF. */
+  .irc4-modal,
+  .irc4-confirm-overlay {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  .scroll-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Scrollbars never belong in a printed/PDF page. Most browsers omit
+     them for print automatically, but this removes any doubt. */
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default
+     unless told otherwise, which is why the dark section headers, the
+     tinted groups zone, and the level-colored school rows were all
+     coming out flat/white. This forces every background to print as
+     it looks on screen. "Background graphics" still needs to be left
+     ON in the print dialog -- this can't override that toggle, only
+     make sure nothing here fights it. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Scale down: everything below is sized for a 1600px+ screen, so
+     printed at full size onto a 8.5in-wide sheet it runs oversized
+     and can spill past the page edge. These trim fonts/paddings down
+     to a print-appropriate scale, independent of the on-screen
+     responsive breakpoints (which key off the print viewport width
+     and can't be relied on to land consistently across browsers).
+  --------------------------------------------------------------- */
+
+  .irc4-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .irc4-header-badge {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .irc4-header-badge-group {
+    font-size: 8px;
+  }
+
+  .irc4-header-badge-page {
+    font-size: 13px;
+  }
+
+  .irc4-header-divider {
+    height: 38px;
+  }
+
+  .irc4-header h2 {
+    font-size: 18px;
+  }
+
+  .irc4-subtitle {
+    font-size: 10px;
+  }
+
+  /* Height + top margin have to mirror .irc4-flow-badge exactly (both
+     normally share height:36px / margin-top:20px so they land on the
+     same row) -- shrinking the badge below without matching the label
+     here is what knocks them out of alignment. */
+  .irc4-flow-label {
+    height: 20px !important;
+    margin: 10px 0 6px 2px !important;
+    font-size: 10px;
+  }
+
+  .irc4-flow-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  /* Spacing between the 3 flow rows: this has to live on .irc4-flow's
+     own row-gap, NOT as margin-top on each .irc4-flow-section -- see
+     the identical note on IRC1a's print block. */
+  .irc4-flow {
+    row-gap: 14px;
+  }
+
+  /* Activity+Objectives / TA Receiver+MOV's: keep the even 50/50 split
+     instead of falling back to the single-column mobile layout, which
+     would otherwise kick in once the printed page's content width
+     (7.5in, after margins) drops below the 780px responsive
+     breakpoint. */
+  .irc4-cards-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px;
+  }
+
+  .irc4-dark-header,
+  .irc4-card-body {
+    padding: 8px 10px !important;
+  }
+
+  .irc4-dark-header h3 {
+    font-size: 11px !important;
+  }
+
+  .irc4-subtitle-dark {
+    font-size: 9px !important;
+  }
+
+  .irc4-field-text {
+    font-size: 9.5px !important;
+    padding: 4px 0;
+  }
+
+  .irc4-objective-view-text {
+    padding: 3px 0;
+  }
+
+  .irc4-objective-label {
+    font-size: 9.5px !important;
+    padding-top: 3px;
+  }
+
+  .irc4-objectives-list {
+    gap: 4px;
+  }
+
+  .irc4-groups-list {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .irc4-group-view {
+    padding: 8px 10px;
+  }
+
+  .irc4-group-view-header {
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+  }
+
+  .irc4-group-view-title {
+    font-size: 10.5px !important;
+  }
+
+  .irc4-group-view-list {
+    gap: 3px;
+  }
+
+  .irc4-group-school-item {
+    font-size: 9px !important;
+    padding: 4px 7px;
+  }
+
+  .irc4-groups-empty,
+  .irc4-group-view-empty {
+    font-size: 9.5px !important;
+  }
+
+  /* "At least three objectives are recommended" is a live-editing
+     nudge for whoever is filling out the plan on screen -- it doesn't
+     belong in the printed/PDF report. */
+  .irc4-objectives-warning {
+    display: none !important;
+  }
+
+  /* Avoid splitting a card or group row awkwardly across a page
+     break. */
+  .irc4-card,
+  .irc4-zone--groups,
+  .irc4-group-view {
+    break-inside: avoid;
   }
 }
