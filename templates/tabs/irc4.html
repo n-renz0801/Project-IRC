@@ -97,7 +97,7 @@ block content %}
             <button
               type="button"
               class="irc4-header-action-btn"
-              id="irc4AddObjectiveBtn"
+              id="irc4ObjectivesActionBtn"
             >
               <svg
                 class="irc4-icon"
@@ -110,10 +110,11 @@ block content %}
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <path
+                  d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                ></path>
               </svg>
-              <span>Add Objective</span>
+              <span data-role="action-label">Add Objective</span>
             </button>
           </div>
           <div class="irc4-card-body">
@@ -270,77 +271,147 @@ block content %}
     </div>
   </div>
 
-  <!-- Reusable template for a single objective list item.
-       The textarea lives inside .irc4-field-view alongside the text, so
-       typing happens right where the text was displayed — no layout jump
-       to a separate element below. Only one of edit-btn/save-btn is shown
-       at a time (see irc4.js initEditableField). -->
+  <!-- Reusable template for a single objective list item on the main page.
+       Read-only display only — no edit/save/remove controls live here.
+       All adding/editing/removing now happens through irc4ObjectivesModal
+       below; the main page just reflects whatever was last saved there. -->
   <template id="irc4-objective-template">
     <li class="irc4-objective-item" data-obj-id="">
       <span class="irc4-objective-label">a.</span>
-      <div class="irc4-field irc4-objective-field">
-        <div class="irc4-field-view" data-role="view">
-          <p
-            class="irc4-field-text"
-            data-role="text"
-            data-placeholder="Specific objective..."
-          >
-            Specific objective...
-          </p>
-          <textarea
-            class="irc4-objective-input"
-            data-role="input"
-            rows="1"
-            hidden
-          ></textarea>
-          <button
-            type="button"
-            class="irc4-field-edit-btn"
-            data-role="edit-btn"
-            title="Edit"
-          >
-            <svg
-              class="irc4-icon"
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path
-                d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-              ></path>
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="irc4-field-save-btn"
-            data-role="save-btn"
-            title="Save"
-            hidden
-          >
-            <svg
-              class="irc4-icon"
-              viewBox="0 0 24 24"
-              width="14"
-              height="14"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          </button>
-        </div>
+      <p
+        class="irc4-field-text irc4-objective-view-text"
+        data-role="text"
+        data-placeholder="Specific objective..."
+      >
+        Specific objective...
+      </p>
+    </li>
+  </template>
+
+  <!-- Add/Edit Objectives modal. Lets the person add, edit, and remove
+       objectives in one place; nothing is sent to the server until
+       "Save Objectives" is clicked (Cancel discards every change made
+       inside the modal, including removals — see irc4.js
+       openObjectivesModal / closeObjectivesModal). -->
+  <div id="irc4ObjectivesModal" class="irc4-modal" style="display: none">
+    <div class="irc4-modal-overlay" id="irc4ObjectivesModalOverlay"></div>
+    <div class="irc4-modal-content">
+      <div class="irc4-modal-header">
+        <h3>Objective/s</h3>
+        <button
+          type="button"
+          class="irc4-modal-close"
+          id="irc4ObjectivesModalClose"
+          aria-label="Close"
+        >
+          &times;
+        </button>
       </div>
+
+      <div class="irc4-modal-body">
+        <label class="irc4-group-sublabel"
+          >List down at least three specific objectives</label
+        >
+        <ol class="irc4-objectives-list" id="irc4ObjectivesModalList"></ol>
+        <button
+          type="button"
+          class="irc4-objectives-modal-add-btn"
+          id="irc4ObjectivesModalAddRow"
+        >
+          <svg
+            class="irc4-icon"
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Add another objective</span>
+        </button>
+        <p
+          class="irc4-objectives-warning"
+          id="irc4ObjectivesModalWarning"
+          hidden
+        >
+          At least three objectives are recommended.
+        </p>
+      </div>
+
+      <div class="irc4-modal-footer">
+        <button
+          type="button"
+          class="irc4-modal-btn irc4-modal-btn-cancel"
+          id="irc4ObjectivesModalCancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="irc4-modal-btn irc4-modal-btn-save"
+          id="irc4ObjectivesModalSave"
+        >
+          Save Objectives
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete-confirmation dialog for a single objective row inside the
+       Objectives modal. Visually identical to irc4ResetModal (same
+       .irc4-confirm-overlay/-box/-actions classes); its z-index (see
+       irc4.css) is already higher than .irc4-modal's, so it correctly
+       stacks on top of irc4ObjectivesModal instead of behind it. -->
+  <div
+    id="irc4ObjectiveDeleteConfirm"
+    class="irc4-confirm-overlay"
+    style="display: none"
+  >
+    <div class="irc4-confirm-box">
+      <h4>Remove this objective?</h4>
+      <p>
+        This objective will be removed from the list. This cannot be undone.
+      </p>
+      <div class="irc4-confirm-actions">
+        <button
+          type="button"
+          class="irc4-modal-btn irc4-modal-btn-cancel"
+          id="irc4ObjectiveDeleteCancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="irc4-modal-btn irc4-modal-btn-danger"
+          id="irc4ObjectiveDeleteConfirmBtn"
+        >
+          Yes, Remove
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reusable template for a single editable row inside the Objectives
+       modal (add/edit/remove all happen here — see irc4.js
+       renderObjectivesModalRows). -->
+  <template id="irc4-objective-row-template">
+    <li class="irc4-objective-item irc4-objective-row">
+      <span class="irc4-objective-label">a.</span>
+      <textarea
+        class="irc4-objective-input"
+        data-role="input"
+        rows="1"
+        placeholder="Specific objective..."
+      ></textarea>
       <button
         type="button"
         class="irc4-objective-remove"
+        data-role="remove-btn"
         title="Remove objective"
       >
         <svg
@@ -560,6 +631,39 @@ block content %}
           id="irc4ModalSave"
         >
           Save Group
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete-confirmation dialog for a single group card in the 3 & 4.
+       School & Schedule of TA section. Same .irc4-confirm-overlay/-box/
+       -actions pattern as irc4ResetModal / irc4ObjectiveDeleteConfirm. -->
+  <div
+    id="irc4GroupDeleteConfirm"
+    class="irc4-confirm-overlay"
+    style="display: none"
+  >
+    <div class="irc4-confirm-box">
+      <h4>Delete this group?</h4>
+      <p>
+        This will delete the group and its selected schools from the plan. This
+        cannot be undone.
+      </p>
+      <div class="irc4-confirm-actions">
+        <button
+          type="button"
+          class="irc4-modal-btn irc4-modal-btn-cancel"
+          id="irc4GroupDeleteCancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="irc4-modal-btn irc4-modal-btn-danger"
+          id="irc4GroupDeleteConfirmBtn"
+        >
+          Yes, Delete
         </button>
       </div>
     </div>

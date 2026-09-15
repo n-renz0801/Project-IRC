@@ -245,8 +245,48 @@
     els.fieldModalSave = document.getElementById("irc4FieldModalSave");
 
     els.objectivesList = document.getElementById("irc4ObjectivesList");
-    els.addObjectiveBtn = document.getElementById("irc4AddObjectiveBtn");
+    els.objectivesActionBtn = document.getElementById(
+      "irc4ObjectivesActionBtn",
+    );
     els.objectivesWarning = document.getElementById("irc4ObjectivesWarning");
+
+    // Add/Edit Objectives modal.
+    els.objectivesModal = document.getElementById("irc4ObjectivesModal");
+    els.objectivesModalOverlay = document.getElementById(
+      "irc4ObjectivesModalOverlay",
+    );
+    els.objectivesModalClose = document.getElementById(
+      "irc4ObjectivesModalClose",
+    );
+    els.objectivesModalList = document.getElementById(
+      "irc4ObjectivesModalList",
+    );
+    els.objectivesModalAddRow = document.getElementById(
+      "irc4ObjectivesModalAddRow",
+    );
+    els.objectivesModalWarning = document.getElementById(
+      "irc4ObjectivesModalWarning",
+    );
+    els.objectivesModalCancel = document.getElementById(
+      "irc4ObjectivesModalCancel",
+    );
+    els.objectivesModalSave = document.getElementById(
+      "irc4ObjectivesModalSave",
+    );
+    els.objectiveRowTemplate = document.getElementById(
+      "irc4-objective-row-template",
+    );
+
+    // Delete-confirmation dialog for a single row inside the modal above.
+    els.objectiveDeleteConfirm = document.getElementById(
+      "irc4ObjectiveDeleteConfirm",
+    );
+    els.objectiveDeleteCancel = document.getElementById(
+      "irc4ObjectiveDeleteCancel",
+    );
+    els.objectiveDeleteConfirmBtn = document.getElementById(
+      "irc4ObjectiveDeleteConfirmBtn",
+    );
 
     els.groupsList = document.getElementById("irc4GroupsList");
     els.groupsEmpty = document.getElementById("irc4GroupsEmpty");
@@ -282,6 +322,13 @@
     els.resetModal = document.getElementById("irc4ResetModal");
     els.resetModalCancel = document.getElementById("irc4ResetModalCancel");
     els.resetModalConfirm = document.getElementById("irc4ResetModalConfirm");
+
+    // Delete-confirmation dialog for a single group card.
+    els.groupDeleteConfirm = document.getElementById("irc4GroupDeleteConfirm");
+    els.groupDeleteCancel = document.getElementById("irc4GroupDeleteCancel");
+    els.groupDeleteConfirmBtn = document.getElementById(
+      "irc4GroupDeleteConfirmBtn",
+    );
   }
 
   // Textareas are non-resizable (CSS: resize: none) and grow purely with
@@ -291,107 +338,6 @@
     if (!textarea) return;
     textarea.style.height = "auto";
     textarea.style.height = `${textarea.scrollHeight}px`;
-  }
-
-  // ============================================================
-  // Generic view/edit field toggle
-  //
-  // Every text field (Activity, each Objective, TA Receiver, MOV's) is
-  // built the same way in the HTML:
-  //   .irc4-field
-  //     .irc4-field-view                 (always present, never itself hidden)
-  //       p[data-role="text"]            (view mode)
-  //       textarea[data-role="input"]    (edit mode — lives in the SAME spot
-  //                                        as the text, so typing happens
-  //                                        right where the text was)
-  //       button[data-role="edit-btn"]   (view mode — pencil)
-  //       button[data-role="save-btn"]   (edit mode — check)
-  //
-  // Clicking the edit (pencil) button swaps the text for the textarea and
-  // the pencil for a check button. Clicking the check button, blurring the
-  // textarea, or pressing Enter all commit the value and swap back.
-  // ============================================================
-
-  function initEditableField(fieldEl, initialValue, onChange) {
-    const textEl = fieldEl.querySelector('[data-role="text"]');
-    const editBtn = fieldEl.querySelector('[data-role="edit-btn"]');
-    const saveBtn = fieldEl.querySelector('[data-role="save-btn"]');
-    const inputEl = fieldEl.querySelector('[data-role="input"]');
-    const placeholder = textEl.dataset.placeholder || "";
-
-    function refreshView() {
-      const val = inputEl.value;
-      if (val.trim()) {
-        textEl.textContent = val;
-        textEl.classList.remove("is-placeholder");
-      } else {
-        textEl.textContent = placeholder;
-        textEl.classList.add("is-placeholder");
-      }
-    }
-
-    function enterEdit() {
-      textEl.hidden = true;
-      inputEl.hidden = false;
-      editBtn.hidden = true;
-      saveBtn.hidden = false;
-      autoGrow(inputEl);
-      inputEl.focus();
-      const len = inputEl.value.length;
-      inputEl.setSelectionRange(len, len);
-    }
-
-    function exitEdit() {
-      inputEl.hidden = true;
-      textEl.hidden = false;
-      editBtn.hidden = false;
-      saveBtn.hidden = true;
-      refreshView();
-    }
-
-    // Used by resetPlan() to blank the field out from the outside (not
-    // tied to user typing, so it skips the onChange callback — the caller
-    // is responsible for persisting/clearing the underlying data itself).
-    function setValue(val) {
-      inputEl.value = val || "";
-      autoGrow(inputEl);
-      refreshView();
-    }
-
-    inputEl.value = initialValue || "";
-    refreshView();
-
-    editBtn.addEventListener("click", enterEdit);
-
-    // mousedown + preventDefault keeps focus on the textarea when the save
-    // button is clicked, so the click fires normally instead of racing the
-    // textarea's own blur handler (same trick used for the school/schedule
-    // suggestion items below).
-    saveBtn.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-    });
-    saveBtn.addEventListener("click", () => {
-      exitEdit();
-      inputEl.blur();
-    });
-
-    inputEl.addEventListener("input", () => {
-      autoGrow(inputEl);
-      if (onChange) onChange(inputEl.value);
-    });
-    inputEl.addEventListener("blur", exitEdit);
-    // Plain Enter commits the field (same effect as clicking the check
-    // button — the existing blur handler above does the actual commit).
-    // Shift+Enter falls through to the textarea's normal behavior so a
-    // newline is inserted instead.
-    inputEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        inputEl.blur();
-      }
-    });
-
-    return { refreshView, enterEdit, exitEdit, setValue };
   }
 
   // ============================================================
@@ -433,61 +379,72 @@
 
   // ============================================================
   // Objectives
+  //
+  // The main page only ever shows a read-only list (see
+  // irc4-objective-template — no edit/save/remove controls in that
+  // markup at all). Every add/edit/remove happens inside
+  // irc4ObjectivesModal instead, against a local `objectivesDraft`
+  // that's only committed to the server (and back into `data.objectives`
+  // + the main-page list) when "Save Objectives" is clicked; Cancel just
+  // throws the draft away. See openObjectivesModal / saveObjectivesModal
+  // below.
   // ============================================================
 
-  function relabelObjectives() {
-    els.objectivesList
-      .querySelectorAll(".irc4-objective-item")
-      .forEach((li, idx) => {
-        li.querySelector(".irc4-objective-label").textContent =
-          `${letterLabel(idx)}.`;
-      });
+  function relabelObjectives(listEl) {
+    listEl.querySelectorAll(".irc4-objective-item").forEach((li, idx) => {
+      li.querySelector(".irc4-objective-label").textContent =
+        `${letterLabel(idx)}.`;
+    });
   }
 
   function updateObjectivesWarning() {
     els.objectivesWarning.hidden = data.objectives.length >= MIN_OBJECTIVES;
   }
 
-  function buildObjectiveNode(obj) {
+  // Header button reads "Add Objective" until at least one objective
+  // actually has text in it, then switches to "Edit Objectives" — same
+  // hasValue convention as updateFieldActionLabel() for Activity/TA
+  // Receiver/MOV's.
+  function updateObjectivesActionLabel() {
+    const label = els.objectivesActionBtn.querySelector(
+      '[data-role="action-label"]',
+    );
+    if (!label) return;
+    const hasValue = data.objectives.some((o) => o.text && o.text.trim());
+    label.textContent = hasValue ? "Edit Objectives" : "Add Objective";
+  }
+
+  function buildObjectiveViewNode(obj) {
     const frag = els.objectiveTemplate.content.cloneNode(true);
     const li = frag.querySelector(".irc4-objective-item");
     li.dataset.objId = obj.id;
-
-    // Debounced so typing doesn't fire a save on every keystroke — only
-    // once input has paused for a moment (same tradeoff as savePlanField).
-    const saveText = debounce((val) => {
-      fetch("/irc/irc4/objective", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: obj.id, text: val }),
-      }).catch(() => {
-        /* Best-effort: obj.text already reflects the change locally. */
-      });
-    }, 500);
-
-    const fieldEl = li.querySelector(".irc4-field");
-    initEditableField(fieldEl, obj.text, (val) => {
-      obj.text = val;
-      saveText(val);
-    });
-
+    const textEl = li.querySelector('[data-role="text"]');
+    const placeholder = textEl.dataset.placeholder || "";
+    if (obj.text && obj.text.trim()) {
+      textEl.textContent = obj.text;
+      textEl.classList.remove("is-placeholder");
+    } else {
+      textEl.textContent = placeholder;
+      textEl.classList.add("is-placeholder");
+    }
     return li;
   }
 
-  // Renders whatever's currently in data.objectives (loaded from the
-  // server) — used once at init, after loadPlan() has populated it.
+  // Renders whatever's currently in data.objectives — used at init (after
+  // loadPlan()) and again after the modal is saved.
   function renderObjectivesFromData() {
     els.objectivesList.innerHTML = "";
     data.objectives.forEach((obj) => {
-      els.objectivesList.appendChild(buildObjectiveNode(obj));
+      els.objectivesList.appendChild(buildObjectiveViewNode(obj));
     });
-    relabelObjectives();
+    relabelObjectives(els.objectivesList);
     updateObjectivesWarning();
+    updateObjectivesActionLabel();
   }
 
-  // "Add Objective" creates the row server-side first, so it gets a real
-  // id before anything tries to reference it (e.g. a save fired from a
-  // fast follow-up edit).
+  // "Add Objective" (used only by resetPlan()'s re-seeding, now that the
+  // main list itself is read-only) creates the row server-side first, so
+  // it gets a real id before anything tries to reference it.
   async function addObjective() {
     let obj;
     try {
@@ -502,40 +459,135 @@
     }
 
     data.objectives.push(obj);
-    const li = buildObjectiveNode(obj);
-    els.objectivesList.appendChild(li);
-    relabelObjectives();
+    els.objectivesList.appendChild(buildObjectiveViewNode(obj));
+    relabelObjectives(els.objectivesList);
     updateObjectivesWarning();
   }
 
-  function removeObjective(objId) {
-    const idx = data.objectives.findIndex(
-      (o) => String(o.id) === String(objId),
-    );
-    if (idx === -1) return;
-    data.objectives.splice(idx, 1);
+  // ---- Add/Edit Objectives modal ---------------------------------------
 
-    const li = els.objectivesList.querySelector(
-      `.irc4-objective-item[data-obj-id="${CSS.escape(String(objId))}"]`,
-    );
-    if (li) li.remove();
+  // Working copy edited inside the modal; each entry is
+  // { id: <existing id> | null, text: string }. Only committed to
+  // data.objectives (and the server) on Save — see saveObjectivesModal().
+  let objectivesDraft = [];
+  // Ids of objectives that existed on the server and were removed inside
+  // the modal; DELETEd only when Save actually goes through, so Cancel
+  // leaves the server untouched.
+  let objectivesDeletedIds = [];
+  // Index (into objectivesDraft) pending removal while the delete
+  // confirmation dialog is open; null otherwise.
+  let pendingRemoveIndex = null;
 
-    relabelObjectives();
-    updateObjectivesWarning();
+  function renderObjectivesModalRows() {
+    els.objectivesModalList.innerHTML = "";
+    objectivesDraft.forEach((entry, idx) => {
+      const frag = els.objectiveRowTemplate.content.cloneNode(true);
+      const li = frag.querySelector(".irc4-objective-item");
+      const input = li.querySelector('[data-role="input"]');
+      input.value = entry.text || "";
 
-    fetch(`/irc/irc4/objective/${encodeURIComponent(objId)}`, {
-      method: "DELETE",
-    }).catch(() => {
-      /* Best-effort, same as everywhere else — the item is already gone
-         from the UI; a failed delete just risks it reappearing on reload. */
+      input.addEventListener("input", () => {
+        autoGrow(input);
+        entry.text = input.value;
+      });
+
+      li.querySelector('[data-role="remove-btn"]').addEventListener(
+        "click",
+        () => {
+          pendingRemoveIndex = idx;
+          els.objectiveDeleteConfirm.style.display = "flex";
+        },
+      );
+
+      els.objectivesModalList.appendChild(li);
     });
+    relabelObjectives(els.objectivesModalList);
+    els.objectivesModalList
+      .querySelectorAll(".irc4-objective-input")
+      .forEach(autoGrow);
+    els.objectivesModalWarning.hidden =
+      objectivesDraft.length >= MIN_OBJECTIVES;
   }
 
-  function onObjectivesClick(e) {
-    const removeBtn = e.target.closest(".irc4-objective-remove");
-    if (!removeBtn) return;
-    const li = removeBtn.closest(".irc4-objective-item");
-    if (li) removeObjective(li.dataset.objId);
+  function openObjectivesModal() {
+    objectivesDraft = data.objectives.map((o) => ({ id: o.id, text: o.text }));
+    objectivesDeletedIds = [];
+    pendingRemoveIndex = null;
+    renderObjectivesModalRows();
+    els.objectivesModal.style.display = "flex";
+  }
+
+  function closeObjectivesModal() {
+    els.objectivesModal.style.display = "none";
+    objectivesDraft = [];
+    objectivesDeletedIds = [];
+    pendingRemoveIndex = null;
+  }
+
+  function addObjectiveDraftRow() {
+    objectivesDraft.push({ id: null, text: "" });
+    renderObjectivesModalRows();
+    const inputs = els.objectivesModalList.querySelectorAll(
+      ".irc4-objective-input",
+    );
+    const last = inputs[inputs.length - 1];
+    if (last) last.focus();
+  }
+
+  function closeObjectiveDeleteConfirm() {
+    els.objectiveDeleteConfirm.style.display = "none";
+    pendingRemoveIndex = null;
+  }
+
+  // Only actually removes the row from the draft once the person confirms
+  // in irc4ObjectiveDeleteConfirm — nothing is deleted on the first click.
+  function confirmRemoveObjectiveDraftRow() {
+    if (pendingRemoveIndex === null) return;
+    const [removed] = objectivesDraft.splice(pendingRemoveIndex, 1);
+    if (removed && removed.id) objectivesDeletedIds.push(removed.id);
+    closeObjectiveDeleteConfirm();
+    renderObjectivesModalRows();
+  }
+
+  // Persists the whole draft: deletes anything removed, updates anything
+  // that already had an id, and creates anything new — then reflects the
+  // final result back into data.objectives and the read-only main list.
+  async function saveObjectivesModal() {
+    els.objectivesModalSave.disabled = true;
+    try {
+      await Promise.all(
+        objectivesDeletedIds.map((id) =>
+          fetch(`/irc/irc4/objective/${encodeURIComponent(id)}`, {
+            method: "DELETE",
+          }).catch(() => {}),
+        ),
+      );
+
+      const saved = await Promise.all(
+        objectivesDraft.map(async (entry) => {
+          try {
+            const res = await fetch("/irc/irc4/objective", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: entry.id, text: entry.text }),
+            });
+            return await res.json();
+          } catch (e) {
+            // Best-effort: fall back to the local draft entry so this
+            // objective doesn't just vanish from the page on a network
+            // hiccup (it will simply re-sync on the next successful save
+            // or page load).
+            return { id: entry.id, text: entry.text };
+          }
+        }),
+      );
+
+      data.objectives = saved;
+      renderObjectivesFromData();
+      closeObjectivesModal();
+    } finally {
+      els.objectivesModalSave.disabled = false;
+    }
   }
 
   // ============================================================
@@ -629,14 +681,31 @@
     return data.groups.find((g) => String(g.id) === String(groupId)) || null;
   }
 
+  // Id of the group pending deletion while irc4GroupDeleteConfirm is open;
+  // null otherwise. Nothing is removed until the person confirms.
+  let pendingDeleteGroupId = null;
+
+  function openGroupDeleteConfirm(groupId) {
+    pendingDeleteGroupId = groupId;
+    els.groupDeleteConfirm.style.display = "flex";
+  }
+
+  function closeGroupDeleteConfirm() {
+    els.groupDeleteConfirm.style.display = "none";
+    pendingDeleteGroupId = null;
+  }
+
+  function confirmDeleteGroup() {
+    if (pendingDeleteGroupId === null) return;
+    removeGroup(pendingDeleteGroupId);
+    closeGroupDeleteConfirm();
+  }
+
   function onGroupsClick(e) {
     const deleteBtn = e.target.closest(".irc4-group-delete-btn");
     if (deleteBtn) {
       const card = deleteBtn.closest(".irc4-group-view");
-      if (!card) return;
-      if (confirm("Delete this group and its selected schools?")) {
-        removeGroup(card.dataset.groupId);
-      }
+      if (card) openGroupDeleteConfirm(card.dataset.groupId);
       return;
     }
 
@@ -1230,6 +1299,7 @@
     updateGroupsEmptyState();
     els.objectivesList.innerHTML = "";
     updateObjectivesWarning();
+    updateObjectivesActionLabel();
 
     // Deleting every objective may itself cause the server to re-seed its
     // own baseline (the server guarantees at least three blank objectives
@@ -1298,8 +1368,29 @@
     els.fieldModalSave.addEventListener("click", applyFieldModal);
     els.fieldModalDelete.addEventListener("click", deleteFieldModal);
 
-    els.addObjectiveBtn.addEventListener("click", addObjective);
-    els.objectivesList.addEventListener("click", onObjectivesClick);
+    els.objectivesActionBtn.addEventListener("click", openObjectivesModal);
+    els.objectivesModalClose.addEventListener("click", closeObjectivesModal);
+    els.objectivesModalCancel.addEventListener("click", closeObjectivesModal);
+    els.objectivesModalOverlay.addEventListener("click", closeObjectivesModal);
+    els.objectivesModalAddRow.addEventListener("click", addObjectiveDraftRow);
+    els.objectivesModalSave.addEventListener("click", saveObjectivesModal);
+
+    els.objectiveDeleteCancel.addEventListener(
+      "click",
+      closeObjectiveDeleteConfirm,
+    );
+    els.objectiveDeleteConfirmBtn.addEventListener(
+      "click",
+      confirmRemoveObjectiveDraftRow,
+    );
+    // Same click-outside-the-box pattern as irc4ResetModal: the overlay
+    // itself is the outer element, so only close if the click landed on
+    // the backdrop, not the confirmation box or its buttons.
+    els.objectiveDeleteConfirm.addEventListener("click", (e) => {
+      if (e.target === els.objectiveDeleteConfirm) {
+        closeObjectiveDeleteConfirm();
+      }
+    });
 
     els.addGroupBtn.addEventListener("click", openAddGroupModal);
     els.groupsList.addEventListener("click", onGroupsClick);
@@ -1337,6 +1428,13 @@
       if (e.target === els.resetModal) closeResetModal();
     });
     els.resetModalConfirm.addEventListener("click", resetPlan);
+
+    els.groupDeleteCancel.addEventListener("click", closeGroupDeleteConfirm);
+    els.groupDeleteConfirmBtn.addEventListener("click", confirmDeleteGroup);
+    // Same click-outside-the-box pattern as irc4ResetModal.
+    els.groupDeleteConfirm.addEventListener("click", (e) => {
+      if (e.target === els.groupDeleteConfirm) closeGroupDeleteConfirm();
+    });
 
     // Objectives/groups were already loaded by loadPlan() above (the
     // server guarantees at least three blank objectives exist) — render
