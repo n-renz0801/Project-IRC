@@ -126,6 +126,41 @@
   flex-shrink: 0;
 }
 
+/* Save to PDF button — same look as IRC1a's .irc1a-pdf-btn. */
+.irc7-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc7-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc7-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc7-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ------------------------------------------------------------------
    Guided Flow — numbered rail, same pattern as IRC1a/IRC3/IRC5/IRC6.
    Only one section lives here (Dashboard table) since IRC7 has no
@@ -251,32 +286,6 @@
 
 /* ---------- Toolbar (now hosted inside the dark card header) ---------- */
 
-.irc7-mode-banners {
-  margin-bottom: 12px;
-}
-
-.irc7-mode-banner {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 10px 14px;
-  border-radius: 8px;
-}
-
-.irc7-mode-banner--edit {
-  background: #eaf1fb;
-  color: #1f4f8a;
-  border: 1px solid #bcd4f0;
-}
-
-.irc7-mode-banner--delete {
-  background: #fdecea;
-  color: #a5271f;
-  border: 1px solid #f3bcb7;
-}
-
 .irc7-toolbar-actions {
   display: flex;
   align-items: center;
@@ -312,49 +321,6 @@
 
 .irc7-add-column-toolbar-btn:active {
   transform: scale(0.97);
-}
-
-/* Minimalist icon-only mode toggles — translucent white against the
-   dark header so they read as controls without competing with the
-   solid white Add Column pill. */
-
-.irc7-icon-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #e5eaf0;
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
-  font-size: 14px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.irc7-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.45);
-}
-
-.irc7-icon-btn--edit.irc7-icon-btn--active {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: white;
-}
-
-.irc7-icon-btn--delete.irc7-icon-btn--active {
-  background: #dc2626;
-  border-color: #dc2626;
-  color: white;
-}
-
-.irc7-toolbar-divider {
-  width: 1px;
-  height: 22px;
-  background: rgba(255, 255, 255, 0.25);
-  margin: 0 2px;
 }
 
 /* Reset button — identical (reduced) sizing to IRC5/IRC6's .irc5-reset-btn */
@@ -772,28 +738,6 @@
   appearance: textfield;
 }
 
-/* ---------- Edit / Delete mode: header interaction cues ---------- */
-/* No icons in headers — keeps text perfectly centered. Instead, added
-   headers get a hover highlight + pointer cursor only while a mode is on,
-   so it's clear they're clickable without disturbing the layout. */
-
-.irc7-table.irc7-mode-edit .irc7-added-header,
-.irc7-table.irc7-mode-delete .irc7-added-header {
-  cursor: pointer;
-}
-
-.irc7-table.irc7-mode-edit .irc7-added-header:hover {
-  background: #2c5da8 !important;
-  outline: 2px solid #7fa8e0;
-  outline-offset: -2px;
-}
-
-.irc7-table.irc7-mode-delete .irc7-added-header:hover {
-  background: #8e2a20 !important;
-  outline: 2px solid #e08b80;
-  outline-offset: -2px;
-}
-
 /* ---------- Modal (shared: Add Column & Edit) ---------- */
 
 .irc7-modal {
@@ -877,47 +821,30 @@
   line-height: 1.5;
 }
 
-/* Edit modal fields */
-
-.irc7-edit-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0 0 6px 0;
-}
-
-.irc7-edit-name-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 9px 12px;
-  border: 1px solid #e2e5ea;
-  border-radius: 6px;
-  font-size: 13px;
-  background: #fbfbfc;
-  margin-bottom: 16px;
-}
-
-.irc7-edit-name-input:focus {
-  outline: none;
-  border-color: #4a6fa5;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
-}
-
-#editItemTypeWrapper .irc7-column-type-select {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Group blocks (Add Column modal) */
+/* Group blocks (Add/Edit Columns modal) */
 
 .irc7-group-block {
   border: 1px solid #e2e5ea;
   border-radius: 10px;
   padding: 14px;
-  margin-bottom: 14px;
   background: #fafbfc;
+}
+
+/* Holds every standalone column row and group block together, in the
+   same chronological order they were added -- new items append to the
+   end of this single list rather than into separate sections, and the
+   uniform gap here (not each item's own margin) keeps spacing even
+   whether neighboring items are two plain rows or a row next to a
+   group block. */
+#irc7-columns-manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+#irc7-columns-manage-list:empty {
+  margin-bottom: 0;
 }
 
 .irc7-group-block-header {
@@ -927,34 +854,13 @@
   margin-bottom: 10px;
 }
 
-/* Where this block's columns go: a new group, an existing group, or no
-   group at all. See createGroupBlock() in irc7.js. */
-.irc7-group-target-select {
+/* The group's name, editable in place -- sits in the block header next to
+   the remove button. Used both for a brand-new group (empty, placeholder
+   text) and an existing one (pre-filled, renamable). */
+.irc7-group-name-input {
   flex: 1;
   min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid #e2e5ea;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-  background: white;
-  cursor: pointer;
-}
-
-.irc7-group-target-select:focus {
-  outline: none;
-  border-color: #4a6fa5;
-  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
-}
-
-/* Only shown when the target is "New group…" -- it sits on its own line
-   below the select rather than beside it, so a long group name has the
-   full width of the block to work with. */
-.irc7-group-name-input {
-  width: 100%;
   box-sizing: border-box;
-  margin-bottom: 10px;
   padding: 8px 10px;
   border: 1px solid #e2e5ea;
   border-radius: 6px;
@@ -1069,22 +975,16 @@
   background: #f0f5ff;
 }
 
-.irc7-add-group-btn {
-  background: #4a6fa5;
-  color: white;
-  border: none;
-  padding: 9px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  transition: background 0.2s ease;
-}
-
-.irc7-add-group-btn:hover {
-  background: #3d5a8a;
+/* Row that holds "+ Add Standalone Column" and "+ Add Group" side by
+   side, both using .irc7-add-column-btn so they look identical. Sits
+   above the manage-columns list (see #irc7-columns-manage-list) rather
+   than inside any one section, since new items append to a single
+   chronological list either way. */
+.irc7-manage-add-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
 }
 
 .irc7-modal-footer {
@@ -1128,14 +1028,7 @@
 
 /* ---------- Inline SVG icons (no external font dependency) ---------- */
 
-.irc7-icon-btn svg {
-  width: 16px;
-  height: 16px;
-  display: block;
-}
-
 .irc7-add-column-toolbar-btn svg,
-.irc7-add-group-btn svg,
 .irc7-add-column-btn svg {
   width: 14px;
   height: 14px;
@@ -1149,12 +1042,6 @@
   width: 14px;
   height: 14px;
   display: block;
-}
-
-.irc7-banner-icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
 }
 
 /* ---------- Reset confirmation modal ---------- */
@@ -1397,5 +1284,292 @@
   .irc7-column-type-select {
     width: auto;
     flex: 1;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Print / Save-to-PDF
+   Triggered by #irc7-pdf-btn -> window.print() (see irc7.js). Only ever
+   active on this page since irc7.css is only loaded here, so these
+   rules can safely target the shared <header>/<nav> from base.html
+   without leaking into other tabs.
+------------------------------------------------------------------ */
+
+@media print {
+  /* "Long" bond paper, as requested -- 13in x 8.5in, landscape. */
+  @page {
+    size: 13in 8.5in;
+    margin: 0.5in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height. Printing engines
+     honor that overflow/height the same way screens do, which would
+     clip everything past one viewport-tall "page" of .content -- so it
+     all has to be forced back to natural, unclipped flow here. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Logo bar + navbar (base.html) and this page's own toolbar buttons
+     (Save to PDF / Reset / Add Column) -- none of these belong in a
+     printed report. */
+  header,
+  nav,
+  .irc7-header-actions,
+  .irc7-toolbar-actions {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: these are only ever visible via a "visible"/
+     inline-style toggle and default to hidden already, but force them
+     off in case a print is triggered while one is open. */
+  #addColumnModal,
+  #irc7-delete-confirm-overlay,
+  #irc7-reset-confirm-overlay {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* #irc7StickyTopGap (the opaque strip that recreates the page's
+     normal top spacing), #irc7TopScrollbar (the sticky duplicate
+     scrollbar), and #irc7BottomSentinel (its IntersectionObserver
+     marker) are all screen-only scaffolding for a scrolling table --
+     nothing on a printed page ever scrolls, so none of them have
+     anything to contribute here. */
+  #irc7StickyTopGap,
+  #irc7TopScrollbar,
+  #irc7BottomSentinel {
+    display: none !important;
+  }
+
+  /* The real header cells live in their own small table
+     (#irc7-header-table) that normally sticks above the scrolling body
+     table and is clipped/scrolled by JS to track it in lockstep (see
+     the "Sticky header (separate table)" comment up top). On paper
+     there's nothing to stick to or clip against -- render it as a
+     plain, unclipped block sitting directly above the body table
+     instead, which is also why it needs no top margin/gap of its own. */
+  .irc7-sticky-header {
+    position: static !important;
+    background: transparent !important;
+  }
+
+  .irc7-sticky-header-clip {
+    overflow: visible !important;
+  }
+
+  .irc7-table-card,
+  .irc7-table-wrapper,
+  .irc7-table-scroll {
+    overflow: visible !important;
+  }
+
+  /* Column widths are normally mirrored 1:1 between the header table
+     and body table in px or %, sized by recalcLayout() for the
+     ON-SCREEN scroll container's width -- browsers' print/Save-as-PDF
+     pipeline doesn't reliably re-run that measurement against the
+     actual print page, so those on-screen widths (including the
+     "doesn't fit, scroll instead" px-per-column mode, which only gets
+     more likely the more columns are added) would otherwise leak
+     straight into the PDF instead of fitting the page. The real fix
+     for that lives in irc7.js: a "beforeprint" handler recomputes both
+     colgroups as fluid percentages -- proportional to each column's own
+     minimum width, unconditionally -- right before printing, and
+     mirrors them onto the header table's colgroup the same way
+     recalcLayout() always does, so the two tables stay aligned. This
+     table-layout stays FIXED (not auto) so those percentages are
+     actually honored: table-layout: auto would size each table's
+     columns from its own content instead (header labels vs. cell
+     values), which is independent per table and would drift the two
+     out of alignment again. */
+  #irc7-table,
+  #irc7-header-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  /* NOTE: no width override here for #irc7-colgroup/#irc7-header-colgroup
+     cols -- the "beforeprint" handler in irc7.js sets their widths
+     directly as inline styles, and a CSS width here (especially with
+     !important) would just fight that. */
+
+  /* Frozen reference columns (School ID -> School Classification) only
+     matter for a horizontally-scrolling screen table; pinning them via
+     position: sticky serves no purpose on paper and both tables print
+     in full anyway, so freezing is switched off here the same way the
+     narrow-screen breakpoint above already does. */
+  .irc7-table th.irc7-frozen-col,
+  .irc7-table td.irc7-frozen-col {
+    position: static !important;
+    box-shadow: none !important;
+  }
+
+  /* Scrollbars never belong in a printed/PDF page. Most browsers omit
+     them for print automatically, but this removes any doubt. */
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default
+     unless told otherwise, which is why the dark headers and the added
+     -column header shades were coming out flat/white. This forces
+     every background to print as it looks on screen. "Background
+     graphics" still needs to be left ON in the print dialog -- this
+     can't override that toggle, only make sure nothing here fights it. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Scale down: everything below is sized for a 1600px+ screen, so
+     printed at full size it runs oversized. These trim fonts/paddings
+     down to a print-appropriate scale, independent of the on-screen
+     responsive breakpoints.
+  --------------------------------------------------------------- */
+
+  .irc7-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .irc7-header-badge {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .irc7-header-badge-group {
+    font-size: 8px;
+  }
+
+  .irc7-header-badge-page {
+    font-size: 13px;
+  }
+
+  .irc7-header-divider {
+    height: 38px;
+  }
+
+  .irc7-header h2 {
+    font-size: 18px;
+  }
+
+  .irc7-subtitle {
+    font-size: 10px;
+  }
+
+  /* Height + top margin have to mirror .irc7-flow-badge exactly (both
+     normally share height:36px / margin-top:20px so they land on the
+     same row) -- shrinking the badge below without matching the label
+     here is what would knock them out of alignment. */
+  .irc7-flow-label {
+    height: 20px !important;
+    margin: 10px 0 6px 2px !important;
+    font-size: 10px;
+  }
+
+  .irc7-flow-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  .irc7-dark-header,
+  .irc7-dark-header-with-action {
+    padding: 8px 10px !important;
+  }
+
+  .irc7-dark-header h3 {
+    font-size: 11px !important;
+  }
+
+  .irc7-subtitle-dark {
+    font-size: 9px !important;
+  }
+
+  .irc7-table-wrapper {
+    font-size: 8px !important;
+    margin-bottom: 0;
+  }
+
+  /* Unify every piece of text inside both tables to the same size --
+     .irc7-table carries its own explicit font-size (set for on-screen
+     use) that would otherwise win over the inherited 8px above, and
+     form elements like the cell <input>s don't inherit font-size from
+     their ancestors at all, so each one needs to be pinned directly. */
+  .irc7-table,
+  .irc7-table thead th,
+  .irc7-table tbody td,
+  .irc7-table tfoot td,
+  .irc7-cell-input {
+    font-size: 8px !important;
+  }
+
+  .irc7-table thead th,
+  .irc7-table tbody td,
+  .irc7-table tfoot td {
+    padding: 3px 4px !important;
+  }
+
+  .irc7-totals-label {
+    padding-right: 8px;
+  }
+
+  /* Columns can still end up fairly narrow once several have been added
+     (see the fluid-percentage widths set in irc7.js), so long unbroken
+     labels (school names, classifications) need somewhere to break
+     other than existing spaces so they wrap within their column instead
+     of forcing it wide. Needs the page's lang attribute, which
+     base.html already sets (<html lang="en">). */
+  .irc7-table th,
+  .irc7-table td {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+  }
+
+  /* By default a <tfoot> (display: table-footer-group) is meant to
+     repeat on every printed page when its table spans more than one,
+     the same way <thead> repeats as a running header -- the Total row
+     should only ever appear once, right after the last data row.
+     Switching its display to a plain row group opts out of that
+     repeat-per-page behavior. */
+  .irc7-table tfoot {
+    display: table-row-group;
+  }
+
+  /* Editable cell inputs: on screen these look like boxed form fields
+     (border + off-white fill + inset shadow); on a printed report they
+     should just read as plain text/numbers. */
+  .irc7-cell-input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    text-align: center;
+  }
+
+  /* Avoid splitting a table row awkwardly across a page break. */
+  .irc7-table tr {
+    break-inside: avoid;
   }
 }

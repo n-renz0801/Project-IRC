@@ -10,6 +10,23 @@
   );
   const summaryRatingEl = document.getElementById("irc8a-summary-rating");
   const addKraBtn = document.getElementById("addKraBtn");
+  const pdfBtn = document.getElementById("irc8a-pdf-btn");
+
+  // ================= IPCRF header info (Name of Rater/Employee, Bureau,
+  // Rating Period, Date of Review) =================
+  // Plain inputs, no modal -- each one saves independently on blur/change
+  // to /api/irc8a/report-header, the same treatment base.html gives the
+  // "Approving Authority" name input. Reproduced verbatim in the printed
+  // report by buildPrintReport() further down.
+  const reportHeaderInputs = {
+    nameOfRater: document.getElementById("irc8a-rh-rater-name"),
+    positionOfRater: document.getElementById("irc8a-rh-rater-position"),
+    nameOfEmployee: document.getElementById("irc8a-rh-employee-name"),
+    positionOfEmployee: document.getElementById("irc8a-rh-employee-position"),
+    bureau: document.getElementById("irc8a-rh-bureau"),
+    ratingPeriod: document.getElementById("irc8a-rh-rating-period"),
+    dateOfReview: document.getElementById("irc8a-rh-date-of-review"),
+  };
 
   // ================= Reset button + confirmation modal =================
   const resetBtn = document.getElementById("irc8a-reset-btn");
@@ -1037,6 +1054,234 @@
     }
   });
 
+  // ================= IPCRF header info: load + per-field save =================
+  async function loadReportHeader() {
+    try {
+      const data = await apiCall("GET", "/api/irc8a/report-header");
+      if (!data) return;
+      reportHeaderInputs.nameOfRater.value = data.nameOfRater || "";
+      reportHeaderInputs.positionOfRater.value = data.positionOfRater || "";
+      reportHeaderInputs.nameOfEmployee.value = data.nameOfEmployee || "";
+      reportHeaderInputs.positionOfEmployee.value =
+        data.positionOfEmployee || "";
+      reportHeaderInputs.bureau.value = data.bureau || "";
+      reportHeaderInputs.ratingPeriod.value = data.ratingPeriod || "";
+      reportHeaderInputs.dateOfReview.value = data.dateOfReview || "";
+    } catch (err) {
+      // Non-fatal -- the rest of the page still works without this, and
+      // the inputs just stay blank/empty for the person to fill in.
+    }
+  }
+
+  // Each field posts only itself ({ [field]: value }) so one input's save
+  // can never clobber a value another field just saved -- the server
+  // endpoint only touches keys present in the body (see
+  // save_irc8a_report_header in app.py).
+  Object.entries(reportHeaderInputs).forEach(([field, input]) => {
+    if (!input) return;
+    const eventName = input.type === "date" ? "change" : "blur";
+    input.addEventListener(eventName, async () => {
+      try {
+        await apiCall("POST", "/api/irc8a/report-header", {
+          [field]: input.value.trim(),
+        });
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+  });
+
+  // ================= Save to PDF =================
+  // Unlike IRC1a (which prints its own on-screen table as-is -- see
+  // saveToPdf() in irc1a.js), IRC8A's on-screen accordion of KRA/objective
+  // cards looks nothing like the official DEPED RPMS "Individual
+  // Performance Commitment and Review Form" (IPCRF) sheet it's required
+  // to match (see irc8a_pdf_format.pdf). So instead of reflowing the
+  // on-screen DOM for print, buildPrintReport() rebuilds a dedicated
+  // replica of that sheet from `state` into #irc8a-print-report right
+  // before window.print() -- the @media print rules in irc8a.css then
+  // hide the whole interactive page and show only that replica.
+
+  function fmtRatingCell(v) {
+    return v === null || v === undefined || v === "" ? "—" : String(v);
+  }
+
+  // Renders one Quality/Efficiency/Timeliness rubric column: every
+  // indicator level for that category, highest rate first -- same sort
+  // renderIndicatorGroup() uses on screen.
+  function renderPrintRubricList(items) {
+    const sorted = items.slice().sort((a, b) => b.rate - a.rate);
+    if (sorted.length === 0) {
+      return '<p class="irc8a-print-empty">Not specified.</p>';
+    }
+    return (
+      '<ul class="irc8a-print-rubric-list">' +
+      sorted
+        .map(
+          (item) =>
+            `<li><span class="irc8a-print-rate">${item.rate}</span> - ${escapeHtml(item.label)}</li>`,
+        )
+        .join("") +
+      "</ul>"
+    );
+  }
+
+  function buildPrintReport() {
+    const container = document.getElementById("irc8a-print-report");
+    if (!container) return;
+
+    const rh = {
+      nameOfRater: reportHeaderInputs.nameOfRater.value.trim(),
+      positionOfRater: reportHeaderInputs.positionOfRater.value.trim(),
+      nameOfEmployee: reportHeaderInputs.nameOfEmployee.value.trim(),
+      positionOfEmployee: reportHeaderInputs.positionOfEmployee.value.trim(),
+      bureau: reportHeaderInputs.bureau.value.trim(),
+      ratingPeriod: reportHeaderInputs.ratingPeriod.value.trim(),
+      dateOfReview: reportHeaderInputs.dateOfReview.value,
+    };
+
+    const totalObjectives = state.kras.reduce(
+      (n, k) => n + k.objectives.length,
+      0,
+    );
+
+    let rows = "";
+    let mfoCellUsed = false;
+    state.kras.forEach((kra) => {
+      kra.objectives.forEach((obj, objIndex) => {
+        const letter = letterLabel(objIndex);
+        const avg = computeAverage(obj);
+        const score = computeScore(obj);
+        rows += "<tr>";
+        if (!mfoCellUsed) {
+          rows += `<td class="irc8a-print-mfo" rowspan="${totalObjectives}">Basic Education Services</td>`;
+          mfoCellUsed = true;
+        }
+        if (objIndex === 0) {
+          rows += `<td class="irc8a-print-kra" rowspan="${kra.objectives.length}">${kra.text ? escapeHtml(kra.text) : "—"}</td>`;
+        }
+        rows += `<td><span class="irc8a-print-objective-label">${letter}.</span>${obj.text ? escapeHtml(obj.text) : "—"}</td>`;
+        rows += `<td>${obj.timeline ? escapeHtml(obj.timeline) : '<span class="irc8a-print-empty">—</span>'}</td>`;
+        if (objIndex === 0) {
+          rows += `<td class="irc8a-print-weight" rowspan="${kra.objectives.length}">${fmtWeight(kra.weight)}</td>`;
+        }
+        rows += `<td>${renderPrintRubricList(obj.quality)}</td>`;
+        rows += `<td>${renderPrintRubricList(obj.efficiency)}</td>`;
+        rows += `<td>${renderPrintRubricList(obj.timeliness)}</td>`;
+        rows += `<td>${obj.mov ? escapeHtml(obj.mov) : '<span class="irc8a-print-empty">—</span>'}</td>`;
+        rows += `<td>${obj.actualResults ? escapeHtml(obj.actualResults) : '<span class="irc8a-print-empty">—</span>'}</td>`;
+        rows += `<td class="irc8a-print-rating-cell">${fmtRatingCell(obj.ratings.quality)}</td>`;
+        rows += `<td class="irc8a-print-rating-cell">${fmtRatingCell(obj.ratings.efficiency)}</td>`;
+        rows += `<td class="irc8a-print-rating-cell">${fmtRatingCell(obj.ratings.timeliness)}</td>`;
+        rows += `<td class="irc8a-print-rating-cell">${avg === null ? "—" : fmtNum(avg)}</td>`;
+        rows += `<td class="irc8a-print-rating-cell">${score === null ? "—" : fmtNum(score)}</td>`;
+        rows += "</tr>";
+      });
+    });
+
+    if (totalObjectives === 0) {
+      rows = `<tr><td colspan="15" class="irc8a-print-empty">No KRAs yet.</td></tr>`;
+    }
+
+    const totalKraWeight = sumWeights(state.kras);
+    let scoreSum = 0;
+    let hasAnyScore = false;
+    state.kras.forEach((k) =>
+      k.objectives.forEach((o) => {
+        const s = computeScore(o);
+        if (s !== null) {
+          scoreSum += s;
+          hasAnyScore = true;
+        }
+      }),
+    );
+
+    container.innerHTML = `
+      <div class="irc8a-print-page">
+        <div class="irc8a-print-title">Individual Performance Commitment &amp; Review Form (IPCRF)</div>
+        <table class="irc8a-print-header-table">
+          <tr>
+            <td class="irc8a-print-header-label">Name of Rater</td>
+            <td class="irc8a-print-header-value">${escapeHtml(rh.nameOfRater)}</td>
+            <td class="irc8a-print-header-label">Name of Employee</td>
+            <td class="irc8a-print-header-value">${escapeHtml(rh.nameOfEmployee)}</td>
+          </tr>
+          <tr>
+            <td class="irc8a-print-header-label">Position</td>
+            <td class="irc8a-print-header-value">${escapeHtml(rh.positionOfRater)}</td>
+            <td class="irc8a-print-header-label">Position</td>
+            <td class="irc8a-print-header-value">${escapeHtml(rh.positionOfEmployee)}</td>
+          </tr>
+          <tr>
+            <td class="irc8a-print-header-label">Bureau/Center/Service/Division</td>
+            <td class="irc8a-print-header-value">${escapeHtml(rh.bureau)}</td>
+            <td class="irc8a-print-header-label">Date of Review</td>
+            <td class="irc8a-print-header-value">${rh.dateOfReview ? escapeHtml(rh.dateOfReview) : ""}</td>
+          </tr>
+          <tr>
+            <td class="irc8a-print-header-label">Rating Period</td>
+            <td class="irc8a-print-header-value" colspan="3">${escapeHtml(rh.ratingPeriod)}</td>
+          </tr>
+        </table>
+
+        <table class="irc8a-print-table">
+          <thead>
+            <tr class="irc8a-print-band-row">
+              <th colspan="5">To be filled during planning</th>
+              <th colspan="7">To be filled during evaluation</th>
+            </tr>
+            <tr>
+              <th rowspan="2">MFOs</th>
+              <th rowspan="2">KRAs</th>
+              <th rowspan="2">Objectives</th>
+              <th rowspan="2">Timeline</th>
+              <th rowspan="2">Weight per KRA</th>
+              <th colspan="3">Performance Indicators</th>
+              <th rowspan="2">MOVs</th>
+              <th rowspan="2">Actual Results</th>
+              <th colspan="5">Rating</th>
+            </tr>
+            <tr>
+              <th>Quality</th>
+              <th>Efficiency</th>
+              <th>Timeliness</th>
+              <th>Q</th>
+              <th>E</th>
+              <th>T</th>
+              <th>Ave</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+
+        <div class="irc8a-print-footer">
+          <div class="irc8a-print-footer-box">Total KRA Weight: ${fmtWeight(totalKraWeight)}</div>
+          <div class="irc8a-print-footer-box">Overall Rating for Accomplishments: ${hasAnyScore ? fmtNum(scoreSum) : "—"}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function saveToPdf() {
+    buildPrintReport();
+
+    const previousTitle = document.title;
+    document.title = `IRC8A IPCRF ${state.year || new Date().getFullYear()}`;
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+    window.addEventListener("afterprint", restoreTitle);
+
+    window.print();
+  }
+
+  if (pdfBtn) {
+    pdfBtn.addEventListener("click", saveToPdf);
+  }
+
   // ================= Initial load =================
   async function init() {
     try {
@@ -1058,6 +1303,7 @@
       errBox.textContent = "Couldn't load this report: " + err.message;
       listEl.appendChild(errBox);
     }
+    loadReportHeader();
   }
 
   init();

@@ -23,9 +23,99 @@ block content %}
         </div>
       </div>
       <div class="irc8a-header-actions">
+        <button type="button" class="irc8a-pdf-btn" id="irc8a-pdf-btn">
+          <i class="ti ti-file-type-pdf" aria-hidden="true"></i> Save to PDF
+        </button>
         <button type="button" class="irc8a-reset-btn" id="irc8a-reset-btn">
           <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IPCRF header info — the "Name of Rater / Position", "Name of
+       Employee / Position", "Bureau/Center/Service/Division", and
+       "Rating Period" / "Date of Review" fields printed across the top of
+       the official DEPED RPMS IPCRF sheet (see irc8a_pdf_format.pdf).
+       Saved individually on blur to /api/irc8a/report-header (see
+       irc8a.js) so no field's edit can clobber another's. Reproduced
+       verbatim in the print-only report built by irc8a.js's
+       buildPrintReport(); not shown there, only in #irc8a-print-report. -->
+  <div class="irc8a-report-header" id="irc8a-report-header">
+    <div class="irc8a-report-header-col">
+      <div class="irc8a-report-header-field">
+        <label for="irc8a-rh-rater-name">Name of Rater</label>
+        <input
+          type="text"
+          id="irc8a-rh-rater-name"
+          data-field="nameOfRater"
+          placeholder="Full name"
+          autocomplete="off"
+        />
+      </div>
+      <div class="irc8a-report-header-field">
+        <label for="irc8a-rh-rater-position">Position</label>
+        <input
+          type="text"
+          id="irc8a-rh-rater-position"
+          data-field="positionOfRater"
+          placeholder="e.g. SGOD Chief"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+    <div class="irc8a-report-header-col">
+      <div class="irc8a-report-header-field">
+        <label for="irc8a-rh-employee-name">Name of Employee</label>
+        <input
+          type="text"
+          id="irc8a-rh-employee-name"
+          data-field="nameOfEmployee"
+          placeholder="Full name"
+          autocomplete="off"
+        />
+      </div>
+      <div class="irc8a-report-header-field">
+        <label for="irc8a-rh-employee-position">Position</label>
+        <input
+          type="text"
+          id="irc8a-rh-employee-position"
+          data-field="positionOfEmployee"
+          placeholder="e.g. Nurse II"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+    <div class="irc8a-report-header-col irc8a-report-header-col--wide">
+      <div class="irc8a-report-header-field">
+        <label for="irc8a-rh-bureau">Bureau/Center/Service/Division</label>
+        <input
+          type="text"
+          id="irc8a-rh-bureau"
+          data-field="bureau"
+          placeholder="e.g. City Schools Division Office of Antipolo – SGOD"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+    <div class="irc8a-report-header-col">
+      <div class="irc8a-report-header-field">
+        <label for="irc8a-rh-rating-period">Rating Period</label>
+        <input
+          type="text"
+          id="irc8a-rh-rating-period"
+          data-field="ratingPeriod"
+          placeholder="e.g. January 2026 - December 2026"
+          autocomplete="off"
+        />
+      </div>
+      <div class="irc8a-report-header-field">
+        <label for="irc8a-rh-date-of-review">Date of Review</label>
+        <input
+          type="date"
+          id="irc8a-rh-date-of-review"
+          data-field="dateOfReview"
+        />
       </div>
     </div>
   </div>
@@ -90,6 +180,18 @@ block content %}
       <span class="irc8a-summary-value" id="irc8a-summary-rating">&mdash;</span>
     </div>
   </div>
+
+  <!-- Print-only replica of the official DEPED RPMS IPCRF sheet (see
+       irc8a_pdf_format.pdf) -- built fresh from `state` right before
+       window.print() by buildPrintReport() in irc8a.js. Invisible on
+       screen (see .irc8a-print-only in irc8a.css); the on-screen KRA
+       cards above are hidden the other way around, only in @media print.
+       Left empty here since it's entirely JS-generated. -->
+  <div
+    id="irc8a-print-report"
+    class="irc8a-print-only"
+    aria-hidden="true"
+  ></div>
 
   <!-- ============= Generic entry modal (KRA / Objective / Rubric / MOV / Actual Results) ============= -->
   <div id="irc8a-entry-modal" class="irc8a-modal" style="display: none">

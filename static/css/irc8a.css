@@ -81,6 +81,66 @@
   flex-shrink: 0;
 }
 
+/* ---------- IPCRF header info (Name of Rater/Employee, Bureau, Rating
+   Period, Date of Review) — plain on-screen inputs, no modal, saved
+   individually on blur (see irc8a.js). Reproduced in the printed report;
+   this panel itself is hidden in @media print (see further down). ---------- */
+
+.irc8a-report-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 28px;
+  background: #f8f9fc;
+  border: 1px solid #e2e5ea;
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-bottom: 22px;
+}
+
+.irc8a-report-header-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+
+.irc8a-report-header-col--wide {
+  flex: 2 1 320px;
+}
+
+.irc8a-report-header-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #5a6a8a;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.irc8a-report-header-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 11px;
+  border: 1px solid #e2e5ea;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+.irc8a-report-header-field input::placeholder {
+  color: #aab1bb;
+}
+
+.irc8a-report-header-field input:focus {
+  outline: none;
+  border-color: #4a6fa5;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+}
+
 /* ---------- MFO banner (reads as the page's main title; also hosts Add KRA) ---------- */
 
 .irc8a-mfo-banner {
@@ -114,6 +174,39 @@
 .irc8a-mfo-banner .irc8a-add-btn--banner {
   margin-left: auto;
   flex-shrink: 0;
+}
+
+/* Save to PDF button — same treatment as irc1a-pdf-btn (see irc1a.css),
+   just namespaced to irc8a. Triggers window.print() (see irc8a.js); the
+   @media print block further down builds the actual printed layout. */
+
+.irc8a-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc8a-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc8a-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
 }
 
 /* Reset button — sits in .irc8a-header, on the page's plain white
@@ -1392,5 +1485,227 @@
   .irc8a-summary {
     flex-direction: column;
     gap: 12px;
+  }
+}
+
+/* ---------- Print-only container: hidden on screen, shown only inside
+   @media print below (see #irc8a-print-report in irc8a.html and
+   buildPrintReport() in irc8a.js). ---------- */
+
+.irc8a-print-only {
+  display: none;
+}
+
+/* ------------------------------------------------------------------
+   Print / Save-to-PDF
+   Triggered by #irc8a-pdf-btn -> window.print() (see irc8a.js). Unlike
+   IRC1a's print stylesheet, which prints the same on-screen table,
+   IRC8A's on-screen layout is an editable accordion of KRA/objective
+   cards that looks nothing like the official DEPED RPMS "Individual
+   Performance Commitment and Review Form" (IPCRF) sheet it's required
+   to match (see irc8a_pdf_format.pdf). So instead of reflowing the
+   on-screen DOM, buildPrintReport() in irc8a.js rebuilds a dedicated
+   replica of that sheet into #irc8a-print-report right before print,
+   and this stylesheet swaps it in for the whole interactive page. Only
+   ever active on this page since irc8a.css is only loaded here, so
+   these rules can safely target the shared <header>/<nav> from
+   base.html without leaking into other tabs.
+------------------------------------------------------------------ */
+
+@media print {
+  /* The official form is a wide, many-column table -- landscape "long"
+     bond paper, same 13in dimension IRC1a prints on, just rotated. */
+  @page {
+    size: 13in 8.5in;
+    margin: 0.4in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height (see irc1a.css's
+     print block for the same fix, needed here for the same reason). */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  header,
+  nav {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* Everything on screen inside the tab (header + its actions, the
+     editable report-header panel, the MFO banner, KRA cards, empty
+     state, bottom summary) is replaced wholesale by
+     #irc8a-print-report -- hide every other direct child of the tab
+     section and show only the printed replica. */
+  #irc8a-tab > *:not(#irc8a-print-report) {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: only ever shown via a style toggle and default
+     to display:none already, but force them off in case a print is
+     triggered while one is open. */
+  #irc8a-entry-modal,
+  #irc8a-reset-confirm-overlay {
+    display: none !important;
+  }
+
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default --
+     this keeps the header-band shading below intentional. "Background
+     graphics" still needs to be left ON in the print dialog. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .irc8a-print-only {
+    display: block !important;
+  }
+
+  .irc8a-print-page {
+    font-size: 8px;
+    color: #000;
+  }
+
+  .irc8a-print-title {
+    text-align: center;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  /* Name of Rater / Employee, Positions, Bureau, Rating Period, Date of
+     Review -- values come straight from #irc8a-report-header's inputs
+     (see irc8a.js's buildPrintReport()). */
+  .irc8a-print-header-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+    font-size: 8.5px;
+  }
+
+  .irc8a-print-header-table td {
+    padding: 2px 4px;
+    vertical-align: top;
+  }
+
+  .irc8a-print-header-label {
+    font-weight: 700;
+    white-space: nowrap;
+    width: 1%;
+  }
+
+  .irc8a-print-header-value {
+    border-bottom: 1px solid #000;
+    min-width: 120px;
+  }
+
+  .irc8a-print-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .irc8a-print-table th,
+  .irc8a-print-table td {
+    border: 1px solid #000;
+    padding: 3px 4px;
+    vertical-align: top;
+    font-size: 7.5px;
+    line-height: 1.3;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .irc8a-print-table thead th {
+    text-align: center;
+    font-weight: 700;
+    background: #e5e7eb !important;
+  }
+
+  .irc8a-print-band-row th {
+    font-size: 8px;
+    text-transform: uppercase;
+    background: #cbd5e1 !important;
+  }
+
+  .irc8a-print-mfo,
+  .irc8a-print-kra,
+  .irc8a-print-weight {
+    text-align: center;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+
+  .irc8a-print-objective-label {
+    font-weight: 700;
+    margin-right: 3px;
+  }
+
+  .irc8a-print-rubric-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .irc8a-print-rubric-list li {
+    margin-bottom: 2px;
+  }
+
+  .irc8a-print-rubric-list li:last-child {
+    margin-bottom: 0;
+  }
+
+  .irc8a-print-rate {
+    font-weight: 700;
+  }
+
+  .irc8a-print-rating-cell {
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .irc8a-print-empty {
+    color: #666;
+    font-style: italic;
+  }
+
+  .irc8a-print-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 24px;
+    margin-top: 8px;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  .irc8a-print-footer-box {
+    border: 1px solid #000;
+    padding: 4px 10px;
+  }
+
+  /* Avoid splitting an objective row awkwardly across a page break. */
+  .irc8a-print-table tr {
+    break-inside: avoid;
   }
 }

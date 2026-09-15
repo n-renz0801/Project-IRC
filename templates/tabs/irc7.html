@@ -25,12 +25,16 @@ block content %}
         <div>
           <h2>SGOD Dashboard Data</h2>
           <p class="irc7-subtitle">
-            Provide the needed data for the SGOD Dashboard. Use "Add Column" to
-            add new fields, grouped or standalone.
+            Provide the needed data for the SGOD Dashboard. Use the column
+            button above the table to add, rename, or remove fields, grouped or
+            standalone.
           </p>
         </div>
       </div>
       <div class="irc7-header-actions">
+        <button type="button" id="irc7-pdf-btn" class="irc7-pdf-btn">
+          <i class="ti ti-file-type-pdf" aria-hidden="true"></i> Save to PDF
+        </button>
         <button type="button" id="irc7-reset-btn" class="irc7-reset-btn">
           <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
         </button>
@@ -47,53 +51,6 @@ block content %}
     <div class="irc7-flow-section irc7-flow-section-1">
       <p class="irc7-flow-label">Dashboard table</p>
 
-      <div class="irc7-mode-banners">
-        <div
-          class="irc7-mode-banner irc7-mode-banner--edit"
-          id="editModeBanner"
-          style="display: none"
-        >
-          <svg
-            class="irc7-banner-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path
-              d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-            ></path>
-          </svg>
-          Edit mode is ON — click a column or group header to rename or change
-          it.
-        </div>
-        <div
-          class="irc7-mode-banner irc7-mode-banner--delete"
-          id="deleteModeBanner"
-          style="display: none"
-        >
-          <svg
-            class="irc7-banner-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 9v4"></path>
-            <path d="M12 17h.01"></path>
-            <path
-              d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-            ></path>
-          </svg>
-          Delete mode is ON — clicking a column or group header will permanently
-          remove it. This cannot be undone.
-        </div>
-      </div>
-
       <div class="irc7-table-card">
         <div class="irc7-dark-header irc7-dark-header-with-action">
           <div class="irc7-dark-header-text">
@@ -105,54 +62,12 @@ block content %}
           <div class="irc7-toolbar-actions">
             <button
               type="button"
-              class="irc7-icon-btn irc7-icon-btn--edit"
-              id="editModeBtn"
-              title="Toggle edit mode"
-              aria-label="Toggle edit mode"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-                ></path>
-              </svg>
-            </button>
-            <button
-              type="button"
-              class="irc7-icon-btn irc7-icon-btn--delete"
-              id="deleteModeBtn"
-              title="Toggle delete mode"
-              aria-label="Toggle delete mode"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                <path d="M10 11v6"></path>
-                <path d="M14 11v6"></path>
-                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-              </svg>
-            </button>
-            <span class="irc7-toolbar-divider"></span>
-            <button
-              type="button"
               class="irc7-add-column-toolbar-btn"
               id="addColumnBtn"
             >
               <svg
                 class="irc7-inline-icon"
+                id="addColumnBtnIcon"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -162,7 +77,7 @@ block content %}
               >
                 <path d="M12 5v14M5 12h14"></path>
               </svg>
-              Add Column
+              <span id="addColumnBtnLabel">Add Column</span>
             </button>
           </div>
         </div>
@@ -311,21 +226,37 @@ block content %}
   <div id="addColumnModal" class="irc7-modal" style="display: none">
     <div class="irc7-modal-content">
       <div class="irc7-modal-header">
-        <h2>Add Columns</h2>
+        <h2 id="irc7ModalTitle">Add Columns</h2>
         <button type="button" class="irc7-modal-close" id="irc7ModalClose">
           &times;
         </button>
       </div>
       <div class="irc7-modal-body">
-        <p class="irc7-modal-hint">
-          For each block below, choose whether its columns go into a new group,
-          into a group that already exists, or stand alone with no group. Each
-          column needs a name and an entry type.
+        <p class="irc7-modal-hint" id="irc7ModalHint">
+          Add standalone or grouped columns below. Existing columns and groups
+          can be renamed here too — removing one takes effect right away and
+          can't be undone.
         </p>
-        <div id="irc7-groups-container"></div>
-        <button type="button" class="irc7-add-group-btn" id="irc7AddGroupBtn">
-          <i class="ti ti-plus" style="margin-right: 6px"></i> Add Group
-        </button>
+
+        <div id="irc7-columns-manage-list"></div>
+
+        <div class="irc7-manage-add-row">
+          <button
+            type="button"
+            class="irc7-add-column-btn"
+            id="irc7AddStandaloneBtn"
+          >
+            <i class="ti ti-plus" style="margin-right: 4px"></i> Add Standalone
+            Column
+          </button>
+          <button
+            type="button"
+            class="irc7-add-column-btn"
+            id="irc7AddGroupBtn"
+          >
+            <i class="ti ti-plus" style="margin-right: 4px"></i> Add Group
+          </button>
+        </div>
       </div>
       <div class="irc7-modal-footer">
         <button
@@ -340,61 +271,42 @@ block content %}
           class="irc7-modal-btn irc7-modal-btn-submit"
           id="irc7ModalSubmit"
         >
-          Add Columns
+          Save Changes
         </button>
       </div>
     </div>
     <div class="irc7-modal-overlay" id="irc7ModalOverlay"></div>
   </div>
-
-  <!-- Edit Column/Group Modal -->
-  <div id="editItemModal" class="irc7-modal" style="display: none">
-    <div class="irc7-modal-content irc7-modal-content--small">
-      <div class="irc7-modal-header">
-        <h2 id="editItemModalTitle">Edit Column</h2>
-        <button type="button" class="irc7-modal-close" id="editItemModalClose">
-          &times;
-        </button>
-      </div>
-      <div class="irc7-modal-body">
-        <label class="irc7-edit-label" for="editItemNameInput">Name</label>
-        <input
-          type="text"
-          id="editItemNameInput"
-          class="irc7-edit-name-input"
-          placeholder="Name"
-        />
-        <div id="editItemTypeWrapper">
-          <label class="irc7-edit-label" for="editItemTypeSelect"
-            >Entry Type</label
-          >
-          <select id="editItemTypeSelect" class="irc7-column-type-select">
-            <option value="text">Text</option>
-            <option value="number">Number</option>
-            <option value="paragraph">Paragraph</option>
-          </select>
-        </div>
-      </div>
-      <div class="irc7-modal-footer">
-        <button
-          type="button"
-          class="irc7-modal-btn irc7-modal-btn-cancel"
-          id="editItemCancel"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="irc7-modal-btn irc7-modal-btn-submit"
-          id="editItemSave"
-        >
-          Save
-        </button>
-      </div>
-    </div>
-    <div class="irc7-modal-overlay" id="editItemModalOverlay"></div>
-  </div>
 </section>
+
+<!-- ================= DELETE COLUMN/GROUP CONFIRMATION ================= -->
+<!-- Shares the same visual pattern as the reset-confirmation modal below,
+     but its message is filled in dynamically from irc7.js for whichever
+     column or group the user just tried to remove. Sits above the
+     Add/Edit Columns modal (z-index) so it reads as a confirmation on top
+     of it rather than replacing it. -->
+<div id="irc7-delete-confirm-overlay" class="irc7-confirm-overlay">
+  <div class="irc7-confirm-box">
+    <h4 id="irc7-delete-confirm-title">Remove this?</h4>
+    <p id="irc7-delete-confirm-message">This cannot be undone.</p>
+    <div class="irc7-confirm-actions">
+      <button
+        type="button"
+        id="irc7-delete-confirm-cancel"
+        class="irc7-btn-secondary"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        id="irc7-delete-confirm-confirm"
+        class="irc7-btn-danger"
+      >
+        Yes, Remove
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- ================= RESET-PAGE CONFIRMATION MODAL ================= -->
 <!-- Same visual pattern/markup as IRC5's reset-confirmation modal (see

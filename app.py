@@ -36,6 +36,7 @@ from models import (
     IRC9Entry,
     ReportPreparer,
     IRC8AApprovingAuthority,
+    IRC8AReportHeader,
     ReportSignatoryDate,
     MONTH_KEYS,
     TA_STATUS_PROVIDED,
@@ -857,6 +858,19 @@ def _get_irc8a_approving_authority():
     return authority
 
 
+def _get_irc8a_report_header():
+    """Single global row holding IRC8A's printed-report header fields (see
+    IRC8AReportHeader in models.py). Created lazily with blank fields on
+    first access, same convention as _get_preparer() /
+    _get_irc8a_approving_authority() above."""
+    header = IRC8AReportHeader.query.first()
+    if header is None:
+        header = IRC8AReportHeader()
+        db.session.add(header)
+        db.session.commit()
+    return header
+
+
 SIGNATORY_ROLES = {"prepared_by", "checked_by", "approving_authority"}
 
 
@@ -1065,6 +1079,53 @@ def save_irc8a_approving_authority():
     db.session.commit()
 
     return jsonify({"name": authority.name}), 200
+
+
+@app.route("/api/irc8a/report-header", methods=["GET"])
+def get_irc8a_report_header():
+    """Read-only fetch used by irc8a.js to fill in the printed-report
+    header fields (Name of Rater/Employee, their Positions, Bureau/Center/
+    Service/Division, Rating Period, Date of Review) shown at the top of
+    the IRC8A page and reproduced in its Save-to-PDF output."""
+    header = _get_irc8a_report_header()
+    return jsonify(header.to_dict()), 200
+
+
+@app.route("/api/irc8a/report-header", methods=["POST"])
+def save_irc8a_report_header():
+    """Saves IRC8A's printed-report header fields, typed directly on the
+    IRC8A page. Single global row -- not year-scoped and intentionally
+    untouched by IRC8A's Reset, same rule as IRC8AApprovingAuthority (see
+    IRC8AReportHeader's docstring in models.py for why). Accepts a partial
+    body -- any field omitted is left as-is rather than cleared, so each
+    input can save independently on blur without clobbering the others."""
+    data = request.get_json(silent=True) or {}
+    header = _get_irc8a_report_header()
+
+    text_fields = {
+        "nameOfRater": "name_of_rater",
+        "positionOfRater": "position_of_rater",
+        "nameOfEmployee": "name_of_employee",
+        "positionOfEmployee": "position_of_employee",
+        "bureau": "bureau",
+        "ratingPeriod": "rating_period",
+    }
+    for json_key, column in text_fields.items():
+        if json_key in data:
+            setattr(header, column, (data.get(json_key) or "").strip())
+
+    if "dateOfReview" in data:
+        date_str = (data.get("dateOfReview") or "").strip()
+        if date_str:
+            try:
+                header.date_of_review = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except ValueError:
+                return jsonify({"error": "Invalid date format, expected YYYY-MM-DD"}), 400
+        else:
+            header.date_of_review = None
+
+    db.session.commit()
+    return jsonify(header.to_dict()), 200
 
 
 @app.route("/api/signatory-date/<tab_id>/<role>", methods=["GET"])

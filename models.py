@@ -1152,6 +1152,49 @@ class IRC8AApprovingAuthority(db.Model):
 
 
 # ---------------------------------------------------------------------------
+# IRC8A's printed-report header block -- the "Name of Rater / Position",
+# "Name of Employee / Position", "Bureau/Center/Service/Division", and
+# "Rating Period" / "Date of Review" fields that appear across the top of
+# the official DEPED RPMS "Individual Performance Commitment and Review
+# Form" (IPCRF) sheet (see irc8a_pdf_format.pdf). These are distinct from
+# IRC8AApprovingAuthority and the report-signatory footer in base.html --
+# those are the *signature line* at the bottom of the form; this is the
+# identifying header info at the top.
+#
+# Single global row, same lazily-created-on-first-access convention as
+# ReportPreparer / IRC8AApprovingAuthority above -- not year-scoped, and
+# (like IRC8AApprovingAuthority) never touched by IRC8A's own Reset (see
+# reset_irc8a_data in app.py), since this is identity/period metadata,
+# not KRA/objective report data.
+# ---------------------------------------------------------------------------
+class IRC8AReportHeader(db.Model):
+    __tablename__ = "irc8a_report_header"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    name_of_rater = db.Column(db.String(255), nullable=False, default="")
+    position_of_rater = db.Column(db.String(255), nullable=False, default="")
+    name_of_employee = db.Column(db.String(255), nullable=False, default="")
+    position_of_employee = db.Column(db.String(255), nullable=False, default="")
+    bureau = db.Column(db.String(255), nullable=False, default="")  # "Bureau/Center/Service/Division"
+    rating_period = db.Column(db.String(255), nullable=False, default="")
+    date_of_review = db.Column(db.Date, nullable=True)
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "nameOfRater": self.name_of_rater,
+            "positionOfRater": self.position_of_rater,
+            "nameOfEmployee": self.name_of_employee,
+            "positionOfEmployee": self.position_of_employee,
+            "bureau": self.bureau,
+            "ratingPeriod": self.rating_period,
+            "dateOfReview": self.date_of_review.isoformat() if self.date_of_review else None,
+        }
+
+
+# ---------------------------------------------------------------------------
 # Date shown under each signatory's position in the report-signatory footer
 # (see base.html), one calendar-picked date per (tab, role) pair -- e.g.
 # irc1a's "Prepared by" date is independent of irc1b's "Prepared by" date,

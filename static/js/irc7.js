@@ -22,28 +22,35 @@
   const bottomSentinel = document.getElementById("irc7BottomSentinel");
 
   const addColumnBtn = document.getElementById("addColumnBtn");
+  const addColumnBtnLabel = document.getElementById("addColumnBtnLabel");
+  const addColumnBtnIcon = document.getElementById("addColumnBtnIcon");
   const modal = document.getElementById("addColumnModal");
+  const modalTitle = document.getElementById("irc7ModalTitle");
   const modalClose = document.getElementById("irc7ModalClose");
   const modalCancel = document.getElementById("irc7ModalCancel");
   const modalOverlay = document.getElementById("irc7ModalOverlay");
   const modalSubmit = document.getElementById("irc7ModalSubmit");
-  const groupsContainer = document.getElementById("irc7-groups-container");
+  const manageList = document.getElementById("irc7-columns-manage-list");
+  const addStandaloneBtn = document.getElementById("irc7AddStandaloneBtn");
   const addGroupBtn = document.getElementById("irc7AddGroupBtn");
 
-  const editModal = document.getElementById("editItemModal");
-  const editModalTitle = document.getElementById("editItemModalTitle");
-  const editModalClose = document.getElementById("editItemModalClose");
-  const editModalOverlay = document.getElementById("editItemModalOverlay");
-  const editModalCancel = document.getElementById("editItemCancel");
-  const editModalSave = document.getElementById("editItemSave");
-  const editNameInput = document.getElementById("editItemNameInput");
-  const editTypeWrapper = document.getElementById("editItemTypeWrapper");
-  const editTypeSelect = document.getElementById("editItemTypeSelect");
+  const deleteConfirmOverlay = document.getElementById(
+    "irc7-delete-confirm-overlay",
+  );
+  const deleteConfirmTitle = document.getElementById(
+    "irc7-delete-confirm-title",
+  );
+  const deleteConfirmMessage = document.getElementById(
+    "irc7-delete-confirm-message",
+  );
+  const deleteConfirmCancelBtn = document.getElementById(
+    "irc7-delete-confirm-cancel",
+  );
+  const deleteConfirmConfirmBtn = document.getElementById(
+    "irc7-delete-confirm-confirm",
+  );
 
-  const editModeBtn = document.getElementById("editModeBtn");
-  const deleteModeBtn = document.getElementById("deleteModeBtn");
-  const editModeBanner = document.getElementById("editModeBanner");
-  const deleteModeBanner = document.getElementById("deleteModeBanner");
+  const pdfBtn = document.getElementById("irc7-pdf-btn");
 
   const resetBtn = document.getElementById("irc7-reset-btn");
   const resetConfirmOverlay = document.getElementById(
@@ -86,7 +93,7 @@
   // block its own client-only token for that purpose, while `groupName`
   // is what's actually sent to the backend. Renaming/deleting "a group"
   // therefore affects every block sharing that name, matching what
-  // actually happens server-side -- see editModalSave/removeGroup below.
+  // actually happens server-side -- see renameGroup/removeGroup below.
   const columnBlocks = new Map(); // blockToken -> { groupName, columnIds: Set<number> }
   const colIdToBlock = new Map(); // colId -> blockToken
   let blockCounter = 0;
@@ -336,181 +343,253 @@
     } catch (err) {
       console.error("Failed to load IRC7 data:", err);
       recalcLayout();
+      updateAddColumnButtonUI();
     }
   }
 
-  // ---------- Mode state: null | 'edit' | 'delete' ----------
-  let activeMode = null;
-
-  function deactivateModes() {
-    activeMode = null;
-    editModeBtn.classList.remove("irc7-icon-btn--active");
-    deleteModeBtn.classList.remove("irc7-icon-btn--active");
-    editModeBanner.style.display = "none";
-    deleteModeBanner.style.display = "none";
-    table.classList.remove("irc7-mode-edit", "irc7-mode-delete");
-  }
-
-  function setMode(mode) {
-    if (activeMode === mode) {
-      deactivateModes();
-      return;
-    }
-    deactivateModes();
-    activeMode = mode;
-    if (mode === "edit") {
-      editModeBtn.classList.add("irc7-icon-btn--active");
-      editModeBanner.style.display = "flex";
-      table.classList.add("irc7-mode-edit");
-    } else if (mode === "delete") {
-      deleteModeBtn.classList.add("irc7-icon-btn--active");
-      deleteModeBanner.style.display = "flex";
-      table.classList.add("irc7-mode-delete");
-    }
-  }
-
-  editModeBtn.addEventListener("click", () => setMode("edit"));
-  deleteModeBtn.addEventListener("click", () => setMode("delete"));
-
-  // ================= ADD COLUMN MODAL =================
+  // ================= ADD / EDIT COLUMNS MODAL =================
+  //
+  // One button + one modal handles the whole column lifecycle now:
+  //  - No columns yet: the toolbar button reads "Add Column" and the modal
+  //    opens empty, ready for new standalone columns / groups.
+  //  - Columns already exist: the button reads "Edit Columns" and the same
+  //    modal opens pre-populated with every existing standalone column and
+  //    group, each renamable in place and removable (with confirmation).
+  // See updateAddColumnButtonUI()/populateManageModal() below.
 
   const TRASH_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>`;
   const PLUS_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>`;
+  const PENCIL_ICON_PATH = `<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>`;
+  const PLUS_ICON_PATH = `<path d="M12 5v14M5 12h14"></path>`;
 
-  function createColumnRow() {
+  // Swaps the toolbar button between "Add Column" (nothing added yet) and
+  // "Edit Columns" (at least one column/group exists), and keeps the
+  // modal's own title in sync so it reads correctly however it was opened.
+  function updateAddColumnButtonUI() {
+    const has = columns.length > 0;
+    addColumnBtnLabel.textContent = has ? "Edit Columns" : "Add Column";
+    addColumnBtnIcon.innerHTML = has ? PENCIL_ICON_PATH : PLUS_ICON_PATH;
+    modalTitle.textContent = has ? "Edit Columns" : "Add Columns";
+  }
+
+  // ---------- Delete confirmation (custom modal, not window.confirm) ----------
+  //
+  // Promise-based so callers can just `await confirmDelete(...)`. Sits on
+  // top of the Add/Edit Columns modal (see irc7-delete-confirm-overlay's
+  // z-index in irc7.css) so it reads as a confirmation step rather than
+  // replacing the modal underneath it.
+  function confirmDelete(title, message) {
+    return new Promise((resolve) => {
+      deleteConfirmTitle.textContent = title;
+      deleteConfirmMessage.textContent = message;
+      deleteConfirmOverlay.classList.add("visible");
+
+      function cleanup(result) {
+        deleteConfirmOverlay.classList.remove("visible");
+        deleteConfirmConfirmBtn.removeEventListener("click", onConfirm);
+        deleteConfirmCancelBtn.removeEventListener("click", onCancel);
+        deleteConfirmOverlay.removeEventListener("click", onOverlay);
+        resolve(result);
+      }
+      function onConfirm() {
+        cleanup(true);
+      }
+      function onCancel() {
+        cleanup(false);
+      }
+      function onOverlay(e) {
+        if (e.target === deleteConfirmOverlay) cleanup(false);
+      }
+
+      deleteConfirmConfirmBtn.addEventListener("click", onConfirm);
+      deleteConfirmCancelBtn.addEventListener("click", onCancel);
+      deleteConfirmOverlay.addEventListener("click", onOverlay);
+    });
+  }
+
+  // ---------- Row/block builders ----------
+  //
+  // Both are used for existing (already-saved) and brand-new (unsaved)
+  // entries alike: `col`/`groupName` are filled in for the former and
+  // omitted for the latter. Existing rows/blocks carry data-col-id /
+  // data-block-token so the Save handler knows to PUT a rename instead of
+  // POSTing a new column, and so their remove buttons know to call the
+  // server (with a confirmation) instead of just deleting a draft.
+  //
+  // Values are assigned via DOM properties rather than interpolated into
+  // an innerHTML string, since names are free text and may contain quotes
+  // or markup that would otherwise break out of an attribute.
+
+  function buildColumnRow(col) {
     const row = document.createElement("div");
     row.className = "irc7-column-row";
-    row.innerHTML = `
-      <input type="text" class="irc7-column-name-input" placeholder="Column name" />
-      <select class="irc7-column-type-select">
-        <option value="text">Text</option>
-        <option value="number">Number</option>
-        <option value="paragraph">Paragraph</option>
-      </select>
-      <button type="button" class="irc7-remove-column-btn" title="Remove column">
-        ${TRASH_SVG}
-      </button>
+    if (col) row.dataset.colId = col.id;
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "irc7-column-name-input";
+    nameInput.placeholder = "Column name";
+    if (col) nameInput.value = col.name;
+
+    const typeSelect = document.createElement("select");
+    typeSelect.className = "irc7-column-type-select";
+    typeSelect.innerHTML = `
+      <option value="text">Text</option>
+      <option value="number">Number</option>
+      <option value="paragraph">Paragraph</option>
     `;
-    row
-      .querySelector(".irc7-remove-column-btn")
-      .addEventListener("click", () => row.remove());
+    typeSelect.value = col ? col.type : "text";
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "irc7-remove-column-btn";
+    removeBtn.title = "Remove column";
+    removeBtn.innerHTML = TRASH_SVG;
+    removeBtn.addEventListener("click", () => handleRemoveColumnRow(row));
+
+    row.append(nameInput, typeSelect, removeBtn);
     return row;
   }
 
-  // Group targets: "" = standalone, "__new__" = create a new group (shows
-  // the name input), or the exact name of a group that already exists, in
-  // which case the new columns are appended into that group. The backend
-  // splices them in next to that group's existing columns so it stays one
-  // contiguous block -- see add_irc7_columns() in app.py.
-  const GROUP_TARGET_STANDALONE = "";
-  const GROUP_TARGET_NEW = "__new__";
-
-  // Distinct group names currently in the table, in the order they appear.
-  function getExistingGroupNames() {
-    const names = [];
-    columns.forEach((c) => {
-      if (c.groupName && !names.includes(c.groupName)) names.push(c.groupName);
-    });
-    return names;
-  }
-
-  // Built via the DOM rather than an innerHTML string: a group name is
-  // free text and may contain quotes, which would break out of an
-  // attribute in a template literal.
-  function populateGroupTargetSelect(select) {
-    select.innerHTML = "";
-
-    const standalone = document.createElement("option");
-    standalone.value = GROUP_TARGET_STANDALONE;
-    standalone.textContent = "No group — standalone columns";
-    select.appendChild(standalone);
-
-    const newGroup = document.createElement("option");
-    newGroup.value = GROUP_TARGET_NEW;
-    newGroup.textContent = "New group…";
-    select.appendChild(newGroup);
-
-    const existing = getExistingGroupNames();
-    if (existing.length > 0) {
-      const optgroup = document.createElement("optgroup");
-      optgroup.label = "Add to existing group";
-      existing.forEach((name) => {
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        optgroup.appendChild(option);
-      });
-      select.appendChild(optgroup);
-    }
-  }
-
-  function createGroupBlock() {
+  function buildGroupBlock(blockToken, groupName) {
     const block = document.createElement("div");
     block.className = "irc7-group-block";
-    block.innerHTML = `
-      <div class="irc7-group-block-header">
-        <select class="irc7-group-target-select"></select>
-        <button type="button" class="irc7-remove-group-btn" title="Remove group">
-          ${TRASH_SVG}
-        </button>
-      </div>
-      <input type="text" class="irc7-group-name-input" placeholder="New group name" style="display: none" />
-      <div class="irc7-columns-list"></div>
-      <button type="button" class="irc7-add-column-btn">
-        ${PLUS_SVG} Add Column
-      </button>
-    `;
+    if (blockToken) block.dataset.blockToken = blockToken;
 
-    const columnsList = block.querySelector(".irc7-columns-list");
-    columnsList.appendChild(createColumnRow());
+    const header = document.createElement("div");
+    header.className = "irc7-group-block-header";
 
-    // The name input only applies to "New group…"; for every other target
-    // the name is either irrelevant (standalone) or already decided (an
-    // existing group), so it's hidden rather than left to be ignored.
-    const targetSelect = block.querySelector(".irc7-group-target-select");
-    populateGroupTargetSelect(targetSelect);
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "irc7-group-name-input";
+    nameInput.placeholder = "Group name";
+    if (groupName) nameInput.value = groupName;
 
-    const nameInput = block.querySelector(".irc7-group-name-input");
-    targetSelect.addEventListener("change", () => {
-      const isNew = targetSelect.value === GROUP_TARGET_NEW;
-      nameInput.style.display = isNew ? "" : "none";
-      if (isNew) nameInput.focus();
+    const removeGroupBtn = document.createElement("button");
+    removeGroupBtn.type = "button";
+    removeGroupBtn.className = "irc7-remove-group-btn";
+    removeGroupBtn.title = "Remove group";
+    removeGroupBtn.innerHTML = TRASH_SVG;
+    removeGroupBtn.addEventListener("click", () =>
+      handleRemoveGroupBlock(block),
+    );
+
+    header.append(nameInput, removeGroupBtn);
+
+    const columnsList = document.createElement("div");
+    columnsList.className = "irc7-columns-list";
+
+    const addColBtn = document.createElement("button");
+    addColBtn.type = "button";
+    addColBtn.className = "irc7-add-column-btn";
+    addColBtn.innerHTML = `${PLUS_SVG} Add Column within Group`;
+    addColBtn.addEventListener("click", () => {
+      columnsList.appendChild(buildColumnRow(null));
     });
 
-    block
-      .querySelector(".irc7-add-column-btn")
-      .addEventListener("click", () => {
-        columnsList.appendChild(createColumnRow());
-      });
-
-    block
-      .querySelector(".irc7-remove-group-btn")
-      .addEventListener("click", () => block.remove());
-
+    block.append(header, columnsList, addColBtn);
     return block;
   }
 
-  // The group name this block's columns should be saved under, or null
-  // for standalone. Returns undefined when the block is invalid (a "New
-  // group…" target with no name typed), so the caller can report it.
-  function resolveGroupName(block) {
-    const target = block.querySelector(".irc7-group-target-select").value;
-    if (target === GROUP_TARGET_STANDALONE) return null;
-    if (target === GROUP_TARGET_NEW) {
-      const typed = block.querySelector(".irc7-group-name-input").value.trim();
-      return typed || undefined;
+  // ---------- Remove handlers (fire immediately, not deferred to Save) ----------
+  //
+  // A brand-new, unsaved row/block just gets torn out of the modal's DOM.
+  // An existing one is a real delete: confirm, hit the server (reusing
+  // removeColumn/removeGroup so the live table updates too), then drop it
+  // from the modal.
+
+  async function handleRemoveColumnRow(row) {
+    const colId = row.dataset.colId ? Number(row.dataset.colId) : null;
+    if (colId == null) {
+      row.remove();
+      return;
     }
-    return target; // an existing group name
+
+    const col = columns.find((c) => c.id === colId);
+    const name = col ? col.name : "this column";
+    const ok = await confirmDelete(
+      "Remove Column",
+      `Remove the column "${name}"? This cannot be undone.`,
+    );
+    if (!ok) return;
+
+    const groupBlock = row.closest(".irc7-group-block");
+    await removeColumn(colId);
+    row.remove();
+
+    // If that was the last existing column in its group, the group is
+    // gone server-side too -- drop the now-empty block from the modal.
+    if (
+      groupBlock &&
+      groupBlock.dataset.blockToken &&
+      !columnBlocks.has(groupBlock.dataset.blockToken)
+    ) {
+      groupBlock.remove();
+    }
   }
 
-  function resetAddModal() {
-    groupsContainer.innerHTML = "";
-    groupsContainer.appendChild(createGroupBlock());
+  async function handleRemoveGroupBlock(block) {
+    const blockToken = block.dataset.blockToken;
+    if (!blockToken) {
+      block.remove();
+      return;
+    }
+
+    const b = columnBlocks.get(blockToken);
+    const groupName = b ? b.groupName : "this group";
+    const ok = await confirmDelete(
+      "Remove Group",
+      `Remove the group "${groupName}" and all its columns? This cannot be undone.`,
+    );
+    if (!ok) return;
+
+    await removeGroup(blockToken);
+
+    // Deleting a group removes every rendered block sharing its name
+    // server-side, not just the one clicked -- clean up any others here.
+    manageList
+      .querySelectorAll(".irc7-group-block[data-block-token]")
+      .forEach((el) => {
+        if (!columnBlocks.has(el.dataset.blockToken)) el.remove();
+      });
+  }
+
+  // ---------- Populate / open / close ----------
+
+  // Rebuilds the modal's contents from the current `columns`, in the same
+  // order they're stored (== chronological / sort_order) -- standalone
+  // rows and group blocks are appended into one shared list as they're
+  // encountered, rather than split into separate sections, so the modal
+  // reads top-to-bottom in the order things were actually added. Grouped
+  // entries are batched into the same block using the table's own
+  // colIdToBlock/columnBlocks mapping, so a block clicked for
+  // rename/delete here is exactly the block it represents on-screen.
+  function populateManageModal() {
+    manageList.innerHTML = "";
+
+    const blockEls = new Map(); // blockToken -> columnsList element
+
+    columns.forEach((col) => {
+      if (!col.groupName) {
+        manageList.appendChild(buildColumnRow(col));
+        return;
+      }
+
+      const blockToken = colIdToBlock.get(col.id);
+      let columnsList = blockEls.get(blockToken);
+      if (!columnsList) {
+        const block = buildGroupBlock(blockToken, col.groupName);
+        manageList.appendChild(block);
+        columnsList = block.querySelector(".irc7-columns-list");
+        blockEls.set(blockToken, columnsList);
+      }
+      columnsList.appendChild(buildColumnRow(col));
+    });
   }
 
   function showAddModal() {
-    deactivateModes(); // avoid confusing overlap between "add" and edit/delete modes
-    resetAddModal();
+    populateManageModal();
+    updateAddColumnButtonUI();
     modal.style.display = "flex";
   }
 
@@ -526,65 +605,214 @@
     .querySelector("#addColumnModal .irc7-modal-content")
     .addEventListener("click", (e) => e.stopPropagation());
 
-  addGroupBtn.addEventListener("click", () => {
-    groupsContainer.appendChild(createGroupBlock());
+  // New items always join the end of the single chronological list.
+  addStandaloneBtn.addEventListener("click", () => {
+    manageList.appendChild(buildColumnRow(null));
   });
 
-  modalSubmit.addEventListener("click", async () => {
-    const newColumns = [];
-    let missingGroupName = false;
+  addGroupBtn.addEventListener("click", () => {
+    const block = buildGroupBlock(null, null);
+    block.querySelector(".irc7-columns-list").appendChild(buildColumnRow(null));
+    manageList.appendChild(block);
+  });
 
-    groupsContainer.querySelectorAll(".irc7-group-block").forEach((block) => {
-      const groupName = resolveGroupName(block);
-      if (groupName === undefined) {
-        missingGroupName = true;
+  // ---------- Save: renames existing items, then creates new ones ----------
+
+  async function renameGroup(blockToken, newName) {
+    const b = columnBlocks.get(blockToken);
+    if (!b) return;
+    const oldName = b.groupName;
+
+    const res = await fetch(`/irc/irc7/group/${encodeURIComponent(oldName)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName }),
+    });
+    if (!res.ok) throw new Error("Rename failed");
+
+    // The backend renames every column sharing oldName, across every
+    // rendered block -- mirror that here, not just the block clicked.
+    columnBlocks.forEach((blk, token) => {
+      if (blk.groupName === oldName) {
+        blk.groupName = newName;
+        const th = groupRow.querySelector(`th[data-group-id="${token}"]`);
+        if (th) th.textContent = newName;
+      }
+    });
+    columns.forEach((c) => {
+      if (c.groupName === oldName) c.groupName = newName;
+    });
+  }
+
+  async function saveColumnEdit(col, newName, newType) {
+    const typeChanged = col.type !== newType;
+
+    const res = await fetch(`/irc/irc7/column/${col.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName, type: newType }),
+    });
+    if (!res.ok) throw new Error("Save failed");
+
+    col.name = newName;
+    col.type = newType;
+
+    // Standalone headers live in groupRow (rowSpan 2), grouped ones in
+    // colRow -- check both rather than assuming which.
+    const th =
+      colRow.querySelector(`th[data-col-id="${col.id}"]`) ||
+      groupRow.querySelector(`th[data-col-id="${col.id}"]`);
+    if (th) th.textContent = newName;
+
+    if (typeChanged) {
+      const colEl = colgroup.querySelector(`col[data-col-id="${col.id}"]`);
+      if (colEl) {
+        colEl.dataset.minWidth =
+          ADDED_COLUMN_MIN_WIDTH[newType] || ADDED_COLUMN_MIN_WIDTH.text;
+      }
+
+      tbody.querySelectorAll(`td[data-col-id="${col.id}"]`).forEach((td) => {
+        const tr = td.closest("tr");
+        const rowId = Number(tr.dataset.rowId);
+        const oldVal = td.querySelector("input")?.value || "";
+        const keepValue =
+          newType !== "number" ||
+          oldVal === "" ||
+          !Number.isNaN(parseFloat(oldVal));
+        td.innerHTML = "";
+        const input = buildCellInput(
+          newType,
+          rowId,
+          col.id,
+          keepValue ? oldVal : "",
+        );
+        td.appendChild(input);
+      });
+
+      const totalsCell = totalsRow.querySelector(`td[data-col-id="${col.id}"]`);
+      if (totalsCell) {
+        totalsCell.textContent =
+          newType === "number" ? formatSum(computeColumnSum(col.id)) : "";
+      }
+
+      recalcLayout();
+    }
+  }
+
+  modalSubmit.addEventListener("click", async () => {
+    const groupBlocks = Array.from(
+      manageList.querySelectorAll(".irc7-group-block"),
+    );
+    const allRows = Array.from(manageList.querySelectorAll(".irc7-column-row"));
+
+    // Validate before touching the server: every group needs a name, and
+    // an existing column can't be renamed down to nothing.
+    for (const block of groupBlocks) {
+      if (!block.querySelector(".irc7-group-name-input").value.trim()) {
+        alert(
+          "Every group needs a name. Remove the group instead if you don't want it.",
+        );
         return;
       }
+    }
+    for (const row of allRows) {
+      if (
+        row.dataset.colId &&
+        !row.querySelector(".irc7-column-name-input").value.trim()
+      ) {
+        alert("Existing columns can't be left with an empty name.");
+        return;
+      }
+    }
 
-      block.querySelectorAll(".irc7-column-row").forEach((row) => {
-        const name = row.querySelector(".irc7-column-name-input").value.trim();
-        const type = row.querySelector(".irc7-column-type-select").value;
-        if (name) {
-          newColumns.push({ name, type, groupName });
+    modalSubmit.disabled = true;
+    try {
+      // 1. Rename existing groups whose name input changed.
+      for (const block of groupBlocks) {
+        const blockToken = block.dataset.blockToken;
+        if (!blockToken) continue;
+        const b = columnBlocks.get(blockToken);
+        if (!b) continue;
+        const newName = block
+          .querySelector(".irc7-group-name-input")
+          .value.trim();
+        if (newName !== b.groupName) await renameGroup(blockToken, newName);
+      }
+
+      // 2. Rename/retype existing columns whose fields changed.
+      for (const row of allRows) {
+        if (!row.dataset.colId) continue;
+        const col = columns.find((c) => c.id === Number(row.dataset.colId));
+        if (!col) continue;
+        const newName = row
+          .querySelector(".irc7-column-name-input")
+          .value.trim();
+        const newType = row.querySelector(".irc7-column-type-select").value;
+        if (newName !== col.name || newType !== col.type) {
+          await saveColumnEdit(col, newName, newType);
+        }
+      }
+
+      // 3. Collect brand-new columns (standalone + inside any group,
+      // existing or new) and create them all in one batch, walking
+      // manageList's direct children in DOM order so standalone rows and
+      // group blocks are interleaved exactly as they were added -- not
+      // "all standalone first, then all groups". populateManageModal()
+      // and the add-standalone/add-group handlers above both append to
+      // this same list in chronological order, so DOM order here *is*
+      // the order the user added things in.
+      const newColumns = [];
+
+      Array.from(manageList.children).forEach((el) => {
+        if (el.classList.contains("irc7-column-row")) {
+          // Standalone row, direct child of the shared list.
+          if (el.dataset.colId) return;
+          const name = el.querySelector(".irc7-column-name-input").value.trim();
+          const type = el.querySelector(".irc7-column-type-select").value;
+          if (name) newColumns.push({ name, type, groupName: null });
+          return;
+        }
+
+        if (el.classList.contains("irc7-group-block")) {
+          const groupName = el
+            .querySelector(".irc7-group-name-input")
+            .value.trim();
+          el.querySelectorAll(".irc7-column-row").forEach((row) => {
+            if (row.dataset.colId) return;
+            const name = row
+              .querySelector(".irc7-column-name-input")
+              .value.trim();
+            const type = row.querySelector(".irc7-column-type-select").value;
+            if (name) newColumns.push({ name, type, groupName });
+          });
         }
       });
-    });
 
-    if (missingGroupName) {
-      alert(
-        'Please name the new group, or switch it to "No group" or an existing group.',
-      );
-      return;
-    }
+      if (newColumns.length > 0) {
+        const res = await fetch("/irc/irc7/columns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ columns: newColumns }),
+        });
+        if (!res.ok) throw new Error("Save failed");
+        const data = await res.json();
 
-    if (newColumns.length === 0) {
-      alert("Please add at least one column with a name.");
-      return;
-    }
-
-    try {
-      const res = await fetch("/irc/irc7/columns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ columns: newColumns }),
-      });
-      if (!res.ok) throw new Error("Save failed");
-      const data = await res.json();
-
-      if (data.allColumns) {
-        // Adding to an existing group renumbers sort_order server-side,
-        // so the new columns can land anywhere in the table rather than
-        // just at the end. Re-render from the full authoritative
-        // ordering instead of appending the returned batch.
-        rerenderAllColumns(data.allColumns);
-      } else {
-        // Older backend without allColumns: fall back to appending.
-        renderColumnsBatch(data.columns);
+        if (data.allColumns) {
+          // Adding to an existing group renumbers sort_order server-side,
+          // so new columns can land anywhere rather than just the end --
+          // re-render from the full authoritative ordering.
+          rerenderAllColumns(data.allColumns);
+        } else {
+          renderColumnsBatch(data.columns);
+        }
       }
+
       hideAddModal();
     } catch (err) {
-      console.error("Failed to add IRC7 columns:", err);
-      alert("Could not add these columns. Please try again.");
+      console.error("Failed to save IRC7 columns:", err);
+      alert("Could not save these changes. Please try again.");
+    } finally {
+      modalSubmit.disabled = false;
     }
   });
 
@@ -667,6 +895,7 @@
     }
 
     recalcLayout();
+    updateAddColumnButtonUI();
   }
 
   // <col> element carrying this column's minimum width.
@@ -791,196 +1020,13 @@
     cell.textContent = formatSum(computeColumnSum(colId));
   }
 
-  // ================= EDIT / DELETE MODE: header clicks =================
-
-  function onHeaderClick(e) {
-    if (!activeMode) return; // clicking headers does nothing outside a mode
-
-    const th = e.target.closest("th[data-group-id], th[data-col-id]");
-    if (!th) return; // fixed (original) columns have no data-* id, so they're never affected
-
-    const kind = th.dataset.groupId ? "group" : "column";
-    const id = th.dataset.groupId || th.dataset.colId;
-
-    if (activeMode === "edit") {
-      openEditModal(kind, id);
-    } else if (activeMode === "delete") {
-      handleRemove(kind, id);
-    }
-  }
-
-  groupRow.addEventListener("click", onHeaderClick);
-  colRow.addEventListener("click", onHeaderClick);
-
-  // ---------- Edit modal ----------
-
-  let editingTarget = null; // { kind: 'column'|'group', id }
-
-  function openEditModal(kind, id) {
-    editingTarget = { kind, id };
-
-    if (kind === "group") {
-      const block = columnBlocks.get(id);
-      if (!block) return;
-      editModalTitle.textContent = "Edit Group";
-      editNameInput.value = block.groupName;
-      editTypeWrapper.style.display = "none";
-    } else {
-      const col = columns.find((c) => c.id === Number(id));
-      if (!col) return;
-      editModalTitle.textContent = "Edit Column";
-      editNameInput.value = col.name;
-      editTypeSelect.value = col.type;
-      editTypeWrapper.style.display = "";
-    }
-
-    editModal.style.display = "flex";
-    editNameInput.focus();
-  }
-
-  function hideEditModal() {
-    editModal.style.display = "none";
-    editingTarget = null;
-  }
-
-  editModalClose.addEventListener("click", hideEditModal);
-  editModalCancel.addEventListener("click", hideEditModal);
-  editModalOverlay.addEventListener("click", hideEditModal);
-  document
-    .querySelector("#editItemModal .irc7-modal-content")
-    .addEventListener("click", (e) => e.stopPropagation());
-
-  editModalSave.addEventListener("click", async () => {
-    if (!editingTarget) return;
-    const newName = editNameInput.value.trim();
-    if (!newName) {
-      alert("Name cannot be empty.");
-      return;
-    }
-
-    try {
-      if (editingTarget.kind === "group") {
-        const block = columnBlocks.get(editingTarget.id);
-        if (!block) return;
-        const oldName = block.groupName;
-
-        const res = await fetch(
-          `/irc/irc7/group/${encodeURIComponent(oldName)}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: newName }),
-          },
-        );
-        if (!res.ok) throw new Error("Rename failed");
-
-        // The backend renames every column sharing oldName, across every
-        // rendered block -- mirror that here, not just the block clicked.
-        columnBlocks.forEach((b, token) => {
-          if (b.groupName === oldName) {
-            b.groupName = newName;
-            const th = groupRow.querySelector(`th[data-group-id="${token}"]`);
-            if (th) th.textContent = newName;
-          }
-        });
-        columns.forEach((c) => {
-          if (c.groupName === oldName) c.groupName = newName;
-        });
-      } else {
-        const col = columns.find((c) => c.id === Number(editingTarget.id));
-        if (!col) return;
-        const newType = editTypeSelect.value;
-        const typeChanged = col.type !== newType;
-
-        const res = await fetch(`/irc/irc7/column/${col.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: newName, type: newType }),
-        });
-        if (!res.ok) throw new Error("Save failed");
-
-        col.name = newName;
-        col.type = newType;
-
-        const th = colRow.querySelector(`th[data-col-id="${col.id}"]`);
-        if (th) th.textContent = newName;
-
-        if (typeChanged) {
-          // Update the column's minimum width to match the new type, then
-          // let recalcLayout() redistribute space.
-          const colEl = colgroup.querySelector(`col[data-col-id="${col.id}"]`);
-          if (colEl) {
-            colEl.dataset.minWidth =
-              ADDED_COLUMN_MIN_WIDTH[newType] || ADDED_COLUMN_MIN_WIDTH.text;
-          }
-
-          tbody
-            .querySelectorAll(`td[data-col-id="${col.id}"]`)
-            .forEach((td) => {
-              const tr = td.closest("tr");
-              const rowId = Number(tr.dataset.rowId);
-              const oldVal = td.querySelector("input")?.value || "";
-              const keepValue =
-                newType !== "number" ||
-                oldVal === "" ||
-                !Number.isNaN(parseFloat(oldVal));
-              td.innerHTML = "";
-              const input = buildCellInput(
-                newType,
-                rowId,
-                col.id,
-                keepValue ? oldVal : "",
-              );
-              td.appendChild(input);
-            });
-
-          // Type changed -- refresh the totals cell in place (never
-          // remove/re-append it, since that would shift its position out
-          // of alignment with this column's <col>/header).
-          const totalsCell = totalsRow.querySelector(
-            `td[data-col-id="${col.id}"]`,
-          );
-          if (totalsCell) {
-            totalsCell.textContent =
-              newType === "number" ? formatSum(computeColumnSum(col.id)) : "";
-          }
-
-          recalcLayout();
-        }
-      }
-
-      hideEditModal();
-      // Stay in edit mode so the user can edit another header right away.
-    } catch (err) {
-      console.error("Failed to save IRC7 edit:", err);
-      alert("Could not save this change. Please try again.");
-    }
-  });
-
-  // ---------- Delete ----------
-
-  function handleRemove(kind, id) {
-    if (kind === "group") {
-      const block = columnBlocks.get(id);
-      if (!block) return;
-      if (
-        !confirm(
-          `Remove the group "${block.groupName}" and all its columns? This cannot be undone.`,
-        )
-      ) {
-        return;
-      }
-      removeGroup(id);
-    } else {
-      const col = columns.find((c) => c.id === Number(id));
-      if (!col) return;
-      if (!confirm(`Remove the column "${col.name}"? This cannot be undone.`)) {
-        return;
-      }
-      removeColumn(col.id);
-    }
-    // Stay in delete mode so the user can remove more without retoggling.
-  }
+  // ================= REMOVE COLUMN / GROUP =================
+  //
+  // Shared by the manage-columns modal (see handleRemoveColumnRow /
+  // handleRemoveGroupBlock above, which confirm() before calling these)
+  // and by rerenderAllColumns's teardown path. Both hit the server first
+  // and only patch the live table once the delete is confirmed to have
+  // succeeded.
 
   async function removeColumn(colId) {
     const col = columns.find((c) => c.id === colId);
@@ -1031,6 +1077,7 @@
 
     columns = columns.filter((c) => c.id !== colId);
     recalcLayout();
+    updateAddColumnButtonUI();
   }
 
   async function removeGroup(blockToken) {
@@ -1085,7 +1132,104 @@
 
     columns = columns.filter((c) => c.groupName !== groupName);
     recalcLayout();
+    updateAddColumnButtonUI();
   }
+
+  // ================= SAVE TO PDF =================
+  // Same approach as IRC1a: the browser's native print-to-PDF, driven by
+  // the print stylesheet (see the "Print / Save-to-PDF" section in
+  // irc7.css) rather than a screenshot library. That stylesheet hides the
+  // logo bar/navbar and this page's header/toolbar buttons, un-sticks and
+  // un-clips the table's sticky header/top-scrollbar/frozen columns (all
+  // screen-only conveniences that don't mean anything on paper), sizes
+  // the page to 13x8.5in "long" bond paper in landscape, and scales
+  // fonts/padding down to fit. document.title is swapped briefly since
+  // most browsers suggest it as the default "Save as PDF" filename.
+  function saveToPdf() {
+    const previousTitle = document.title;
+    document.title = `IRC7 SGOD Dashboard Data ${new Date().getFullYear()}`;
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+    window.addEventListener("afterprint", restoreTitle);
+
+    window.print();
+  }
+
+  if (pdfBtn) {
+    pdfBtn.addEventListener("click", saveToPdf);
+  }
+
+  // ---------- Print-time column widths ----------
+  // recalcLayout() (above) sizes every column for the ON-SCREEN
+  // #irc7TableScroll's clientWidth: if the combined minimums fit, it's
+  // fluid (%); otherwise it pins every column to its raw px minimum and
+  // lets the wrapper scroll horizontally. A printed page never scrolls
+  // and has its own fixed, known width that has nothing to do with the
+  // browser window -- browsers' print/Save-as-PDF pipeline doesn't
+  // reliably re-run that on-screen measurement against the print page,
+  // so whatever mode the screen happened to be in (especially the
+  // "doesn't fit, scroll instead" px mode, which only gets more likely
+  // the more columns are added) leaks straight into the PDF instead of
+  // fitting the page. That's what was producing misaligned/oversized
+  // columns once several columns were added.
+  //
+  // Fix: right before printing, force every column back into fluid mode
+  // regardless of what the screen decided -- same proportional-to-
+  // minimum formula recalcLayout() already uses, just applied
+  // unconditionally -- and mirror it onto the header table's colgroup
+  // the same way recalcLayout() always does, so the two tables stay
+  // aligned. The on-screen widths are restored afterward so nothing
+  // about the live page changes.
+  let preprintColumnState = null;
+
+  function applyPrintColumnWidths() {
+    const cols = Array.from(colgroup.children);
+    if (cols.length === 0) return;
+
+    preprintColumnState = {
+      tableWidth: table.style.width,
+      headerTableWidth: headerTable ? headerTable.style.width : "",
+      colWidths: cols.map((c) => c.style.width),
+    };
+
+    const minWidths = cols.map((c) => parseFloat(c.dataset.minWidth) || 100);
+    const totalMin = minWidths.reduce((sum, w) => sum + w, 0) || 1;
+
+    table.style.width = "100%";
+    cols.forEach((c, i) => {
+      c.style.width = (minWidths[i] / totalMin) * 100 + "%";
+    });
+
+    if (headerTable && headerColgroup) {
+      headerTable.style.width = "100%";
+      headerColgroup.innerHTML = colgroup.innerHTML;
+    }
+  }
+
+  function restorePrintColumnWidths() {
+    if (!preprintColumnState) return;
+
+    const cols = Array.from(colgroup.children);
+    cols.forEach((c, i) => {
+      c.style.width = preprintColumnState.colWidths[i] || "";
+    });
+    table.style.width = preprintColumnState.tableWidth;
+    if (headerTable)
+      headerTable.style.width = preprintColumnState.headerTableWidth;
+    if (headerColgroup) headerColgroup.innerHTML = colgroup.innerHTML;
+
+    preprintColumnState = null;
+    recalcLayout();
+  }
+
+  // "beforeprint"/"afterprint" fire for window.print() the same as for
+  // the browser's own Ctrl+P, so this covers both the button above and
+  // a manual print.
+  window.addEventListener("beforeprint", applyPrintColumnWidths);
+  window.addEventListener("afterprint", restorePrintColumnWidths);
 
   // ================= RESET: VALUES ONLY, OR ENTIRE TABLE =================
   //
@@ -1184,7 +1328,7 @@
     columnBlocks.clear();
     colIdToBlock.clear();
     if (clearValues) cellValues = {};
-    deactivateModes();
+    updateAddColumnButtonUI();
   }
 
   resetBtn.addEventListener("click", openResetConfirm);
