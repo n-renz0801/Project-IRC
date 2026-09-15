@@ -42,8 +42,13 @@
   if (!table) return;
 
   const totalSpan = document.getElementById("irc1b-total");
+  // Overall-performance summary card (right block of the hero row).
   const badgeTotalEl = document.getElementById("irc1b-badge-total");
-  const lowestList = document.getElementById("irc1b-lowest-list");
+  const highestValueEl = document.getElementById("irc1b-highest-value");
+  const highestMonthEl = document.getElementById("irc1b-highest-month");
+  const lowestValueEl = document.getElementById("irc1b-lowest-value");
+  const lowestMonthEl = document.getElementById("irc1b-lowest-month");
+  const monthsCountEl = document.getElementById("irc1b-months-count");
 
   const trendChartWrap = document.getElementById("irc1b-trend-chart-wrap");
   const trendToggle = document.getElementById("irc1b-trend-toggle");
@@ -80,10 +85,16 @@
     return { values, hasData };
   }
 
-  function recalcTotal(values) {
+  function recalcTotal(values, hasData) {
     const total = MONTHS.reduce((sum, m) => sum + values[m], 0);
     totalSpan.textContent = total.toLocaleString();
-    if (badgeTotalEl) badgeTotalEl.textContent = total.toLocaleString();
+    if (badgeTotalEl) {
+      // The table footer always shows a running total (0 included), but
+      // the summary card reads as a headline figure -- so it stays an
+      // em dash until at least one month has actually been recorded.
+      const anyData = MONTHS.some((m) => hasData[m]);
+      badgeTotalEl.textContent = anyData ? total.toLocaleString() : "\u2014";
+    }
     return total;
   }
 
@@ -299,46 +310,50 @@
     }, 150);
   });
 
-  // "Three Lowest Months" — mirrors IRC1a's lowest-indicators list, but
-  // over the 12 individually-entered months (not the current chart
-  // period), so switching Monthly/Quarterly doesn't change the ranking.
-  function recalcLowest(values, hasData) {
-    if (!lowestList) return;
-
+  // Summary-card stats: highest and lowest recorded months (with the
+  // month they fall in) and how many months have a recorded TA.
+  //
+  // Ranked over the 12 individually-entered months rather than the
+  // current chart period, so flipping Monthly/Quarterly never changes
+  // these figures. A month only counts if its field is non-blank -- a
+  // typed 0 is a real record of "nobody served" and is eligible to be
+  // the lowest, while a month left empty simply wasn't measured.
+  function recalcHighlights(values, hasData) {
     const entries = MONTHS.filter((m) => hasData[m]).map((m) => ({
-      key: m,
       label: MONTH_LABELS[m],
       value: values[m],
     }));
 
-    lowestList.innerHTML = "";
+    if (monthsCountEl) monthsCountEl.textContent = String(entries.length);
+
+    const setStat = (valueEl, monthEl, entry, emptyNote) => {
+      if (valueEl) {
+        valueEl.textContent = entry ? entry.value.toLocaleString() : "\u2014";
+      }
+      if (monthEl) monthEl.textContent = entry ? entry.label : emptyNote;
+    };
 
     if (entries.length === 0) {
-      const li = document.createElement("li");
-      li.className = "irc1b-lowest-placeholder";
-      li.textContent = "Enter counts below to see results.";
-      lowestList.appendChild(li);
+      setStat(highestValueEl, highestMonthEl, null, "No data yet");
+      setStat(lowestValueEl, lowestMonthEl, null, "No data yet");
       return;
     }
 
-    entries.sort((a, b) => a.value - b.value);
-    const lowestThree = entries.slice(0, 3);
+    // Ties resolve to the earliest month, since reduce() only replaces
+    // the running pick on a strict improvement.
+    const highest = entries.reduce((a, b) => (b.value > a.value ? b : a));
+    const lowest = entries.reduce((a, b) => (b.value < a.value ? b : a));
 
-    lowestThree.forEach((item, idx) => {
-      const rank = idx + 1;
-      const li = document.createElement("li");
-      li.className = "irc1b-lowest-item";
-      li.innerHTML = `<span class="irc1b-lowest-rank irc1b-rank-${rank}">${rank}</span><span class="irc1b-lowest-label">${item.label}</span><span class="irc1b-lowest-value">${item.value.toLocaleString()}</span>`;
-      lowestList.appendChild(li);
-    });
+    setStat(highestValueEl, highestMonthEl, highest);
+    setStat(lowestValueEl, lowestMonthEl, lowest);
   }
 
   function recalcAll() {
     const { values, hasData } = getValues();
     lastValues = values;
     lastHasData = hasData;
-    recalcTotal(values);
-    recalcLowest(values, hasData);
+    recalcTotal(values, hasData);
+    recalcHighlights(values, hasData);
     renderTrendChart(values, hasData);
   }
 
