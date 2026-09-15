@@ -276,9 +276,14 @@
    2. Top Analytics Section (Hero Block - 2 Column Split)
 ------------------------------------------------------------------ */
 
+/* Two-column split, same proportions as IRC1a: the trend chart takes
+   three quarters of the row and the overall-performance summary card
+   sits in the remaining quarter. The chart SVG is viewBox-driven with
+   preserveAspectRatio="none", so it simply redraws narrower inside its
+   smaller track -- no JS changes needed to "shrink" it. */
 .irc1b-hero-row {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 3fr 1fr;
   gap: 1.25rem;
   align-items: stretch;
 }
@@ -292,6 +297,12 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  /* Grid items default to min-width: auto, which pins a card at its
+     content's min-content width and can hold the whole hero row open
+     wider than the viewport instead of letting it shrink with its
+     track. This keeps it a well-behaved shrinking grid item at every
+     screen size. */
+  min-width: 0;
 }
 
 /* ------------------------------------------------------------------
@@ -456,10 +467,154 @@
   text-anchor: middle;
 }
 
-/* Empty-state placeholder text for the trend chart (badge-card removed) */
+/* Empty-state placeholder text for the trend chart */
 .irc1b-lowest-placeholder {
   font-size: 12.5px;
   color: #9aa7b8;
+}
+
+/* ------------------------------------------------------------------
+   Overall Performance summary card (right block of the hero row).
+   Mirrors IRC1a's .irc1a-badge-card: dark panel, one headline figure
+   on top, then a divided list of supporting stats underneath.
+------------------------------------------------------------------ */
+
+.irc1b-badge-card {
+  background: linear-gradient(160deg, #1f2937 0%, #2d3f57 100%);
+  border-radius: 12px;
+  padding: 24px 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #fff;
+  /* See .irc1b-trend-card -- same grid-shrink fix. */
+  min-width: 0;
+}
+
+.irc1b-badge-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #b9c4d3;
+  margin-bottom: 10px;
+}
+
+.irc1b-badge-score {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.irc1b-badge-scale {
+  font-size: 12px;
+  color: #9aa7b8;
+  margin-top: 4px;
+}
+
+.irc1b-badge-stats {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+.irc1b-badge-stats-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #b9c4d3;
+  margin-bottom: 10px;
+}
+
+.irc1b-stat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.irc1b-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: #e5eaf0;
+  min-width: 0;
+}
+
+.irc1b-stat-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  color: #fff;
+  background: #64748b;
+}
+
+.irc1b-stat-marker-high {
+  background: #22c55e;
+}
+
+.irc1b-stat-marker-low {
+  background: #ef4444;
+}
+
+.irc1b-stat-marker-months {
+  background: #3b82f6;
+}
+
+.irc1b-stat-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.irc1b-stat-name {
+  color: #cbd5e1;
+  overflow-wrap: break-word;
+}
+
+.irc1b-stat-sub {
+  font-size: 10.5px;
+  color: #8e9bad;
+  overflow-wrap: break-word;
+}
+
+.irc1b-stat-value {
+  font-weight: 700;
+  color: #fbbf24;
+  flex-shrink: 0;
+  overflow-wrap: anywhere;
+}
+
+.irc1b-stat-value-high {
+  color: #4ade80;
+}
+
+.irc1b-stat-value-low {
+  color: #f87171;
+}
+
+.irc1b-stat-value-months {
+  color: #93c5fd;
 }
 
 /* ------------------------------------------------------------------
@@ -605,16 +760,31 @@
    Responsive adjustments
 ------------------------------------------------------------------ */
 
-/* HD laptops (~1366px). Same single-column hero row as always -- grid
-   items default to min-width: auto though, which can pin the trend
-   card at its content's min-content width and hold it open wider than
-   the viewport. min-width: 0 lets .irc1b-trend-card (the plot) shrink
-   properly, and the SVG inside it already redraws at whatever width
-   it's given (see getChartScale() in irc1b.js), so it just gets
-   narrower along with the card. Padding/font sizes trimmed to match. */
+/* HD laptops (~1366px). Same 3fr/1fr hero row as always -- see
+   min-width: 0 on .irc1b-trend-card / .irc1b-badge-card for how both
+   cards keep shrinking with their tracks instead of forcing an
+   overflow. The chart SVG already redraws at whatever width it's given
+   (see getChartScale() in irc1b.js), so it just gets narrower along
+   with its card. Padding/font sizes trimmed to match. */
 @media (max-width: 1400px) {
-  .irc1b-trend-card {
-    min-width: 0;
+  .irc1b-badge-card {
+    padding: 18px 14px;
+  }
+
+  .irc1b-badge-score {
+    font-size: 34px;
+  }
+
+  .irc1b-badge-label,
+  .irc1b-badge-scale,
+  .irc1b-badge-stats-title,
+  .irc1b-stat-item,
+  .irc1b-lowest-placeholder {
+    font-size: 11px;
+  }
+
+  .irc1b-stat-sub {
+    font-size: 10px;
   }
 
   .irc1b-dark-header,
@@ -679,6 +849,57 @@
   }
 }
 
+/* Continue shrinking past the 1400px step instead of freezing there --
+   the gap and the badge card's padding/font sizes keep tightening as
+   the viewport narrows, so .irc1b-hero-row (3fr/1fr) always has room
+   to shrink in place. Nothing here changes grid-template-columns, so
+   the row never collapses into a stacked, single-column layout. */
+@media (max-width: 1150px) {
+  .irc1b-hero-row {
+    gap: 1rem;
+  }
+
+  .irc1b-badge-card {
+    padding: 16px 12px;
+  }
+
+  .irc1b-badge-score {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 950px) {
+  .irc1b-hero-row {
+    /* Give the summary card relatively more of the row so it doesn't
+       get squeezed to an unreadable sliver as the trend card's chart
+       still needs most of the space. */
+    grid-template-columns: 2.2fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .irc1b-badge-card {
+    padding: 14px 10px;
+  }
+
+  .irc1b-badge-score {
+    font-size: 24px;
+  }
+
+  .irc1b-badge-label,
+  .irc1b-badge-scale,
+  .irc1b-badge-stats-title,
+  .irc1b-stat-item,
+  .irc1b-lowest-placeholder {
+    font-size: 10px;
+  }
+
+  .irc1b-stat-marker {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+}
+
 @media (max-width: 768px) {
   .irc1b-header h2 {
     font-size: 22px;
@@ -722,5 +943,9 @@
   .irc1b-dark-header,
   .irc1b-card-body {
     padding: 14px 16px;
+  }
+
+  .irc1b-badge-card {
+    padding: 18px 16px;
   }
 }
