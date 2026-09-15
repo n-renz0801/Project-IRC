@@ -87,6 +87,41 @@
   flex-shrink: 0;
 }
 
+/* Save to PDF button */
+.irc1b-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc1b-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc1b-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc1b-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Reset-all-data button */
 .irc1b-reset-btn {
   display: flex;
@@ -276,14 +311,14 @@
    2. Top Analytics Section (Hero Block - 2 Column Split)
 ------------------------------------------------------------------ */
 
-/* Two-column split, same proportions as IRC1a: the trend chart takes
-   three quarters of the row and the overall-performance summary card
-   sits in the remaining quarter. The chart SVG is viewBox-driven with
-   preserveAspectRatio="none", so it simply redraws narrower inside its
-   smaller track -- no JS changes needed to "shrink" it. */
+/* Two-column split: the trend chart takes 70% of the row and the
+   overall-performance summary card sits in the remaining 30%. The
+   chart SVG is viewBox-driven with preserveAspectRatio="none", so it
+   simply redraws narrower inside its smaller track -- no JS changes
+   needed to "shrink" it. */
 .irc1b-hero-row {
   display: grid;
-  grid-template-columns: 3fr 1fr;
+  grid-template-columns: 7fr 3fr;
   gap: 1.25rem;
   align-items: stretch;
 }
@@ -851,7 +886,7 @@
 
 /* Continue shrinking past the 1400px step instead of freezing there --
    the gap and the badge card's padding/font sizes keep tightening as
-   the viewport narrows, so .irc1b-hero-row (3fr/1fr) always has room
+   the viewport narrows, so .irc1b-hero-row (7fr/3fr) always has room
    to shrink in place. Nothing here changes grid-template-columns, so
    the row never collapses into a stacked, single-column layout. */
 @media (max-width: 1150px) {
@@ -926,6 +961,7 @@
     width: 100%;
   }
 
+  .irc1b-pdf-btn,
   .irc1b-reset-btn {
     flex: 1;
     justify-content: center;
@@ -947,5 +983,306 @@
 
   .irc1b-badge-card {
     padding: 18px 16px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   4. Print / Save-to-PDF
+   Triggered by #irc1b-pdf-btn -> window.print() (see irc1b.js). Only
+   ever active on this page since irc1b.css is only loaded here, so
+   these rules can safely target the shared <header>/<nav> from
+   base.html without leaking into other tabs. Mirrors IRC1a's own
+   "Print / Save-to-PDF" section (see irc1a.css), trimmed down to
+   this page's simpler layout (no legend, no remarks cards, no
+   multi-indicator table).
+------------------------------------------------------------------ */
+
+@media print {
+  /* "Long" bond paper, as requested -- 8.5in x 13in. */
+  @page {
+    size: 8.5in 13in;
+    margin: 0.5in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height. Printing engines
+     honor that overflow/height the same way screens do, which would
+     clip everything past one viewport-tall "page" of .content --
+     so it all has to be forced back to natural, unclipped flow here. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Logo bar + navbar (base.html) and this page's own header action
+     buttons (Save to PDF / Reset) -- none of these belong in a
+     printed report. */
+  header,
+  nav,
+  .irc1b-header-actions {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: only ever visible via a ".visible" class
+     toggle and defaults to display:none already, but force it off in
+     case a print is triggered while it's open. */
+  #irc1b-reset-confirm-overlay {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* Horizontally-scrolling table needs to render in full instead of
+     scrolling. */
+  .irc1b-table-wrapper {
+    overflow: visible !important;
+  }
+
+  .scroll-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Scrollbars never belong in a printed/PDF page. Most browsers omit
+     them for print automatically, but this removes any doubt. */
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default
+     unless told otherwise, which is why the dark analytics headers,
+     the total pill badge, and the trend chart's accent colors were
+     all coming out flat/white. This forces every background to print
+     as it looks on screen. "Background graphics" still needs to be
+     left ON in the print dialog -- this can't override that toggle,
+     only make sure nothing here fights it. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Scale down: everything below is sized for a 1600px+ screen, so
+     printed at full size onto a 8.5in-wide sheet it runs oversized
+     and can spill past the page edge. These trim fonts/paddings down
+     to a print-appropriate scale, independent of the on-screen
+     responsive breakpoints (which key off the print viewport width
+     and can't be relied on to land consistently across browsers).
+  --------------------------------------------------------------- */
+
+  .irc1b-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .irc1b-header-badge {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .irc1b-header-badge-group {
+    font-size: 8px;
+  }
+
+  .irc1b-header-badge-page {
+    font-size: 13px;
+  }
+
+  .irc1b-header-divider {
+    height: 38px;
+  }
+
+  .irc1b-header h2 {
+    font-size: 18px;
+  }
+
+  .irc1b-subtitle {
+    font-size: 10px;
+  }
+
+  /* Height + top margin have to mirror .irc1b-flow-badge exactly (both
+     normally share height:36px / margin-top:20px so they land on the
+     same row) -- shrinking the badge below without matching the label
+     here is what knocks them out of alignment. */
+  .irc1b-flow-label {
+    height: 20px !important;
+    margin: 10px 0 6px 2px !important;
+    font-size: 10px;
+  }
+
+  .irc1b-flow-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  /* Spacing between the 2 flow rows: this has to live on .irc1b-flow's
+     own row-gap, NOT as margin-top on each .irc1b-flow-section -- a
+     per-section margin-top pushes that section's content down inside
+     its own grid row without the rail (a separate grid item) moving
+     with it, which would knock the 2nd row's label out of alignment
+     with its badge. row-gap instead adds space strictly between rows,
+     so it can't create that offset. Same fix as IRC1a. */
+  .irc1b-flow {
+    row-gap: 14px;
+  }
+
+  /* Trend chart / Total Customers Served summary: same 70/30 split as
+     the on-screen layout. */
+  .irc1b-hero-row {
+    grid-template-columns: 7fr 3fr !important;
+    gap: 10px;
+  }
+
+  .irc1b-dark-header,
+  .irc1b-card-body {
+    padding: 8px 10px !important;
+  }
+
+  .irc1b-trend-header h3,
+  .irc1b-table-card-header h3 {
+    font-size: 11px !important;
+  }
+
+  .irc1b-subtitle-dark {
+    font-size: 9px !important;
+  }
+
+  .irc1b-trend-toggle,
+  .irc1b-toggle-btn {
+    display: none !important;
+  }
+
+  .irc1b-trend-chart-wrap {
+    min-height: 0;
+  }
+
+  .irc1b-badge-card {
+    padding: 10px 8px !important;
+  }
+
+  .irc1b-badge-label {
+    font-size: 9px !important;
+  }
+
+  .irc1b-badge-score {
+    font-size: 22px !important;
+  }
+
+  .irc1b-badge-scale {
+    font-size: 9px !important;
+  }
+
+  .irc1b-badge-stats {
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+  }
+
+  .irc1b-badge-stats-title {
+    font-size: 8.5px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .irc1b-stat-list {
+    gap: 6px !important;
+  }
+
+  .irc1b-stat-item {
+    font-size: 8.5px !important;
+    gap: 6px !important;
+  }
+
+  .irc1b-stat-marker {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 9px !important;
+  }
+
+  .irc1b-stat-sub,
+  .irc1b-lowest-placeholder {
+    font-size: 8px !important;
+  }
+
+  .irc1b-table-wrapper {
+    font-size: 9px !important;
+  }
+
+  /* Unify every piece of text inside the table to the same size --
+     .irc1b-table carries its own explicit font-size (set higher up,
+     for on-screen breakpoints) that would otherwise win over the
+     inherited 9px above, and form elements like the count <input>s
+     don't inherit font-size from their ancestors at all, so each one
+     needs to be pinned to the same value directly. */
+  .irc1b-table,
+  .irc1b-table thead th,
+  .irc1b-table tbody td,
+  .irc1b-table tbody input[type="number"] {
+    font-size: 9px !important;
+  }
+
+  .irc1b-table thead th,
+  .irc1b-table tbody td {
+    padding: 5px 3px !important;
+  }
+
+  .irc1b-label-col {
+    width: 16% !important;
+  }
+
+  .irc1b-total-col {
+    width: 9% !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Count inputs: on screen these look like boxed form fields
+     (border + off-white fill + inset shadow); on a printed report
+     they should just read as plain numbers, so all of that is
+     stripped back to bare text. width has to be pinned to 100% (of
+     the fixed-width table cell) rather than just removing max-width
+     -- a bare <input type="number"> without an explicit width falls
+     back to the browser's own intrinsic default, which is far wider
+     than this cell, bleeding past it into neighboring columns and off
+     the page edge. Same fix as IRC1a's rating inputs. */
+  .irc1b-table tbody input[type="number"] {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 1px 0 !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .irc1b-total-cell #irc1b-total {
+    font-size: 9px !important;
+    padding: 2px 8px !important;
+  }
+
+  /* Report signatory footer print scaling now lives centrally in
+     base.css (the same @media print block runs on every IRC1a-IRC9
+     page), so this page no longer needs its own copy. */
+
+  /* Avoid splitting a table row or a summary card awkwardly across a
+     page break. */
+  .irc1b-table tr,
+  .irc1b-trend-card,
+  .irc1b-badge-card {
+    break-inside: avoid;
   }
 }
