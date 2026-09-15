@@ -213,6 +213,34 @@
     el.addEventListener("input", scheduleSaveTargets);
   });
 
+  // --- Save to PDF ---
+  // Uses the browser's native print-to-PDF instead of a screenshot
+  // library: the print stylesheet (see the "Print / Save-to-PDF"
+  // section in irc3.css) hides the logo bar, navbar, and this page's
+  // header action buttons, sizes the page to 8.5x13in "long" paper,
+  // and un-clips anything that only scrolls on screen (the table
+  // wrapper). document.title is swapped briefly since most browsers
+  // suggest it as the default "Save as PDF" filename. Same approach
+  // as IRC1a's saveToPdf().
+  const pdfBtn = document.getElementById("irc3-pdf-btn");
+
+  function saveToPdf() {
+    const previousTitle = document.title;
+    document.title = `IRC3 Status of TA Provision to Schools ${new Date().getFullYear()}`;
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+    window.addEventListener("afterprint", restoreTitle);
+
+    window.print();
+  }
+
+  if (pdfBtn) {
+    pdfBtn.addEventListener("click", saveToPdf);
+  }
+
   // --- Reset All Data ---
   // There's no dedicated reset endpoint for IRC3 -- "Provided with TA" is
   // computed live from IRC2a and was never stored here, so the only thing
