@@ -140,6 +140,7 @@
     };
     els.levelFilterGroup = document.getElementById("irc2a-level-filters");
     els.dedpToggle = document.getElementById("dedp-filter-toggle");
+    els.pdfBtn = document.getElementById("irc2a-pdf-btn");
     els.resetAllBtn = document.getElementById("irc2aResetAllBtn");
     els.resetConfirmOverlay = document.getElementById(
       "irc2a-reset-confirm-overlay",
@@ -504,6 +505,52 @@
     render(currentFilters());
   }
 
+  // --- Save to PDF -------------------------------------------------------
+  // Uses the browser's native print-to-PDF instead of a screenshot
+  // library: the print stylesheet (see the "Print / Save-to-PDF" section
+  // in irc2a.css) hides the logo bar, navbar, header actions, and the
+  // (purely on-screen) filter/search controls, sizes the page to 8.5x13in
+  // "long" paper, and un-clips the school lists so they render in full
+  // instead of scrolling. document.title is swapped briefly since most
+  // browsers suggest it as the default "Save as PDF" filename. Same
+  // approach as IRC1a/IRC1b's saveToPdf().
+  //
+  // Unlike IRC1a/IRC1b (whose printed tables always show every row),
+  // render() here only puts *matching* schools in the DOM at all --
+  // filtered-out ones are never appended, not just display:none'd -- so a
+  // level/DEDP/search filter left active on screen would otherwise
+  // silently omit real schools from the PDF. The current filter/search
+  // state is snapshotted, reset to "show everything" for the printed
+  // render, then restored to exactly what the user had once the print
+  // dialog closes.
+  function saveToPdf() {
+    const previousTitle = document.title;
+    document.title = `IRC2a Number of Schools Provided with TA ${new Date().getFullYear()}`;
+
+    const previousFilters = {
+      level: filters.level,
+      dedpOnly: filters.dedpOnly,
+    };
+    const previousSearch = currentFilters();
+
+    filters = { level: "all", dedpOnly: false };
+    els.searches.unprovided.value = "";
+    els.searches.provided.value = "";
+    render();
+
+    const restore = () => {
+      document.title = previousTitle;
+      filters = previousFilters;
+      els.searches.unprovided.value = previousSearch.unprovided;
+      els.searches.provided.value = previousSearch.provided;
+      render(previousSearch);
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+
+    window.print();
+  }
+
   // --- Reset All Data --------------------------------------------------
   // Clicking the reset button opens the confirmation modal (see
   // irc2a-reset-confirm-overlay in irc2a.html); the actual wipe only
@@ -552,6 +599,9 @@
     initState();
     render();
 
+    if (els.pdfBtn) {
+      els.pdfBtn.addEventListener("click", saveToPdf);
+    }
     if (els.resetAllBtn) {
       els.resetAllBtn.addEventListener("click", openResetConfirm);
     }

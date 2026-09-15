@@ -91,6 +91,41 @@
   flex-shrink: 0;
 }
 
+/* Save to PDF button */
+.irc2a-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc2a-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc2a-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc2a-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Reset-all-data button — same design as IRC1a's reset button */
 .irc2a-reset-btn {
   display: flex;
@@ -319,7 +354,7 @@
 
 .irc2a-hero-row {
   display: grid;
-  grid-template-columns: 3fr 1fr;
+  grid-template-columns: 7fr 3fr;
   gap: 1.25rem;
   align-items: stretch;
 }
@@ -1026,6 +1061,7 @@
     width: 100%;
   }
 
+  .irc2a-pdf-btn,
   .irc2a-reset-btn {
     flex: 1;
     justify-content: center;
@@ -1034,5 +1070,361 @@
   .irc2a-dark-header,
   .irc2a-card-body {
     padding: 14px 16px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   4. Print / Save-to-PDF
+   Triggered by #irc2a-pdf-btn -> window.print() (see irc2a.js). Only
+   ever active on this page since irc2a.css is only loaded here, so
+   these rules can safely target the shared <header>/<nav> from
+   base.html without leaking into other tabs. Mirrors IRC1a/IRC1b's
+   own "Print / Save-to-PDF" section, adapted to this page's
+   dashboard + filter + two-column board layout.
+------------------------------------------------------------------ */
+
+@media print {
+  /* "Long" bond paper, as requested -- 8.5in x 13in. */
+  @page {
+    size: 8.5in 13in;
+    margin: 0.5in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height. Printing engines
+     honor that overflow/height the same way screens do, which would
+     clip everything past one viewport-tall "page" of .content --
+     so it all has to be forced back to natural, unclipped flow here. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Logo bar + navbar (base.html) and this page's own header action
+     buttons (Save to PDF / Reset) -- none of these belong in a
+     printed report. */
+  header,
+  nav,
+  .irc2a-header-actions {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: only ever visible via a ".visible" class
+     toggle and defaults to display:none already, but force it off in
+     case a print is triggered while it's open. */
+  #irc2a-reset-confirm-overlay {
+    display: none !important;
+  }
+
+  /* "Filter & search" (flow-section-2): filter chips, the DEDP
+     toggle, and the two search boxes are pure on-screen interaction
+     with nothing to show once printed -- window.print() gets triggered
+     with the board reset to fully unfiltered/unsearched anyway (see
+     saveToPdf() in irc2a.js), so this whole section and its flow
+     label are dropped rather than left showing controls nobody can
+     click on paper. Its "2" rail badge is hidden along with it, but
+     the rail itself still has to read a clean "1, 2" -- so School
+     assignment's badge (the 3rd child, normally labeled "3") has its
+     own text swapped out for a "2" below instead of leaving a "1, 3"
+     gap where the filter step used to be. */
+  .irc2a-flow-section-2,
+  .irc2a-flow-badge:nth-child(2) {
+    display: none !important;
+  }
+
+  /* Blank out the literal "3" text node and substitute "2" via
+     generated content -- the badge is a centered flex container, so
+     the pseudo-element lands in the same spot the original digit did. */
+  .irc2a-flow-badge:nth-child(3) {
+    font-size: 0 !important;
+  }
+
+  .irc2a-flow-badge:nth-child(3)::after {
+    content: "2";
+    font-size: 10px !important;
+  }
+
+  /* Per-column search boxes (unprovided/provided lists): same reasoning
+     as the filter section above -- irrelevant once printed, and
+     saveToPdf() already clears their values before this stylesheet ever
+     applies. */
+  .irc2a-search-wrap {
+    display: none !important;
+  }
+
+  /* Click-to-move affordance (the "->"/"<-" glyph on each school row):
+     meaningless on a static page. */
+  .irc2a-item-action {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* Each column's school list is capped at 350px with its own scrollbar
+     on screen -- both need to fall away so the full list renders
+     instead of clipping/scrolling. */
+  .irc2a-list {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .scroll-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Scrollbars never belong in a printed/PDF page. Most browsers omit
+     them for print automatically, but this removes any doubt. */
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default
+     unless told otherwise, which is why the dark analytics headers,
+     the coverage bars, the count badges, and the DEDP tint colors
+     were all coming out flat/white. This forces every background to
+     print as it looks on screen. "Background graphics" still needs
+     to be left ON in the print dialog -- this can't override that
+     toggle, only make sure nothing here fights it. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Scale down: everything below is sized for a 1600px+ screen, so
+     printed at full size onto a 8.5in-wide sheet it runs oversized
+     and can spill past the page edge. These trim fonts/paddings down
+     to a print-appropriate scale, independent of the on-screen
+     responsive breakpoints (which key off the print viewport width
+     and can't be relied on to land consistently across browsers).
+  --------------------------------------------------------------- */
+
+  .irc2a-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .irc2a-header-badge {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .irc2a-header-badge-group {
+    font-size: 8px;
+  }
+
+  .irc2a-header-badge-page {
+    font-size: 13px;
+  }
+
+  .irc2a-header-divider {
+    height: 38px;
+  }
+
+  .irc2a-header h2 {
+    font-size: 18px;
+  }
+
+  .irc2a-subtitle {
+    font-size: 10px;
+  }
+
+  /* Height + top margin have to mirror .irc2a-flow-badge exactly (both
+     normally share height:36px / margin-top:20px so they land on the
+     same row) -- shrinking the badge below without matching the label
+     here is what knocks them out of alignment. Same fix as IRC1a/b. */
+  .irc2a-flow-label {
+    height: 20px !important;
+    margin: 10px 0 6px 2px !important;
+    font-size: 10px;
+  }
+
+  .irc2a-flow-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  /* Spacing between flow rows: this has to live on .irc2a-flow's own
+     row-gap, NOT as margin-top on each .irc2a-flow-section -- see the
+     matching note in irc1a.css for why. Row 2 (Filter & search) is
+     hidden above, so this now only visibly separates the coverage
+     dashboard from the assignment board, but the row-gap still has to
+     be set here for that remaining space to come out at print scale
+     instead of the larger on-screen 1.25rem. */
+  .irc2a-flow {
+    row-gap: 14px;
+  }
+
+  /* Coverage chart / Overall Coverage summary: same 70/30 split as the
+     on-screen layout. */
+  .irc2a-hero-row {
+    grid-template-columns: 7fr 3fr !important;
+    gap: 10px;
+  }
+
+  .irc2a-dark-header,
+  .irc2a-card-body {
+    padding: 8px 10px !important;
+  }
+
+  .irc2a-dark-header h3 {
+    font-size: 11px !important;
+  }
+
+  .irc2a-subtitle-dark {
+    font-size: 9px !important;
+  }
+
+  /* ---- Coverage dashboard (DEDP / Non-DEDP bars) ---- */
+
+  .irc2a-coverage-row {
+    gap: 12px !important;
+    padding: 3px 0 !important;
+  }
+
+  .irc2a-coverage-hero {
+    flex: 0 0 60px !important;
+  }
+
+  .irc2a-coverage-hero-value {
+    font-size: 18px !important;
+    line-height: 20px !important;
+  }
+
+  .irc2a-coverage-hero-label {
+    font-size: 8px !important;
+    line-height: 10px !important;
+    margin-top: 2px !important;
+  }
+
+  .irc2a-coverage-bar-track {
+    height: 16px !important;
+  }
+
+  .irc2a-coverage-meta {
+    font-size: 8px !important;
+    gap: 6px !important;
+  }
+
+  .irc2a-coverage-legend-dot {
+    width: 6px !important;
+    height: 6px !important;
+    margin-right: 3px !important;
+  }
+
+  /* ---- Overall Coverage badge card ---- */
+
+  .irc2a-badge-card {
+    padding: 10px 8px !important;
+  }
+
+  .irc2a-badge-label {
+    font-size: 9px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .irc2a-badge-score {
+    font-size: 22px !important;
+  }
+
+  .irc2a-badge-scale {
+    font-size: 9px !important;
+    margin-top: 2px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .irc2a-badge-pill {
+    font-size: 8.5px !important;
+    padding: 3px 10px !important;
+  }
+
+  .irc2a-badge-lowest {
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+  }
+
+  .irc2a-badge-lowest-title {
+    font-size: 8.5px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .irc2a-lowest-list {
+    gap: 6px !important;
+  }
+
+  .irc2a-lowest-item {
+    font-size: 8.5px !important;
+    gap: 6px !important;
+  }
+
+  .irc2a-lowest-dot {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  /* ---- School assignment board ---- */
+
+  .irc2a-column-header {
+    padding: 6px 10px !important;
+  }
+
+  .irc2a-column-header h3 {
+    font-size: 10px !important;
+  }
+
+  .irc2a-count-badge {
+    font-size: 9px !important;
+    padding: 2px 8px !important;
+  }
+
+  .irc2a-list {
+    padding: 6px !important;
+    gap: 3px !important;
+  }
+
+  .irc2a-item {
+    padding: 4px 7px !important;
+    font-size: 9px !important;
+  }
+
+  .irc2a-badge {
+    font-size: 7px !important;
+    padding: 1px 5px !important;
+  }
+
+  .irc2a-divider {
+    padding-top: 20px !important;
+    font-size: 12px !important;
+  }
+
+  /* Avoid splitting a school row or a summary card awkwardly across a
+     page break. Deliberately NOT applied to .irc2a-column itself --
+     with dozens of schools potentially printed unfiltered (see
+     saveToPdf() in irc2a.js), a column's full list is often taller
+     than a single page, so forcing the whole card to avoid breaking
+     just pushes it entirely onto the next page and leaves a large
+     blank gap behind it. Letting the column break normally (while
+     each .irc2a-item inside it still won't split) is what keeps
+     "Not Yet Provided" flowing directly into "Provided with TA"
+     instead of leaving that gap. */
+  .irc2a-item,
+  .irc2a-trend-card,
+  .irc2a-badge-card {
+    break-inside: avoid;
   }
 }
