@@ -274,7 +274,7 @@
       tr.innerHTML = `
         <td colspan="5">
           No entries yet. Click <strong>&ldquo;+ Add Entry&rdquo;</strong> to
-          log your first critical incident, or import one from a PMCF PDF.
+          log your first critical incident, or import one from a PMCF file.
         </td>
       `;
       tableBody.appendChild(tr);
@@ -350,21 +350,37 @@
   });
 
   // ------------------------------------------------------------------
-  // PDF import
+  // Document import (.docx only -- see app.py's extract_irc9_pdf comment
+  // for why PDF import was dropped: a PMCF PDF only has readable text
+  // when it was exported with a real text layer, and image/scanned
+  // PMCFs simply have nothing for the PDF parser to read. The .docx
+  // stores the form's table natively, so it works regardless of how
+  // the file was produced.)
   // ------------------------------------------------------------------
+  const IMPORT_BTN_LABEL = '<i class="ti ti-file-upload"></i> Import DOCX File';
+
   importBtn.addEventListener("click", () => fileInput.click());
 
   fileInput.addEventListener("change", (e) => {
     if (e.target.files.length > 0) {
-      handlePdfUpload(e.target.files[0]);
+      handleDocumentUpload(e.target.files[0]);
       // reset so re-selecting the same file re-triggers change
       fileInput.value = "";
     }
   });
 
-  function handlePdfUpload(file) {
-    if (!file.type.includes("pdf")) {
-      alert("Please upload a PDF file.");
+  function handleDocumentUpload(file) {
+    // Checked by extension, not file.type: browsers report the .docx
+    // MIME type inconsistently (and Windows sometimes reports none at
+    // all), so the type string is not a reliable gate. The server
+    // re-validates anyway.
+    const name = (file.name || "").toLowerCase();
+    if (!name.endsWith(".docx")) {
+      alert(
+        name.endsWith(".doc")
+          ? "Older .doc files aren't supported. Please open the file in Word and save it as .docx."
+          : "Please upload the PMCF as a Word (.docx) file.",
+      );
       return;
     }
 
@@ -381,8 +397,7 @@
       .then((res) => res.json())
       .then((data) => {
         importBtn.disabled = false;
-        importBtn.innerHTML =
-          '<i class="ti ti-file-upload"></i> Import from PDF';
+        importBtn.innerHTML = IMPORT_BTN_LABEL;
 
         if (data.error) {
           alert("Error: " + data.error);
@@ -406,8 +421,7 @@
       })
       .catch((err) => {
         importBtn.disabled = false;
-        importBtn.innerHTML =
-          '<i class="ti ti-file-upload"></i> Import from PDF';
+        importBtn.innerHTML = IMPORT_BTN_LABEL;
         alert("Upload failed: " + err.message);
       });
   }

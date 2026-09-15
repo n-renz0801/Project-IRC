@@ -94,7 +94,11 @@ block content %}
          "Checked by" look identical -- just without the dark
          .report-signatory-title bar, and embedded in this page's own flow
          instead of the base template's bottom-of-page footer, which is
-         suppressed for this tab specifically (see base.html). -->
+         suppressed for this tab specifically (see base.html). Each
+         signatory's date control below its position is wired up
+         generically by index.js (same click/save logic as every other
+         IRC1a-IRC9 page), keyed off data-signatory-role plus this page's
+         own active_tab.id ("irc8c") -- no extra JS needed here. -->
     <div class="irc8c-flow-section irc8c-flow-section-3">
       <p class="irc8c-flow-label">Sign-off</p>
       <div class="irc8c-card">
@@ -121,6 +125,24 @@ block content %}
                   class="report-signatory-position"
                   id="reportPreparedByPosition"
                 ></p>
+                <div
+                  class="report-signatory-date"
+                  data-signatory-role="prepared_by"
+                >
+                  <button
+                    type="button"
+                    class="report-signatory-date-btn"
+                    aria-label="Set date for Prepared by"
+                  >
+                    <span class="report-signatory-date-text">Set date</span>
+                  </button>
+                  <input
+                    type="date"
+                    class="report-signatory-date-input"
+                    tabindex="-1"
+                    aria-hidden="true"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -133,6 +155,24 @@ block content %}
               <div class="report-signatory-info">
                 <p class="report-signatory-name">DR. JONATHAN P. DOMINGO</p>
                 <p class="report-signatory-position">SGOD Chief</p>
+                <div
+                  class="report-signatory-date"
+                  data-signatory-role="checked_by"
+                >
+                  <button
+                    type="button"
+                    class="report-signatory-date-btn"
+                    aria-label="Set date for Checked by"
+                  >
+                    <span class="report-signatory-date-text">Set date</span>
+                  </button>
+                  <input
+                    type="date"
+                    class="report-signatory-date-input"
+                    tabindex="-1"
+                    aria-hidden="true"
+                  />
+                </div>
               </div>
             </div>
           </div>

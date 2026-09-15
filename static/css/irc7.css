@@ -577,6 +577,113 @@
   background: #f0f5ff;
 }
 
+/* ---------- Frozen reference columns (School ID -> Classification) ----------
+   The six reference columns stay pinned to the left edge while the added
+   indicator columns scroll horizontally, so a row's school is always
+   identifiable without scrolling back.
+
+   Each frozen cell carries data-frozen-index; its `left` offset comes from
+   a CSS variable published on .irc7-table-wrapper by updateFrozenOffsets()
+   in irc7.js. The offsets can't be hardcoded here because recalcLayout()
+   sizes every column dynamically (percentage widths when the table fits,
+   pixel minimums once it overflows).
+
+   Two things this has to work around:
+
+   1. BORDERS. The table uses border-collapse: collapse, where borders are
+      painted by the table rather than by each cell -- so a sticky cell
+      leaves its borders behind as it detaches and scrolls. The frozen
+      cells therefore redraw their own right border with an inset
+      box-shadow instead of relying on border-right.
+
+   2. BACKGROUNDS. Row striping is set on <tr>, which a sticky <td> does
+      not inherit as its own background -- scrolled content would show
+      straight through. Each frozen cell repeats its row's background
+      explicitly below. */
+
+.irc7-table th.irc7-frozen-col,
+.irc7-table td.irc7-frozen-col {
+  position: sticky;
+  /* Above the non-frozen cells in the same table so scrolled columns
+     pass underneath rather than over. */
+  z-index: 3;
+}
+
+.irc7-table .irc7-frozen-col[data-frozen-index="0"] {
+  left: 0;
+}
+.irc7-table .irc7-frozen-col[data-frozen-index="1"] {
+  left: var(--irc7-frozen-left-1, 0px);
+}
+.irc7-table .irc7-frozen-col[data-frozen-index="2"] {
+  left: var(--irc7-frozen-left-2, 0px);
+}
+.irc7-table .irc7-frozen-col[data-frozen-index="3"] {
+  left: var(--irc7-frozen-left-3, 0px);
+}
+.irc7-table .irc7-frozen-col[data-frozen-index="4"] {
+  left: var(--irc7-frozen-left-4, 0px);
+}
+.irc7-table .irc7-frozen-col[data-frozen-index="5"] {
+  left: var(--irc7-frozen-left-5, 0px);
+}
+
+/* Opaque backgrounds + self-drawn right border (see notes 1 and 2 above). */
+.irc7-table thead th.irc7-frozen-col {
+  background: #1f2937;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.irc7-table tbody tr:nth-child(odd) td.irc7-frozen-col {
+  background: #fafbfc;
+}
+
+.irc7-table tbody tr:nth-child(even) td.irc7-frozen-col {
+  background: white;
+}
+
+.irc7-table tbody tr:hover td.irc7-frozen-col {
+  background: #f0f5ff;
+}
+
+.irc7-table tbody td.irc7-frozen-col {
+  box-shadow: inset -1px 0 0 #e8e8e8;
+}
+
+.irc7-table tfoot td.irc7-frozen-col {
+  background: #eef2f8;
+  box-shadow: inset -1px 0 0 #e8e8e8;
+}
+
+/* Depth cue at the freeze boundary, shown only once the table is actually
+   scrolled sideways -- at scrollLeft 0 the frozen block is flush with the
+   rest of the table and a shadow there would just look like a stray line.
+   .irc7-is-hscrolled is toggled by irc7.js's scroll sync. */
+.irc7-table-wrapper.irc7-is-hscrolled
+  .irc7-table
+  thead
+  th.irc7-frozen-col--last {
+  box-shadow:
+    inset -1px 0 0 rgba(255, 255, 255, 0.08),
+    8px 0 10px -6px rgba(15, 23, 42, 0.45);
+}
+
+.irc7-table-wrapper.irc7-is-hscrolled
+  .irc7-table
+  tbody
+  td.irc7-frozen-col--last,
+.irc7-table-wrapper.irc7-is-hscrolled
+  .irc7-table
+  tfoot
+  td.irc7-frozen-col--last {
+  box-shadow:
+    inset -1px 0 0 #e8e8e8,
+    8px 0 10px -6px rgba(15, 23, 42, 0.22);
+}
+
+/* Edit/delete mode highlights added headers with `background: ... !important`;
+   frozen reference headers are never editable, so nothing there competes. */
+
 .irc7-table tbody td {
   padding: 10px 18px;
   border-right: 1px solid #e8e8e8;
@@ -820,8 +927,34 @@
   margin-bottom: 10px;
 }
 
-.irc7-group-name-input {
+/* Where this block's columns go: a new group, an existing group, or no
+   group at all. See createGroupBlock() in irc7.js. */
+.irc7-group-target-select {
   flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #e2e5ea;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  background: white;
+  cursor: pointer;
+}
+
+.irc7-group-target-select:focus {
+  outline: none;
+  border-color: #4a6fa5;
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+}
+
+/* Only shown when the target is "New group…" -- it sits on its own line
+   below the select rather than beside it, so a long group name has the
+   full width of the block to work with. */
+.irc7-group-name-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
   padding: 8px 10px;
   border: 1px solid #e2e5ea;
   border-radius: 6px;
@@ -1196,6 +1329,33 @@
   .irc7-toolbar-actions {
     justify-content: flex-end;
     flex-wrap: wrap;
+  }
+
+  /* The six frozen columns need roughly 790px of their minimum widths
+     combined. Below this breakpoint they'd occupy most of the viewport
+     and leave almost no room for the scrolling indicator columns, so
+     freezing is switched off and the table scrolls as one piece. */
+  .irc7-table th.irc7-frozen-col,
+  .irc7-table td.irc7-frozen-col {
+    position: static;
+  }
+
+  .irc7-table-wrapper.irc7-is-hscrolled
+    .irc7-table
+    thead
+    th.irc7-frozen-col--last {
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .irc7-table-wrapper.irc7-is-hscrolled
+    .irc7-table
+    tbody
+    td.irc7-frozen-col--last,
+  .irc7-table-wrapper.irc7-is-hscrolled
+    .irc7-table
+    tfoot
+    td.irc7-frozen-col--last {
+    box-shadow: inset -1px 0 0 #e8e8e8;
   }
 }
 

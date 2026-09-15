@@ -41,6 +41,9 @@ of the Technical Assistance.") ] %}
         <button type="button" id="irc1a-legend-btn" class="irc1a-legend-btn">
           <i class="ti ti-info-circle" aria-hidden="true"></i> Legend
         </button>
+        <button type="button" id="irc1a-pdf-btn" class="irc1a-pdf-btn">
+          <i class="ti ti-file-type-pdf" aria-hidden="true"></i> Save to PDF
+        </button>
         <button type="button" id="irc1a-reset-btn" class="irc1a-reset-btn">
           <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
         </button>
@@ -124,40 +127,92 @@ of the Technical Assistance.") ] %}
       <div class="irc1a-insights-row">
         <div class="irc1a-insight-card">
           <div class="irc1a-dark-header irc1a-insight-header">
-            <label for="irc1a-positive" class="irc1a-remarks-label"
-              >Positive Aspects</label
+            <div class="irc1a-insight-header-text">
+              <p class="irc1a-remarks-label">Positive Aspects</p>
+              <p class="irc1a-subtitle irc1a-subtitle-dark">
+                Key strengths observed this period.
+              </p>
+            </div>
+            <!-- Single entry per card (see IRC1ARemark in models.py) --
+                 this button reads "Add" while empty and "Edit" once a
+                 value exists (see updateRemarkActionLabel() in
+                 irc1a.js), and always opens the Add/Edit Remark modal
+                 (#irc1a-remark-modal-overlay below). Same
+                 label-swap idea as irc4's single-field action buttons
+                 (see FIELD_MODAL_CONFIG/updateFieldActionLabel in
+                 irc4.js), but scoped to this one entry instead of a
+                 whole list. -->
+            <button
+              type="button"
+              class="irc1a-header-action-btn"
+              id="irc1aAddPositiveBtn"
             >
-            <p class="irc1a-subtitle irc1a-subtitle-dark">
-              Key strengths observed this period.
-            </p>
+              <svg
+                class="irc1a-icon"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span data-role="action-label">Add</span>
+            </button>
           </div>
           <div class="irc1a-card-body">
-            <textarea
-              id="irc1a-positive"
-              name="irc1a_positive"
-              class="irc1a-remarks-textarea"
-              rows="4"
-              placeholder="Describe a positive aspect observed..."
-            ></textarea>
+            <!-- Plain, non-interactive text -- no outline/box, no
+                 click handler, no remove button. Add/Edit/Delete only
+                 happen through the modal (see the action button above
+                 and irc1a.js's openRemarkModal()/deleteRemarkModal()). -->
+            <p
+              class="irc1a-remark-field-text is-placeholder"
+              id="irc1aPositiveText"
+            >
+              No entry yet.
+            </p>
           </div>
         </div>
         <div class="irc1a-insight-card">
           <div class="irc1a-dark-header irc1a-insight-header">
-            <label for="irc1a-ofi" class="irc1a-remarks-label"
-              >Opportunities for Improvement (OFI)</label
+            <div class="irc1a-insight-header-text">
+              <p class="irc1a-remarks-label">
+                Opportunities for Improvement (OFI)
+              </p>
+              <p class="irc1a-subtitle irc1a-subtitle-dark">
+                Key areas of growth to address.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="irc1a-header-action-btn"
+              id="irc1aAddOfiBtn"
             >
-            <p class="irc1a-subtitle irc1a-subtitle-dark">
-              Key areas of growth to address.
-            </p>
+              <svg
+                class="irc1a-icon"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span data-role="action-label">Add</span>
+            </button>
           </div>
           <div class="irc1a-card-body">
-            <textarea
-              id="irc1a-ofi"
-              name="irc1a_ofi"
-              class="irc1a-remarks-textarea"
-              rows="4"
-              placeholder="Describe an opportunity for improvement, if applicable..."
-            ></textarea>
+            <p class="irc1a-remark-field-text is-placeholder" id="irc1aOfiText">
+              No entry yet.
+            </p>
           </div>
         </div>
       </div>
@@ -248,6 +303,64 @@ of the Technical Assistance.") ] %}
     <!-- /.irc1a-flow -->
   </div>
 </section>
+
+<!-- ================= ADD/EDIT REMARK MODAL ================= -->
+<!-- Shared by both the Positive Aspects and OFI cards -- each card holds
+     a single entry (see IRC1ARemark in models.py), so this same modal
+     handles both creating it the first time and editing/deleting it
+     afterward (see irc1a.js's openRemarkModal()/saveRemarkModal()/
+     deleteRemarkModal()). Same "Add"-header-button-opens-a-popup-modal
+     pattern as irc4's single-field modal (Activity/TA Receiver/MOV's).
+     This modal reuses the confirm-modal shell
+     (.irc1a-confirm-overlay/.irc1a-confirm-box) already used by the
+     Legend and Reset modals above -- see irc1a.css. -->
+<div id="irc1a-remark-modal-overlay" class="irc1a-confirm-overlay">
+  <div class="irc1a-confirm-box irc1a-remark-modal-box">
+    <div class="irc1a-remark-modal-header">
+      <h4 id="irc1a-remark-modal-title">Add Entry</h4>
+      <button
+        type="button"
+        id="irc1a-remark-modal-close"
+        class="irc1a-remark-modal-close"
+        aria-label="Close"
+      >
+        &times;
+      </button>
+    </div>
+    <textarea
+      id="irc1a-remark-modal-input"
+      class="irc1a-remarks-textarea irc1a-remark-modal-textarea"
+      rows="5"
+      placeholder="Type here..."
+    ></textarea>
+    <div class="irc1a-confirm-actions irc1a-remark-modal-actions">
+      <button
+        type="button"
+        id="irc1a-remark-modal-delete"
+        class="irc1a-btn-danger"
+        hidden
+      >
+        Delete
+      </button>
+      <div class="irc1a-remark-modal-actions-right">
+        <button
+          type="button"
+          id="irc1a-remark-modal-cancel"
+          class="irc1a-btn-secondary"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="irc1a-remark-modal-save"
+          class="irc1a-btn-primary"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ================= LEGEND MODAL ================= -->
 <div id="irc1a-legend-overlay" class="irc1a-confirm-overlay">

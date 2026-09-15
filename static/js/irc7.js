@@ -139,6 +139,7 @@
     // so keep them in lockstep with every layout pass rather than
     // hunting down every call site that changes the table's shape.
     updateStickyOffsets();
+    updateFrozenOffsets();
     syncTopScrollbarWidth();
   }
 
@@ -180,6 +181,47 @@
     );
   }
 
+  // ================= FROZEN REFERENCE COLUMNS =================
+  //
+  // The six reference columns (School ID -> School Classification) are
+  // pinned to the left edge with position: sticky while the added
+  // indicator columns scroll past them. CSS does the pinning; the only
+  // thing it can't know is each frozen column's `left` offset, because
+  // recalcLayout() sizes every column dynamically. So the cumulative
+  // widths are measured here and published as CSS variables on the
+  // wrapper, which the .irc7-frozen-col[data-frozen-index] rules read.
+  //
+  // Widths are taken from the sticky header table's own frozen cells:
+  // its colgroup is mirrored 1:1 from the body table's (see
+  // recalcLayout), so both tables' frozen columns are identical widths,
+  // and the header row is always present even before any data rows have
+  // been rendered.
+  const FROZEN_COLUMN_COUNT = 6;
+
+  function updateFrozenOffsets() {
+    const frozenHeaderCells = groupRow.querySelectorAll("th.irc7-frozen-col");
+    if (frozenHeaderCells.length === 0) return;
+
+    let offset = 0;
+    frozenHeaderCells.forEach((th, i) => {
+      // Index 0 is pinned at left: 0 by a static rule; publishing the
+      // rest keeps the variable names aligned with data-frozen-index.
+      if (i > 0) {
+        wrapper.style.setProperty(`--irc7-frozen-left-${i}`, offset + "px");
+      }
+      offset += th.getBoundingClientRect().width;
+    });
+
+    // Total width of the frozen block, in case anything else needs it.
+    wrapper.style.setProperty("--irc7-frozen-width", offset + "px");
+  }
+
+  // The boundary shadow is only meaningful once the table has actually
+  // been scrolled sideways -- see .irc7-is-hscrolled in irc7.css.
+  function updateHScrollState(left) {
+    wrapper.classList.toggle("irc7-is-hscrolled", left > 0);
+  }
+
   function syncTopScrollbarWidth() {
     if (!topScrollbarInner || !topScrollbar || !tableScroll) return;
     topScrollbarInner.style.width = table.scrollWidth + "px";
@@ -200,6 +242,7 @@
       if (source !== topScrollbar) topScrollbar.scrollLeft = left;
       if (stickyHeaderClip) stickyHeaderClip.scrollLeft = left;
       syncingScroll = false;
+      updateHScrollState(left);
     }
 
     topScrollbar.addEventListener("scroll", () => {
@@ -255,18 +298,22 @@
   // irc7.html's <tbody>. They now come from IRC7Row (seeded once via
   // storage.seed_irc7_rows()), so the tbody starts empty and this
   // builds those rows from the fetched data instead.
+  //
+  // irc7-frozen-col + data-frozen-index mirror the matching header cells
+  // in irc7.html, pinning these six to the left edge on horizontal
+  // scroll -- see "Frozen reference columns" in irc7.css.
   function renderFixedRows(rows) {
     tbody.innerHTML = "";
     rows.forEach((row) => {
       const tr = document.createElement("tr");
       tr.dataset.rowId = row.id;
       tr.innerHTML = `
-        <td>${escapeHtml(row.schoolIdCode)}</td>
-        <td>${escapeHtml(row.schoolName)}</td>
-        <td>${escapeHtml(row.curricularOffering)}</td>
-        <td>${escapeHtml(row.dlc)}</td>
-        <td>${escapeHtml(row.dedpStatus)}</td>
-        <td>${escapeHtml(row.classification)}</td>
+        <td class="irc7-frozen-col" data-frozen-index="0">${escapeHtml(row.schoolIdCode)}</td>
+        <td class="irc7-frozen-col" data-frozen-index="1">${escapeHtml(row.schoolName)}</td>
+        <td class="irc7-frozen-col" data-frozen-index="2">${escapeHtml(row.curricularOffering)}</td>
+        <td class="irc7-frozen-col" data-frozen-index="3">${escapeHtml(row.dlc)}</td>
+        <td class="irc7-frozen-col" data-frozen-index="4">${escapeHtml(row.dedpStatus)}</td>
+        <td class="irc7-frozen-col irc7-frozen-col--last" data-frozen-index="5">${escapeHtml(row.classification)}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -350,16 +397,64 @@
     return row;
   }
 
+  // Group targets: "" = standalone, "__new__" = create a new group (shows
+  // the name input), or the exact name of a group that already exists, in
+  // which case the new columns are appended into that group. The backend
+  // splices them in next to that group's existing columns so it stays one
+  // contiguous block -- see add_irc7_columns() in app.py.
+  const GROUP_TARGET_STANDALONE = "";
+  const GROUP_TARGET_NEW = "__new__";
+
+  // Distinct group names currently in the table, in the order they appear.
+  function getExistingGroupNames() {
+    const names = [];
+    columns.forEach((c) => {
+      if (c.groupName && !names.includes(c.groupName)) names.push(c.groupName);
+    });
+    return names;
+  }
+
+  // Built via the DOM rather than an innerHTML string: a group name is
+  // free text and may contain quotes, which would break out of an
+  // attribute in a template literal.
+  function populateGroupTargetSelect(select) {
+    select.innerHTML = "";
+
+    const standalone = document.createElement("option");
+    standalone.value = GROUP_TARGET_STANDALONE;
+    standalone.textContent = "No group — standalone columns";
+    select.appendChild(standalone);
+
+    const newGroup = document.createElement("option");
+    newGroup.value = GROUP_TARGET_NEW;
+    newGroup.textContent = "New group…";
+    select.appendChild(newGroup);
+
+    const existing = getExistingGroupNames();
+    if (existing.length > 0) {
+      const optgroup = document.createElement("optgroup");
+      optgroup.label = "Add to existing group";
+      existing.forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        optgroup.appendChild(option);
+      });
+      select.appendChild(optgroup);
+    }
+  }
+
   function createGroupBlock() {
     const block = document.createElement("div");
     block.className = "irc7-group-block";
     block.innerHTML = `
       <div class="irc7-group-block-header">
-        <input type="text" class="irc7-group-name-input" placeholder="Group name (optional — leave blank for standalone columns)" />
+        <select class="irc7-group-target-select"></select>
         <button type="button" class="irc7-remove-group-btn" title="Remove group">
           ${TRASH_SVG}
         </button>
       </div>
+      <input type="text" class="irc7-group-name-input" placeholder="New group name" style="display: none" />
       <div class="irc7-columns-list"></div>
       <button type="button" class="irc7-add-column-btn">
         ${PLUS_SVG} Add Column
@@ -368,6 +463,19 @@
 
     const columnsList = block.querySelector(".irc7-columns-list");
     columnsList.appendChild(createColumnRow());
+
+    // The name input only applies to "New group…"; for every other target
+    // the name is either irrelevant (standalone) or already decided (an
+    // existing group), so it's hidden rather than left to be ignored.
+    const targetSelect = block.querySelector(".irc7-group-target-select");
+    populateGroupTargetSelect(targetSelect);
+
+    const nameInput = block.querySelector(".irc7-group-name-input");
+    targetSelect.addEventListener("change", () => {
+      const isNew = targetSelect.value === GROUP_TARGET_NEW;
+      nameInput.style.display = isNew ? "" : "none";
+      if (isNew) nameInput.focus();
+    });
 
     block
       .querySelector(".irc7-add-column-btn")
@@ -380,6 +488,19 @@
       .addEventListener("click", () => block.remove());
 
     return block;
+  }
+
+  // The group name this block's columns should be saved under, or null
+  // for standalone. Returns undefined when the block is invalid (a "New
+  // group…" target with no name typed), so the caller can report it.
+  function resolveGroupName(block) {
+    const target = block.querySelector(".irc7-group-target-select").value;
+    if (target === GROUP_TARGET_STANDALONE) return null;
+    if (target === GROUP_TARGET_NEW) {
+      const typed = block.querySelector(".irc7-group-name-input").value.trim();
+      return typed || undefined;
+    }
+    return target; // an existing group name
   }
 
   function resetAddModal() {
@@ -411,20 +532,30 @@
 
   modalSubmit.addEventListener("click", async () => {
     const newColumns = [];
+    let missingGroupName = false;
 
     groupsContainer.querySelectorAll(".irc7-group-block").forEach((block) => {
-      const groupName = block
-        .querySelector(".irc7-group-name-input")
-        .value.trim();
+      const groupName = resolveGroupName(block);
+      if (groupName === undefined) {
+        missingGroupName = true;
+        return;
+      }
 
       block.querySelectorAll(".irc7-column-row").forEach((row) => {
         const name = row.querySelector(".irc7-column-name-input").value.trim();
         const type = row.querySelector(".irc7-column-type-select").value;
         if (name) {
-          newColumns.push({ name, type, groupName: groupName || null });
+          newColumns.push({ name, type, groupName });
         }
       });
     });
+
+    if (missingGroupName) {
+      alert(
+        'Please name the new group, or switch it to "No group" or an existing group.',
+      );
+      return;
+    }
 
     if (newColumns.length === 0) {
       alert("Please add at least one column with a name.");
@@ -439,13 +570,33 @@
       });
       if (!res.ok) throw new Error("Save failed");
       const data = await res.json();
-      renderColumnsBatch(data.columns);
+
+      if (data.allColumns) {
+        // Adding to an existing group renumbers sort_order server-side,
+        // so the new columns can land anywhere in the table rather than
+        // just at the end. Re-render from the full authoritative
+        // ordering instead of appending the returned batch.
+        rerenderAllColumns(data.allColumns);
+      } else {
+        // Older backend without allColumns: fall back to appending.
+        renderColumnsBatch(data.columns);
+      }
       hideAddModal();
     } catch (err) {
       console.error("Failed to add IRC7 columns:", err);
       alert("Could not add these columns. Please try again.");
     }
   });
+
+  // Tears every added column out of the DOM and rebuilds them from the
+  // given ordering. Typed values survive because they're already saved
+  // server-side and mirrored in `cellValues`, which appendCellToRows
+  // reads when it builds each input.
+  function rerenderAllColumns(allColumns) {
+    removeAllAddedColumnsInPlace(false); // keep cellValues — nothing was deleted
+    const sorted = allColumns.slice().sort((a, b) => a.sortOrder - b.sortOrder);
+    renderColumnsBatch(sorted);
+  }
 
   // ================= BUILDING COLUMNS INTO THE TABLE =================
   //
@@ -1005,7 +1156,10 @@
     });
   }
 
-  function removeAllAddedColumnsInPlace() {
+  // `clearValues` is true for the "reset entire table" path (the values
+  // really are gone server-side) and false when re-rendering after an
+  // add, where every saved value must survive into the rebuilt inputs.
+  function removeAllAddedColumnsInPlace(clearValues = true) {
     // Group-spanning headers and standalone column headers both carry
     // "irc7-added-header" and both live in groupRow; grouped sub-headers
     // (colRow) are always 100% added, so it's cleared outright.
@@ -1029,7 +1183,7 @@
     columns = [];
     columnBlocks.clear();
     colIdToBlock.clear();
-    cellValues = {};
+    if (clearValues) cellValues = {};
     deactivateModes();
   }
 

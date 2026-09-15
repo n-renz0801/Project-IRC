@@ -16,7 +16,7 @@
     <!-- Page-specific styles (inserted by child templates) -->
     {% block extra_css %}{% endblock %}
   </head>
-  <body>
+  <body data-active-tab="{{ active_tab.id if active_tab else '' }}">
     <!-- ===== HEADER: Logos ===== -->
     <header>
       <div id="logo-bar">
@@ -88,6 +88,27 @@
            the Home page. "Checked by" never changes, so it's hardcoded
            here. -->
       {% if active_tab and active_tab.id != 'irc8c' %}
+      <!-- Small reusable snippet for the calendar-date control shown under
+           each signatory's position (see /api/signatory-date/<tab>/<role>
+           in app.py, and the click/save wiring in index.js). `role` must
+           be one of prepared_by / checked_by / approving_authority. -->
+      {% macro signatory_date(role, label) %}
+      <div class="report-signatory-date" data-signatory-role="{{ role }}">
+        <button
+          type="button"
+          class="report-signatory-date-btn"
+          aria-label="Set date for {{ label }}"
+        >
+          <span class="report-signatory-date-text">Set date</span>
+        </button>
+        <input
+          type="date"
+          class="report-signatory-date-input"
+          tabindex="-1"
+          aria-hidden="true"
+        />
+      </div>
+      {% endmacro %}
       <div class="report-signatory">
         <div class="report-signatory-title">
           <i class="ti ti-clipboard-text" aria-hidden="true"></i>
@@ -110,6 +131,7 @@
                   class="report-signatory-position"
                   id="reportPreparedByPosition"
                 ></p>
+                {{ signatory_date('prepared_by', 'Prepared by') }}
               </div>
             </div>
           </div>
@@ -122,6 +144,7 @@
               <div class="report-signatory-info">
                 <p class="report-signatory-name">DR. JONATHAN P. DOMINGO</p>
                 <p class="report-signatory-position">SGOD Chief</p>
+                {{ signatory_date('checked_by', 'Checked by') }}
               </div>
             </div>
           </div>
@@ -146,6 +169,8 @@
                 <p class="report-signatory-position">
                   Assistant Schools Division Superintendent
                 </p>
+                {{ signatory_date('approving_authority', 'Approving Authority')
+                }}
               </div>
             </div>
           </div>

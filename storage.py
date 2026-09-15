@@ -1,11 +1,17 @@
 """
 SGOD_PMES -- File Storage Helpers
 ====================================
-Centralized upload pipeline. Every accepted PDF is saved under:
+Centralized upload pipeline. Every accepted upload is saved under:
 
-    <UPLOAD_ROOT>/<year>/<Mon>/<irc_type>_<8-char-uuid>_<original-name>.pdf
+    <UPLOAD_ROOT>/<year>/<Mon>/<irc_type>_<8-char-uuid>_<original-name><ext>
 
 e.g.  uploads/2026/Jan/irc1a_9f3c1a2b_july-report.pdf
+      uploads/2026/Unspecified/irc9_4b7e0d12_PMCF_Jean.docx
+
+Most reports upload PDFs; IRC9 (PMCF) also accepts .docx, since a
+scanned/image-only PDF has no text layer to extract from. The extension
+is whatever the user uploaded -- `save_uploaded_document` does not care,
+and each route validates the formats it can actually parse.
 
 The on-disk folder structure (year -> month) is what a person browsing
 the file manager sees; the DB row (`UploadedFile.relative_path`) is the
@@ -76,15 +82,20 @@ def _hash_and_size(path):
     return sha256.hexdigest(), size
 
 
-def save_uploaded_pdf(file_storage, upload_root, irc_type, year, month_key=None):
-    """Saves an already-validated PDF (a werkzeug FileStorage) under
+def save_uploaded_document(file_storage, upload_root, irc_type, year, month_key=None):
+    """Saves an already-validated upload (a werkzeug FileStorage) under
     upload_root/<year>/<MonthFolder>/, using a collision-proof stored
     filename, and returns a dict ready to spread into UploadedFile(**dict).
 
-    IMPORTANT: pdfplumber consumes the upload stream when it reads the
-    PDF for extraction. Call `file_storage.stream.seek(0)` before
-    calling this function (this function also seeks defensively, but
-    doing it explicitly at the call site keeps the ordering obvious).
+    Format-agnostic: the extension is whatever the user uploaded (.pdf,
+    .docx, ...), preserved from the original filename. Callers are
+    responsible for rejecting formats they can't parse.
+
+    IMPORTANT: the parser (pdfplumber, python-docx) consumes the upload
+    stream when it reads the file for extraction. Call
+    `file_storage.stream.seek(0)` before calling this function (this
+    function also seeks defensively, but doing it explicitly at the call
+    site keeps the ordering obvious).
     """
     if month_key is not None and month_key not in MONTH_KEYS:
         raise InvalidUploadError(f"Unknown month_key: {month_key!r}")
@@ -94,8 +105,8 @@ def save_uploaded_pdf(file_storage, upload_root, irc_type, year, month_key=None)
     absolute_dir = os.path.join(upload_root, relative_dir)
     os.makedirs(absolute_dir, exist_ok=True)
 
-    original_filename = file_storage.filename or "upload.pdf"
-    safe_original = secure_filename(original_filename) or "upload.pdf"
+    original_filename = file_storage.filename or "upload"
+    safe_original = secure_filename(original_filename) or "upload"
     stored_filename = f"{irc_type}_{uuid.uuid4().hex[:8]}_{safe_original}"
     absolute_path = os.path.join(absolute_dir, stored_filename)
 
@@ -115,6 +126,15 @@ def save_uploaded_pdf(file_storage, upload_root, irc_type, year, month_key=None)
         "file_size": file_size,
         "content_hash": content_hash,
     }
+
+
+def save_uploaded_pdf(file_storage, upload_root, irc_type, year, month_key=None):
+    """PDF-specific alias kept for the existing IRC1a/IRC1b/IRC2a/IRC3
+    callers, which all validate the .pdf extension themselves before
+    calling. Identical behavior to save_uploaded_document."""
+    return save_uploaded_document(
+        file_storage, upload_root, irc_type, year, month_key=month_key
+    )
 
 
 def delete_uploaded_file(uploaded_file, upload_root):

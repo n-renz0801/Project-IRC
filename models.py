@@ -61,6 +61,10 @@ MONTH_KEYS = [
 TA_STATUS_PROVIDED = "provided"
 TA_STATUS_UNPROVIDED = "unprovided"
 
+IRC1A_REMARK_POSITIVE = "positive"
+IRC1A_REMARK_OFI = "ofi"
+IRC1A_REMARK_CATEGORIES = {IRC1A_REMARK_POSITIVE, IRC1A_REMARK_OFI}
+
 SCHOOL_LEVEL_ELEMENTARY = "elementary"
 SCHOOL_LEVEL_SECONDARY = "secondary"
 
@@ -243,6 +247,33 @@ class IRC1ARating(db.Model):
     rating = db.Column(db.Float, nullable=False)  # 1.000-5.000
 
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# IRC1a -- individual entries under the "Positive Aspects" / "Opportunities
+# for Improvement (OFI)" cards (see irc1a.html's .irc1a-insight-card). Each
+# card used to be one free-text textarea; it's now a year-scoped,
+# add/remove-able list of entries instead -- same shape as IRC4Objective.
+# category is one of IRC1A_REMARK_CATEGORIES ("positive" | "ofi") and
+# sort_order preserves the order entries were added in.
+# ---------------------------------------------------------------------------
+class IRC1ARemark(db.Model):
+    __tablename__ = "irc1a_remarks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    year = db.Column(db.Integer, nullable=False, index=True)
+    category = db.Column(db.String(20), nullable=False)
+    text = db.Column(db.Text, nullable=True, default="")
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "text": self.text or "",
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -1118,3 +1149,32 @@ class IRC8AApprovingAuthority(db.Model):
     name = db.Column(db.String(255), nullable=False, default="")
 
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Date shown under each signatory's position in the report-signatory footer
+# (see base.html), one calendar-picked date per (tab, role) pair -- e.g.
+# irc1a's "Prepared by" date is independent of irc1b's "Prepared by" date,
+# even though both pages currently show the same preparer name (see
+# ReportPreparer above). This is what makes the date "per report page"
+# rather than a single shared value like the preparer name/position are.
+#
+# role is one of SIGNATORY_ROLES in app.py: "prepared_by", "checked_by", or
+# "approving_authority" (the last one only ever appears on irc8a, matching
+# base.html's active_tab.id == 'irc8a' check). Not year-scoped and never
+# touched by any tab's own Reset, same convention as ReportPreparer /
+# IRC8AApprovingAuthority -- it's signatory metadata, not report data.
+# ---------------------------------------------------------------------------
+class ReportSignatoryDate(db.Model):
+    __tablename__ = "report_signatory_date"
+
+    id = db.Column(db.Integer, primary_key=True)
+    tab_id = db.Column(db.String(20), nullable=False)
+    role = db.Column(db.String(30), nullable=False)
+    date = db.Column(db.Date, nullable=True)
+
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint("tab_id", "role", name="uq_report_signatory_date_tab_role"),
+    )

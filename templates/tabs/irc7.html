@@ -182,21 +182,52 @@ block content %}
                 <colgroup id="irc7-header-colgroup"></colgroup>
 
                 <thead>
+                  <!-- data-frozen-index drives each frozen cell's `left`
+                       offset (see the "Frozen reference columns" block in
+                       irc7.css). The offsets themselves are measured and
+                       published as CSS variables by updateFrozenOffsets()
+                       in irc7.js, since column widths are dynamic. -->
                   <tr id="irc7-group-row">
-                    <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+                    <th
+                      rowspan="2"
+                      class="irc7-fixed-col irc7-wrap-header irc7-frozen-col"
+                      data-frozen-index="0"
+                    >
                       School ID
                     </th>
-                    <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+                    <th
+                      rowspan="2"
+                      class="irc7-fixed-col irc7-wrap-header irc7-frozen-col"
+                      data-frozen-index="1"
+                    >
                       School Name
                     </th>
-                    <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+                    <th
+                      rowspan="2"
+                      class="irc7-fixed-col irc7-wrap-header irc7-frozen-col"
+                      data-frozen-index="2"
+                    >
                       Curricular Offering
                     </th>
-                    <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+                    <th
+                      rowspan="2"
+                      class="irc7-fixed-col irc7-wrap-header irc7-frozen-col"
+                      data-frozen-index="3"
+                    >
                       District Learning Cluster (DLC)
                     </th>
-                    <th rowspan="2" class="irc7-fixed-col">Status</th>
-                    <th rowspan="2" class="irc7-fixed-col irc7-wrap-header">
+                    <th
+                      rowspan="2"
+                      class="irc7-fixed-col irc7-frozen-col"
+                      data-frozen-index="4"
+                    >
+                      Status
+                    </th>
+                    <th
+                      rowspan="2"
+                      class="irc7-fixed-col irc7-wrap-header irc7-frozen-col irc7-frozen-col--last"
+                      data-frozen-index="5"
+                    >
                       School Classification (2024)
                     </th>
                   </tr>
@@ -242,11 +273,20 @@ block content %}
                 <tr id="irc7-totals-row">
                   <!-- 6 = number of fixed leading columns above (School ID
                        through School Classification), same hardcoded count
-                       used by their colgroup/thead entries. One totals cell
+                       used by their colgroup/thead entries and by
+                       FROZEN_COLUMN_COUNT in irc7.js. One totals cell
                        per added column is appended here by irc7.js
                        (buildTotalsCell in appendCellToRows) -- only "number"
-                       columns get a running sum, others stay blank. -->
-                  <td class="irc7-totals-label" colspan="6">Total</td>
+                       columns get a running sum, others stay blank.
+                       This label spans the whole frozen block, so it
+                       freezes as a single cell at left: 0. -->
+                  <td
+                    class="irc7-totals-label irc7-frozen-col irc7-frozen-col--last"
+                    data-frozen-index="0"
+                    colspan="6"
+                  >
+                    Total
+                  </td>
                 </tr>
               </tfoot>
             </table>
@@ -278,9 +318,9 @@ block content %}
       </div>
       <div class="irc7-modal-body">
         <p class="irc7-modal-hint">
-          Add one or more groups of columns. Leave a group's name blank to add
-          those columns as standalone (ungrouped) columns instead. Each column
-          needs a name and an entry type.
+          For each block below, choose whether its columns go into a new group,
+          into a group that already exists, or stand alone with no group. Each
+          column needs a name and an entry type.
         </p>
         <div id="irc7-groups-container"></div>
         <button type="button" class="irc7-add-group-btn" id="irc7AddGroupBtn">
