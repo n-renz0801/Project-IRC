@@ -99,6 +99,42 @@
   flex-shrink: 0;
 }
 
+/* Save to PDF button — same design as IRC1a/IRC3/IRC5's Save to PDF
+   button */
+.irc6-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc6-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc6-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc6-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .irc6-reset-btn {
   display: flex;
   align-items: center;
@@ -765,6 +801,7 @@
     width: 100%;
   }
 
+  .irc6-pdf-btn,
   .irc6-reset-btn {
     flex: 1;
     justify-content: center;
@@ -799,5 +836,272 @@
 
   .irc6-header-divider {
     height: 44px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Print / Save-to-PDF
+   Triggered by #irc6-pdf-btn -> window.print() (see irc6.js). Only
+   ever active on this page since irc6.css is only loaded here, so
+   these rules can safely target the shared <header>/<nav> from
+   base.html without leaking into other tabs. Mirrors IRC1a's,
+   IRC3's, and IRC5's own "Print / Save-to-PDF" section (same paper
+   size, same unclip / color-adjust / scale-down approach) minus
+   whatever pieces don't exist here (dashboard, Legend modal, etc)
+   plus IRC6-specific pieces those pages don't have (the two-row
+   grouped table header, the Add Output button, the Actions column,
+   the Output entry modal).
+------------------------------------------------------------------ */
+
+@media print {
+  /* "Long" bond paper, as requested -- 8.5in x 13in. */
+  @page {
+    size: 13in 8.5in;
+    margin: 0.5in;
+  }
+
+  /* base.css pins header+nav and makes .content the sole scrolling
+     element via overflow-y: auto + a flexed height. Printing engines
+     honor that overflow/height the same way screens do, which would
+     clip everything past one viewport-tall "page" of .content --
+     so it all has to be forced back to natural, unclipped flow here. */
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Logo bar + navbar (base.html), this page's own header action
+     buttons (Save to PDF / Reset), and the table's Add Output button
+     -- none of these belong in a printed report. */
+  header,
+  nav,
+  .irc6-header-actions,
+  .irc6-add-btn {
+    display: none !important;
+  }
+
+  /* Belt-and-suspenders: these are only ever visible via a
+     ".visible" class toggle and default to display:none already, but
+     force them off in case a print is triggered while one is open. */
+  #irc6-modal-overlay,
+  #irc6-confirm-overlay,
+  #irc6-reset-confirm-overlay {
+    display: none !important;
+  }
+
+  .content {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+
+  /* Horizontally-scrolling table needs to render in full instead of
+     scrolling. */
+  .irc6-table-wrapper {
+    overflow: visible !important;
+  }
+
+  .scroll-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Scrollbars never belong in a printed/PDF page. Most browsers omit
+     them for print automatically, but this removes any doubt. */
+  * {
+    scrollbar-width: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  /* Chrome/Edge/Safari drop background colors on print by default
+     unless told otherwise, which is why the dark analytics headers
+     and the grouped-column header band were all coming out
+     flat/white. This forces every background to print as it looks on
+     screen. "Background graphics" still needs to be left ON in the
+     print dialog -- this can't override that toggle, only make sure
+     nothing here fights it. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Scale down: everything below is sized for a 1600px+ screen (this
+     table's on-screen min-width is 2000px, wider than IRC5's), so
+     printed at full size onto a 8.5in-wide sheet it runs oversized
+     and can spill past the page edge. These trim fonts/paddings down
+     to a print-appropriate scale, independent of the on-screen
+     responsive breakpoints.
+  --------------------------------------------------------------- */
+
+  .irc6-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .irc6-header-badge {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .irc6-header-badge-group {
+    font-size: 8px;
+  }
+
+  .irc6-header-badge-page {
+    font-size: 13px;
+  }
+
+  .irc6-header-divider {
+    height: 38px;
+  }
+
+  .irc6-header h2 {
+    font-size: 18px;
+  }
+
+  .irc6-subtitle {
+    font-size: 10px;
+  }
+
+  /* Height + top margin have to mirror .irc6-flow-badge exactly (both
+     normally share height:36px / margin-top:20px so they land on the
+     same row) -- shrinking the badge below without matching the label
+     here is what knocks them out of alignment. */
+  .irc6-flow-label {
+    height: 20px !important;
+    margin: 10px 0 6px 2px !important;
+    font-size: 10px;
+  }
+
+  .irc6-flow-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    margin-top: 10px !important;
+  }
+
+  .irc6-flow {
+    row-gap: 14px;
+  }
+
+  .irc6-dark-header {
+    padding: 8px 10px !important;
+  }
+
+  .irc6-dark-header h3 {
+    font-size: 11px !important;
+  }
+
+  .irc6-subtitle-dark {
+    font-size: 9px !important;
+  }
+
+  /* ---------------------------------------------------------------
+     Output entries table. The Actions column (Edit/Delete buttons)
+     doesn't belong in a printed report, so it's dropped entirely.
+     Per the fixed-table-layout spec, column widths are read from the
+     FIRST row of cells only -- the grouped Data Collection/Data
+     Analysis/Reporting header cells (row 1, colspan 3/3/2) are what
+     actually control their sub-columns' widths, not the Source/
+     Methods-style labels underneath them in row 2 -- so the group
+     headers get the explicit print widths below (divided evenly
+     across however many sub-columns each spans) and the individual
+     row-2 labels are left alone. The 9 remaining top-level widths
+     (No./Title/Objectives/Indicators/Definition/Users + the 3 grouped
+     widths) sum to 100% once Actions is gone.
+  --------------------------------------------------------------- */
+
+  .irc6-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 6.5px !important;
+  }
+
+  .irc6-table thead th,
+  .irc6-table tbody td {
+    padding: 3px 2px !important;
+    font-size: 6.5px !important;
+  }
+
+  .irc6-col-no {
+    width: 3% !important;
+  }
+  .irc6-col-title {
+    width: 8% !important;
+  }
+  .irc6-col-objectives,
+  .irc6-col-indicators,
+  .irc6-col-definition,
+  .irc6-col-users {
+    width: 8% !important;
+  }
+
+  /* Data Collection (colspan 3) and Data Analysis (colspan 3) group
+     headers are the 6th and 7th cells of row 1; Reporting (colspan 2)
+     is the 9th. See the column-width note above for why row 1 is what
+     matters here. */
+  .irc6-table thead tr:first-child th:nth-child(6),
+  .irc6-table thead tr:first-child th:nth-child(7) {
+    width: 21% !important;
+  }
+
+  .irc6-table thead tr:first-child th:nth-child(9) {
+    width: 15% !important;
+  }
+
+  /* Actions is the last cell of row 1 (rowspan 2, so it never
+     reappears in row 2) and the last cell of every body row. */
+  .irc6-table thead tr:first-child th:last-child,
+  .irc6-table tbody td:last-child {
+    display: none !important;
+  }
+
+  .irc6-col-sub {
+    font-size: 6px !important;
+  }
+
+  .irc6-cell-text {
+    font-size: 6.5px !important;
+    line-height: 1.3 !important;
+  }
+
+  .irc6-title-cell {
+    gap: 2px !important;
+  }
+
+  .irc6-kind-badge {
+    font-size: 8px !important;
+  }
+
+  .irc6-output-title {
+    font-size: 6.5px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Long unbroken text in the free-text columns needs somewhere to
+     break besides existing spaces once the columns are this narrow.
+     Same hyphenation approach as IRC1a's indicator column and IRC5's
+     text columns. Needs the page's lang attribute to work, which
+     base.html already sets (<html lang="en">). */
+  .irc6-cell-text,
+  .irc6-output-title {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+  }
+
+  /* Avoid splitting a table row awkwardly across a page break. */
+  .irc6-table tr {
+    break-inside: avoid;
   }
 }

@@ -272,6 +272,35 @@
     closeDeleteConfirm();
   });
 
+  // --- Save to PDF ---
+  // Uses the browser's native print-to-PDF instead of a screenshot
+  // library: the print stylesheet (see the "Print / Save-to-PDF"
+  // section in irc6.css) hides the logo bar, navbar, this page's
+  // header action buttons, the Add Output button, and the Actions
+  // column, sizes the page to 8.5x13in "long" paper, and un-clips
+  // anything that only scrolls on screen (the table wrapper).
+  // document.title is swapped briefly since most browsers suggest it
+  // as the default "Save as PDF" filename. Same approach as IRC1a's,
+  // IRC3's, and IRC5's saveToPdf().
+  const pdfBtn = document.getElementById("irc6-pdf-btn");
+
+  function saveToPdf() {
+    const previousTitle = document.title;
+    document.title = `IRC6 Monitoring and Evaluation Plan ${YEAR}`;
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+    window.addEventListener("afterprint", restoreTitle);
+
+    window.print();
+  }
+
+  if (pdfBtn) {
+    pdfBtn.addEventListener("click", saveToPdf);
+  }
+
   // ------------------------------------------------------------------
   // Reset-page confirmation modal
   //
