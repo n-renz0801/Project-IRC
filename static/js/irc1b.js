@@ -54,6 +54,8 @@
   const trendToggle = document.getElementById("irc1b-trend-toggle");
   let trendMode = "monthly";
 
+  const pdfBtn = document.getElementById("irc1b-pdf-btn");
+
   const resetAllBtn = document.getElementById("resetAllBtn");
   const resetConfirmOverlay = document.getElementById(
     "irc1b-reset-confirm-overlay",
@@ -425,6 +427,32 @@
       .catch(() => {
         /* Table just stays at its blank baseline. */
       });
+  }
+
+  // --- Save to PDF ---
+  // Uses the browser's native print-to-PDF instead of a screenshot
+  // library: the print stylesheet (see the "Print / Save-to-PDF"
+  // section in irc1b.css) hides the logo bar, navbar, and this page's
+  // header action buttons, sizes the page to 8.5x13in "long" paper,
+  // and un-clips anything that only scrolls on screen (the table
+  // wrapper). document.title is swapped briefly since most browsers
+  // suggest it as the default "Save as PDF" filename. Same approach as
+  // IRC1a's saveToPdf().
+  function saveToPdf() {
+    const previousTitle = document.title;
+    document.title = `IRC1b Number of Customers Served ${new Date().getFullYear()}`;
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+    window.addEventListener("afterprint", restoreTitle);
+
+    window.print();
+  }
+
+  if (pdfBtn) {
+    pdfBtn.addEventListener("click", saveToPdf);
   }
 
   // --- Reset All Data ---

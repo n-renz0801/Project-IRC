@@ -1686,6 +1686,10 @@
     padding: 6px 8px;
   }
 
+  .irc1a-remark-field-text {
+    font-size: 9.5px !important;
+  }
+
   .irc1a-table-wrapper {
     font-size: 8px !important;
   }
@@ -1793,79 +1797,9 @@
     appearance: none;
   }
 
-  /* ---------------------------------------------------------------
-     Report signatory footer: base.css collapses this to a single
-     column once the viewport (here, the print page) drops below
-     860px, which turns the intended 1-row/2-column layout into
-     2 stacked rows. The print page is narrower than that threshold,
-     so it has to be forced back to the 2-column layout explicitly.
-  --------------------------------------------------------------- */
-  .report-signatory-grid,
-  .report-signatory-grid--three {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
-  .report-signatory-grid--three {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
-
-  .report-signatory-block:not(:last-child) {
-    border-right: 1px solid var(--border) !important;
-    border-bottom: none !important;
-  }
-
-  .report-signatory {
-    margin-top: 16px;
-  }
-
-  .report-signatory-title {
-    font-size: 9px !important;
-    padding: 6px 12px !important;
-  }
-
-  .report-signatory-title i {
-    font-size: 10px !important;
-  }
-
-  .report-signatory-block {
-    padding: 8px 12px !important;
-  }
-
-  .report-signatory-label {
-    font-size: 7.5px !important;
-    margin: 0 0 6px !important;
-  }
-
-  .report-signatory-person {
-    gap: 8px !important;
-  }
-
-  .report-signatory-avatar {
-    width: 30px !important;
-    height: 30px !important;
-  }
-
-  .report-signatory-avatar i {
-    font-size: 13px !important;
-  }
-
-  .report-signatory-info {
-    gap: 2px !important;
-  }
-
-  .report-signatory-name,
-  .report-signatory-name-input {
-    font-size: 9.5px !important;
-  }
-
-  .report-signatory-position {
-    font-size: 8px !important;
-  }
-
-  .report-signatory-date-btn {
-    font-size: 7.5px !important;
-    transform: none !important;
-  }
+  /* Report signatory footer print scaling now lives centrally in
+     base.css (the same @media print block runs on every IRC1a-IRC9
+     page), so this page no longer needs its own copy. */
 
   /* Avoid splitting a table row or a summary card awkwardly across a
      page break. */

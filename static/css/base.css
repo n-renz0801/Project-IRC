@@ -587,11 +587,89 @@ textarea[readonly] {
   cursor: default;
 }
 
-/* Checkboxes/radios aren't text fields — override the block above so
-   they get a pointer cursor instead of a text caret (this also fixes
-   IRC2b's existing TA-provided checkboxes, which inherited the same
-   text-caret cursor from the blanket input rule). */
-input[type="checkbox"],
-input[type="radio"] {
-  cursor: pointer;
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRINT / SAVE-TO-PDF — REPORT SIGNATORY FOOTER
+   Every IRC1a-IRC9 page ships its own "Save to PDF" button that calls
+   window.print() (see e.g. irc1a.js / irc1b.js) and, since base.html's
+   signatory footer is shared across all of them, each page's stylesheet
+   used to carry its own copy of these same rules. Centralized here once
+   instead, so every report page gets the exact same printed signatory
+   block for free and there's a single place to change it. Only ever
+   need to force the layout back to 1 row / 2 (or 3, for IRC8A) columns
+   -- @media (max-width: 860px) above would otherwise stack it to a
+   single column, since the print page is narrower than that breakpoint
+   -- and scale the whole block down from its on-screen size to something
+   print-appropriate.
+═══════════════════════════════════════════════════════════════════════════ */
+
+@media print {
+  .report-signatory-grid,
+  .report-signatory-grid--three {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* IRC8A only: 3 columns instead of 2, same "force it back open" fix. */
+  .report-signatory-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .report-signatory-block:not(:last-child) {
+    border-right: 1px solid var(--border) !important;
+    border-bottom: none !important;
+  }
+
+  .report-signatory {
+    margin-top: 16px !important;
+  }
+
+  .report-signatory-title {
+    font-size: 9px !important;
+    padding: 6px 12px !important;
+  }
+
+  .report-signatory-title i {
+    font-size: 10px !important;
+  }
+
+  .report-signatory-block {
+    padding: 8px 12px !important;
+  }
+
+  .report-signatory-label {
+    font-size: 9px !important;
+    margin: 0 0 6px !important;
+  }
+
+  .report-signatory-person {
+    gap: 8px !important;
+  }
+
+  .report-signatory-avatar {
+    width: 35px !important;
+    height: 35px !important;
+    transform: translateY(-6px) !important;
+  }
+
+  .report-signatory-avatar i {
+    font-size: 13px !important;
+  }
+
+  .report-signatory-info {
+    gap: 2px !important;
+  }
+
+  .report-signatory-name,
+  .report-signatory-name-input {
+    font-size: 9.5px !important;
+  }
+
+  .report-signatory-position {
+    font-size: 8px !important;
+  }
+
+  .report-signatory-date-btn {
+    font-size: 7.5px !important;
+    transform: translateY(-10px) !important;
+    border-bottom: none !important;
+  }
 }
