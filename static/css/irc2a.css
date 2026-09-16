@@ -288,6 +288,29 @@
   box-sizing: border-box;
 }
 
+/* Badges are subgrid children with no explicit grid-row, so they normally
+   rely on document-order auto-placement (1st child -> row 1, 2nd -> row 2,
+   3rd -> row 3) to land on the same row as their .irc2a-flow-section-N
+   counterpart, which IS explicitly pinned via grid-row. That works only
+   as long as every badge participates in auto-placement. In print,
+   .irc2a-flow-badge:nth-child(2) is display:none, so it no longer reserves
+   a slot -- auto-placement then shifts the 3rd badge up into row 2 while
+   .irc2a-flow-section-3 stays explicitly pinned to row 3, throwing the
+   "School assignment" badge and label out of alignment. Pinning every
+   badge to its row explicitly removes the dependency on auto-placement
+   entirely, so hiding any one badge can never shift another. */
+.irc2a-flow-badge:nth-child(1) {
+  grid-row: 1;
+}
+
+.irc2a-flow-badge:nth-child(2) {
+  grid-row: 2;
+}
+
+.irc2a-flow-badge:nth-child(3) {
+  grid-row: 3;
+}
+
 .irc2a-flow-section-1,
 .irc2a-flow-section-2,
 .irc2a-flow-section-3 {
