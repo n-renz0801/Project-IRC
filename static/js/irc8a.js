@@ -1102,28 +1102,37 @@
   // before window.print() -- the @media print rules in irc8a.css then
   // hide the whole interactive page and show only that replica.
 
+  const RATE_LEVELS = [5, 4, 3, 2, 1];
+
   function fmtRatingCell(v) {
-    return v === null || v === undefined || v === "" ? "—" : String(v);
+    if (v === null || v === undefined || v === "") {
+      return '<span class="irc8a-print-blank"></span>';
+    }
+    return String(v);
   }
 
-  // Renders one Quality/Efficiency/Timeliness rubric column: every
-  // indicator level for that category, highest rate first -- same sort
-  // renderIndicatorGroup() uses on screen.
-  function renderPrintRubricList(items) {
-    const sorted = items.slice().sort((a, b) => b.rate - a.rate);
-    if (sorted.length === 0) {
-      return '<p class="irc8a-print-empty">Not specified.</p>';
+  // Builds a { 5: "label", 4: "label", ... } lookup for one Quality /
+  // Efficiency / Timeliness category so each rate level (5 down to 1) can
+  // be rendered as its own table row instead of a single bulleted list --
+  // matches the row-per-rate-level layout of the official DEPED RPMS
+  // sheet (see irc8a_pdf_format.pdf).
+  function rubricByRate(items) {
+    const map = {};
+    items.forEach((item) => {
+      map[item.rate] = item.label;
+    });
+    return map;
+  }
+
+  // One Quality/Efficiency/Timeliness cell for a single rate-level row.
+  // No data at that rate level -> a blank, grayed-out cell (no "Not
+  // specified" text), matching the reference PDF exactly.
+  function renderPrintRubricCell(byRate, rate) {
+    const label = byRate[rate];
+    if (label === undefined) {
+      return '<td class="irc8a-print-blank"></td>';
     }
-    return (
-      '<ul class="irc8a-print-rubric-list">' +
-      sorted
-        .map(
-          (item) =>
-            `<li><span class="irc8a-print-rate">${item.rate}</span> - ${escapeHtml(item.label)}</li>`,
-        )
-        .join("") +
-      "</ul>"
-    );
+    return `<td><span class="irc8a-print-rate">${rate}</span> - ${escapeHtml(label)}</td>`;
   }
 
   function buildPrintReport() {
@@ -1146,36 +1155,57 @@
     );
 
     let rows = "";
-    let mfoCellUsed = false;
     state.kras.forEach((kra) => {
       kra.objectives.forEach((obj, objIndex) => {
         const letter = letterLabel(objIndex);
         const avg = computeAverage(obj);
         const score = computeScore(obj);
-        rows += "<tr>";
-        if (!mfoCellUsed) {
-          rows += `<td class="irc8a-print-mfo" rowspan="${totalObjectives}">Basic Education Services</td>`;
-          mfoCellUsed = true;
-        }
-        if (objIndex === 0) {
-          rows += `<td class="irc8a-print-kra" rowspan="${kra.objectives.length}">${kra.text ? escapeHtml(kra.text) : "—"}</td>`;
-        }
-        rows += `<td><span class="irc8a-print-objective-label">${letter}.</span>${obj.text ? escapeHtml(obj.text) : "—"}</td>`;
-        rows += `<td>${obj.timeline ? escapeHtml(obj.timeline) : '<span class="irc8a-print-empty">—</span>'}</td>`;
-        if (objIndex === 0) {
-          rows += `<td class="irc8a-print-weight" rowspan="${kra.objectives.length}">${fmtWeight(kra.weight)}</td>`;
-        }
-        rows += `<td>${renderPrintRubricList(obj.quality)}</td>`;
-        rows += `<td>${renderPrintRubricList(obj.efficiency)}</td>`;
-        rows += `<td>${renderPrintRubricList(obj.timeliness)}</td>`;
-        rows += `<td>${obj.mov ? escapeHtml(obj.mov) : '<span class="irc8a-print-empty">—</span>'}</td>`;
-        rows += `<td>${obj.actualResults ? escapeHtml(obj.actualResults) : '<span class="irc8a-print-empty">—</span>'}</td>`;
-        rows += `<td class="irc8a-print-rating-cell">${fmtRatingCell(obj.ratings.quality)}</td>`;
-        rows += `<td class="irc8a-print-rating-cell">${fmtRatingCell(obj.ratings.efficiency)}</td>`;
-        rows += `<td class="irc8a-print-rating-cell">${fmtRatingCell(obj.ratings.timeliness)}</td>`;
-        rows += `<td class="irc8a-print-rating-cell">${avg === null ? "—" : fmtNum(avg)}</td>`;
-        rows += `<td class="irc8a-print-rating-cell">${score === null ? "—" : fmtNum(score)}</td>`;
-        rows += "</tr>";
+        const qualityByRate = rubricByRate(obj.quality);
+        const efficiencyByRate = rubricByRate(obj.efficiency);
+        const timelinessByRate = rubricByRate(obj.timeliness);
+
+        RATE_LEVELS.forEach((rate, subRowIndex) => {
+          rows += "<tr>";
+          // MFO and KRA/Weight used to be rowspanned across every row of
+          // the whole table / whole KRA. A rowspan that wide forces print
+          // engines to treat everything it covers as one unbreakable
+          // block, which is why the table refused to break anywhere
+          // except between KRAs (and sometimes not even fitting there).
+          // So each is now its own per-objective (5-row) cell -- same
+          // granularity as Objective/Timeline/MOV/etc. -- so the table
+          // can break freely between objectives. An earlier attempt to
+          // visually re-merge these into one cell per KRA (by hiding the
+          // border between consecutive objectives) had to be dropped:
+          // static CSS can't know where the browser will insert a page
+          // break, so a suppressed border left the column looking torn
+          // open whenever a break landed there. Every cell now keeps its
+          // normal border, guaranteeing the grid stays intact no matter
+          // where the table happens to break.
+          if (subRowIndex === 0) {
+            rows += `<td class="irc8a-print-mfo" rowspan="${RATE_LEVELS.length}">Basic Education Services</td>`;
+            rows += `<td class="irc8a-print-kra" rowspan="${RATE_LEVELS.length}">${objIndex === 0 ? (kra.text ? escapeHtml(kra.text) : "—") : ""}</td>`;
+          }
+          if (subRowIndex === 0) {
+            rows += `<td rowspan="${RATE_LEVELS.length}"><span class="irc8a-print-objective-label">${letter}.</span>${obj.text ? escapeHtml(obj.text) : "—"}</td>`;
+            rows += `<td rowspan="${RATE_LEVELS.length}">${obj.timeline ? escapeHtml(obj.timeline) : '<span class="irc8a-print-blank"></span>'}</td>`;
+          }
+          if (subRowIndex === 0) {
+            rows += `<td class="irc8a-print-weight" rowspan="${RATE_LEVELS.length}">${objIndex === 0 ? fmtWeight(kra.weight) : ""}</td>`;
+          }
+          rows += renderPrintRubricCell(qualityByRate, rate);
+          rows += renderPrintRubricCell(efficiencyByRate, rate);
+          rows += renderPrintRubricCell(timelinessByRate, rate);
+          if (subRowIndex === 0) {
+            rows += `<td rowspan="${RATE_LEVELS.length}">${obj.mov ? escapeHtml(obj.mov) : '<span class="irc8a-print-blank"></span>'}</td>`;
+            rows += `<td rowspan="${RATE_LEVELS.length}">${obj.actualResults ? escapeHtml(obj.actualResults) : '<span class="irc8a-print-blank"></span>'}</td>`;
+            rows += `<td class="irc8a-print-rating-cell" rowspan="${RATE_LEVELS.length}">${fmtRatingCell(obj.ratings.quality)}</td>`;
+            rows += `<td class="irc8a-print-rating-cell" rowspan="${RATE_LEVELS.length}">${fmtRatingCell(obj.ratings.efficiency)}</td>`;
+            rows += `<td class="irc8a-print-rating-cell" rowspan="${RATE_LEVELS.length}">${fmtRatingCell(obj.ratings.timeliness)}</td>`;
+            rows += `<td class="irc8a-print-rating-cell" rowspan="${RATE_LEVELS.length}">${avg === null ? '<span class="irc8a-print-blank"></span>' : fmtNum(avg)}</td>`;
+            rows += `<td class="irc8a-print-rating-cell" rowspan="${RATE_LEVELS.length}">${score === null ? '<span class="irc8a-print-blank"></span>' : fmtNum(score)}</td>`;
+          }
+          rows += "</tr>";
+        });
       });
     });
 
@@ -1183,7 +1213,6 @@
       rows = `<tr><td colspan="15" class="irc8a-print-empty">No KRAs yet.</td></tr>`;
     }
 
-    const totalKraWeight = sumWeights(state.kras);
     let scoreSum = 0;
     let hasAnyScore = false;
     state.kras.forEach((k) =>
@@ -1195,22 +1224,38 @@
         }
       }),
     );
+    const totalWeight = sumWeights(state.kras);
+
+    // Overall Rating for Accomplishments -- part of the main table itself
+    // (its own last row), not a floating box below it: total weight under
+    // Weight, the label spanning Actual Results through Ave, and the
+    // total score lined up under Score -- matches irc8a_pdf_format.pdf.
+    rows += `
+      <tr class="irc8a-print-total-row">
+        <td colspan="4"></td>
+        <td class="irc8a-print-weight">${fmtWeight(totalWeight)}</td>
+        <td colspan="3"></td>
+        <td></td>
+        <td colspan="5" class="irc8a-print-overall-label">Overall Rating for Accomplishments</td>
+        <td class="irc8a-print-rating-cell irc8a-print-overall-score">${hasAnyScore ? fmtNum(scoreSum) : "—"}</td>
+      </tr>
+    `;
 
     container.innerHTML = `
       <div class="irc8a-print-page">
         <div class="irc8a-print-title">Individual Performance Commitment &amp; Review Form (IPCRF)</div>
         <table class="irc8a-print-header-table">
           <tr>
-            <td class="irc8a-print-header-label">Name of Rater</td>
-            <td class="irc8a-print-header-value">${escapeHtml(rh.nameOfRater)}</td>
             <td class="irc8a-print-header-label">Name of Employee</td>
             <td class="irc8a-print-header-value">${escapeHtml(rh.nameOfEmployee)}</td>
+            <td class="irc8a-print-header-label">Name of Rater</td>
+            <td class="irc8a-print-header-value">${escapeHtml(rh.nameOfRater)}</td>
           </tr>
           <tr>
             <td class="irc8a-print-header-label">Position</td>
-            <td class="irc8a-print-header-value">${escapeHtml(rh.positionOfRater)}</td>
-            <td class="irc8a-print-header-label">Position</td>
             <td class="irc8a-print-header-value">${escapeHtml(rh.positionOfEmployee)}</td>
+            <td class="irc8a-print-header-label">Position</td>
+            <td class="irc8a-print-header-value">${escapeHtml(rh.positionOfRater)}</td>
           </tr>
           <tr>
             <td class="irc8a-print-header-label">Bureau/Center/Service/Division</td>
@@ -1225,9 +1270,26 @@
         </table>
 
         <table class="irc8a-print-table">
+          <colgroup>
+            <col class="irc8a-col-mfo" />
+            <col class="irc8a-col-kra" />
+            <col class="irc8a-col-objectives" />
+            <col class="irc8a-col-timeline" />
+            <col class="irc8a-col-weight" />
+            <col class="irc8a-col-quality" />
+            <col class="irc8a-col-efficiency" />
+            <col class="irc8a-col-timeliness" />
+            <col class="irc8a-col-movs" />
+            <col class="irc8a-col-actual" />
+            <col class="irc8a-col-q" />
+            <col class="irc8a-col-e" />
+            <col class="irc8a-col-t" />
+            <col class="irc8a-col-ave" />
+            <col class="irc8a-col-score" />
+          </colgroup>
           <thead>
             <tr class="irc8a-print-band-row">
-              <th colspan="5">To be filled during planning</th>
+              <th colspan="8">To be filled during planning</th>
               <th colspan="7">To be filled during evaluation</th>
             </tr>
             <tr>
@@ -1254,11 +1316,6 @@
           </thead>
           <tbody>${rows}</tbody>
         </table>
-
-        <div class="irc8a-print-footer">
-          <div class="irc8a-print-footer-box">Total KRA Weight: ${fmtWeight(totalKraWeight)}</div>
-          <div class="irc8a-print-footer-box">Overall Rating for Accomplishments: ${hasAnyScore ? fmtNum(scoreSum) : "—"}</div>
-        </div>
       </div>
     `;
   }
