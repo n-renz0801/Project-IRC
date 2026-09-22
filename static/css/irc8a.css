@@ -1590,8 +1590,13 @@
     font-weight: 800;
     font-size: 13px;
     letter-spacing: 0.02em;
-    margin-bottom: 8px;
+    margin: 0 0 6px;
+    padding: 5px 0;
     text-transform: uppercase;
+    background: #3c7d22 !important;
+    color: #fff;
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
   /* Name of Rater / Employee, Positions, Bureau, Rating Period, Date of
@@ -1600,13 +1605,28 @@
   .irc8a-print-header-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     font-size: 8.5px;
+    border: 1px solid #000;
+    background: #daf2d0 !important;
+    /* Keep every row (incl. Rating Period, the last one) glued to the
+       rows above it -- without this a row can land right on the page
+       boundary and get pushed to the next page on its own, stranding
+       "Rating Period" away from the rest of the header block instead of
+       staying connected to it. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .irc8a-print-header-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .irc8a-print-header-table td {
-    padding: 2px 4px;
+    padding: 3px 6px;
     vertical-align: top;
+    border: 1px solid #000;
   }
 
   .irc8a-print-header-label {
@@ -1616,7 +1636,7 @@
   }
 
   .irc8a-print-header-value {
-    border-bottom: 1px solid #000;
+    font-weight: 700;
     min-width: 120px;
   }
 
@@ -1624,6 +1644,62 @@
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
+  }
+
+  /* ==================================================================
+     COLUMN WIDTHS — edit here.
+     table-layout: fixed above means the table takes widths only from
+     these <col> rules (set via the <colgroup> in buildPrintReport(),
+     irc8a.js) and ignores cell content. Values are % of the table's
+     total width and should add up to 100.
+     Order matches the column order in buildPrintReport():
+     MFOs, KRAs, Objectives, Timeline, Weight, Quality, Efficiency,
+     Timeliness, MOVs, Actual Results, Q, E, T, Ave, Score.
+     ================================================================== */
+  .irc8a-col-mfo {
+    width: 5%;
+  }
+  .irc8a-col-kra {
+    width: 6%;
+  }
+  .irc8a-col-objectives {
+    width: 11%;
+  }
+  .irc8a-col-timeline {
+    width: 5%;
+  }
+  .irc8a-col-weight {
+    width: 4%;
+  }
+  .irc8a-col-quality {
+    width: 13%;
+  }
+  .irc8a-col-efficiency {
+    width: 13%;
+  }
+  .irc8a-col-timeliness {
+    width: 13%;
+  }
+  .irc8a-col-movs {
+    width: 8%;
+  }
+  .irc8a-col-actual {
+    width: 8%;
+  }
+  .irc8a-col-q {
+    width: 2.5%;
+  }
+  .irc8a-col-e {
+    width: 2.5%;
+  }
+  .irc8a-col-t {
+    width: 2.5%;
+  }
+  .irc8a-col-ave {
+    width: 3%;
+  }
+  .irc8a-col-score {
+    width: 3.5%;
   }
 
   .irc8a-print-table th,
@@ -1640,13 +1716,14 @@
   .irc8a-print-table thead th {
     text-align: center;
     font-weight: 700;
-    background: #e5e7eb !important;
+    background: #83cceb !important;
   }
 
   .irc8a-print-band-row th {
     font-size: 8px;
+    font-style: italic;
     text-transform: uppercase;
-    background: #cbd5e1 !important;
+    background: #f2ceef !important;
   }
 
   .irc8a-print-mfo,
@@ -1662,22 +1739,15 @@
     margin-right: 3px;
   }
 
-  .irc8a-print-rubric-list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .irc8a-print-rubric-list li {
-    margin-bottom: 2px;
-  }
-
-  .irc8a-print-rubric-list li:last-child {
-    margin-bottom: 0;
-  }
-
   .irc8a-print-rate {
     font-weight: 700;
+  }
+
+  /* Cells with no indicator defined at that rate level (or no MOV/actual
+     result/rating filled in) -- grayed out and empty, no "Not specified"
+     text, matching irc8a_pdf_format.pdf. */
+  .irc8a-print-blank {
+    background: #bfbfbf !important;
   }
 
   .irc8a-print-rating-cell {
@@ -1690,22 +1760,46 @@
     font-style: italic;
   }
 
-  .irc8a-print-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 24px;
-    margin-top: 8px;
-    font-size: 9px;
+  /* Overall Rating for Accomplishments -- rendered as the table's own
+     last row (not a separate box below it) so it's visually part of the
+     main table: total weight sits in the Weight column, the label spans
+     Actual Results through Ave, and the total score lines up under the
+     Score column, matching irc8a_pdf_format.pdf. */
+  .irc8a-print-total-row td {
+    background: #daf2d0 !important;
     font-weight: 700;
   }
 
-  .irc8a-print-footer-box {
-    border: 1px solid #000;
-    padding: 4px 10px;
+  .irc8a-print-overall-label {
+    text-align: right;
+    text-transform: uppercase;
+    padding-right: 8px !important;
   }
 
-  /* Avoid splitting an objective row awkwardly across a page break. */
+  .irc8a-print-overall-score {
+    text-align: center;
+    font-size: 9px;
+  }
+
+  /* Avoid splitting an objective's rate-level rows awkwardly across a
+     page break. */
   .irc8a-print-table tr {
     break-inside: avoid;
+  }
+
+  /* Keep the main table attached to the header block above it instead of
+     starting on its own page. */
+  .irc8a-print-header-table,
+  .irc8a-print-table {
+    break-before: avoid;
+    break-after: auto;
+  }
+
+  /* The report-signatory footer (Prepared by / Checked by / Approving
+     Authority) lives in base.html, outside #irc8a-tab, so the
+     "#irc8a-tab > *" hide rule above never reaches it. It's not part of
+     the official IPCRF sheet this page reproduces, so hide it here. */
+  .report-signatory {
+    display: none !important;
   }
 }
