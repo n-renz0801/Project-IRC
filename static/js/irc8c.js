@@ -577,6 +577,191 @@
   });
 
   // ------------------------------------------------------------------
+  // Print / Save as PDF
+  //
+  // Builds a print-only copy of the page laid out like the official
+  // "Part II: Summary of Ratings for Discussion" sheet (Final Rating +
+  // adjectival abbreviation, Employee-Superior Agreement, Part IV:
+  // Development Plans, signatories), then calls window.print(). The
+  // styling is the "Print / Save to PDF" section at the end of
+  // irc8c.css (letter, portrait). The root is moved to <body> so that
+  // stylesheet can hide the rest of the page.
+  // ------------------------------------------------------------------
+  const printRoot = document.getElementById("irc8c-print-root");
+  const printBtn = document.getElementById("irc8c-pdf-btn");
+  if (printRoot) document.body.appendChild(printRoot);
+
+  // "Checked by" is fixed on the page itself (see irc8c.html), so it's
+  // fixed here too. Keep the name in sync with that markup; the position
+  // is worded the way the printed sheet words it.
+  const PRINT_CHECKED_BY = {
+    name: "DR. JONATHAN P. DOMINGO",
+    position: "CHIEF SGOD",
+  };
+
+  // Abbreviation the printed sheet shows for the adjectival rating.
+  const PRINT_RATING_ABBR = { 1: "P", 2: "U", 3: "S", 4: "VS", 5: "O" };
+
+  // Prepared-by name/position and both signatory dates are kept on the
+  // server (the same records the on-page sign-off block reads), so they
+  // are fetched fresh on every print.
+  const printCache = {
+    preparer: { name: "", position: "" },
+    dates: { prepared_by: null, checked_by: null },
+  };
+
+  const pText = (v) => escapeHtml(v == null ? "" : String(v));
+  const pUpper = (v) => pText(v == null ? "" : String(v).toUpperCase());
+
+  function formatPrintDate(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+    if (!m) return "";
+    return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+
+  // Strength / Development Need text: the picked objective's or
+  // competency's own text, without the source/average line the on-page
+  // table adds under it.
+  function printRefText(row, field, source) {
+    const ref = row[field];
+    if (!ref) return "";
+    const match = itemsForSource(source).find((c) => c.id === ref);
+    return match ? match.main : "";
+  }
+
+  // Reads the live textarea when the row is unlocked, so text typed but
+  // not yet saved still prints (same idea as EOPCRF4's feedback boxes).
+  function printRowText(slot, field) {
+    const textarea = devTableBody.querySelector(
+      `textarea[data-slot="${slot}"][data-field="${field}"]`,
+    );
+    if (textarea) return textarea.value;
+    const row = state.rows[slot] || {};
+    return row[field] || "";
+  }
+
+  function buildPrintHtml() {
+    const value = state.finalRating;
+    const hasValue =
+      value !== null && value !== undefined && !Number.isNaN(Number(value));
+    const band = hasValue ? getRatingBand(Number(value)) : null;
+    const ratingText = hasValue ? Number(value).toFixed(2) : "";
+    const abbrText = band ? PRINT_RATING_ABBR[band.num] : "";
+
+    const rowsHtml = SLOTS.map(({ slot, source }) => {
+      const row = state.rows[slot] || { slot };
+      return `<tr>
+        <td>${pText(printRefText(row, "strengthRef", source))}</td>
+        <td>${pText(printRefText(row, "devNeedsRef", source))}</td>
+        <td>${pText(printRowText(slot, "actionPlan"))}</td>
+        <td>${pText(printRowText(slot, "timeline"))}</td>
+        <td>${pText(printRowText(slot, "resourcesNeeded"))}</td>
+      </tr>`;
+    }).join("");
+
+    const preparer = printCache.preparer || {};
+    const dates = printCache.dates || {};
+    const colgroup5 =
+      '<colgroup><col style="width:23.02%"><col style="width:25.2%"><col style="width:27.58%"><col style="width:11.3%"><col style="width:12.9%"></colgroup>';
+
+    return `
+      <div class="r8c-title">Part II: Summary of Ratings for Discussion</div>
+
+      <table class="r8c-table r8c-summary">
+        <colgroup><col style="width:47.8%"><col style="width:52.2%"></colgroup>
+        <tbody>
+          <tr><td>Final Performance Results Rating</td><td class="r8c-val">${pText(ratingText)}</td></tr>
+          <tr><td>Accomplishments of KRAs and Objectives</td><td class="r8c-val">${pText(abbrText)}</td></tr>
+        </tbody>
+      </table>
+
+      <div class="r8c-heading">Employee-Superior Agreement</div>
+      <p class="r8c-agree">The signature below confirm that the employee and his/her superior have agreed to the contents of the performance as captured in this form</p>
+
+      <table class="r8c-table r8c-agreement">
+        <colgroup><col style="width:23.02%"><col style="width:25.2%"><col style="width:27.58%"><col style="width:24.2%"></colgroup>
+        <tbody>
+          <tr class="r8c-agr-name">
+            <td>Name of Employee</td><td class="r8c-name">${pUpper(preparer.name)}</td>
+            <td>Name of Superior</td><td class="r8c-name">${pUpper(PRINT_CHECKED_BY.name)}</td>
+          </tr>
+          <tr class="r8c-agr-sign">
+            <td>Signature</td><td></td><td>Signature</td><td></td>
+          </tr>
+          <tr class="r8c-agr-date">
+            <td>Date</td><td class="r8c-date">${pText(formatPrintDate(dates.prepared_by))}</td>
+            <td>Date</td><td class="r8c-date">${pText(formatPrintDate(dates.checked_by))}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="r8c-heading-center">Part IV: Development Plans</div>
+
+      <table class="r8c-table r8c-dev">
+        ${colgroup5}
+        <thead>
+          <tr>
+            <th>STRENGTHS</th>
+            <th>DEVELOPMENT NEEDS</th>
+            <th>ACTION PLAN<br>(Recommended Developmental Intervention)</th>
+            <th>Timeline</th>
+            <th>Resources Needed</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+
+      <table class="r8c-signs">
+        ${colgroup5}
+        <tbody>
+          <tr>
+            <td><div class="r8c-sign-name">${pUpper(preparer.name)}</div><div class="r8c-sign-role">${pUpper(preparer.position)}</div></td>
+            <td></td>
+            <td><div class="r8c-sign-name">${pUpper(PRINT_CHECKED_BY.name)}</div><div class="r8c-sign-role">${pUpper(PRINT_CHECKED_BY.position)}</div></td>
+            <td colspan="2"></td>
+          </tr>
+        </tbody>
+      </table>`;
+  }
+
+  function refreshPrintRoot() {
+    if (printRoot) printRoot.innerHTML = buildPrintHtml();
+  }
+
+  async function loadPrintExtras() {
+    const [p, prep, chk] = await Promise.allSettled([
+      apiCall("GET", "/api/preparer"),
+      apiCall("GET", "/api/signatory-date/irc8c/prepared_by"),
+      apiCall("GET", "/api/signatory-date/irc8c/checked_by"),
+    ]);
+    if (p.status === "fulfilled") printCache.preparer = p.value;
+    if (prep.status === "fulfilled")
+      printCache.dates.prepared_by = prep.value.date;
+    if (chk.status === "fulfilled")
+      printCache.dates.checked_by = chk.value.date;
+  }
+
+  if (printBtn && printRoot) {
+    printBtn.addEventListener("click", async () => {
+      printBtn.disabled = true;
+      try {
+        await loadPrintExtras();
+        refreshPrintRoot();
+        window.print();
+      } finally {
+        printBtn.disabled = false;
+      }
+    });
+    // Ctrl+P / browser menu print gets the same layout from cached data.
+    window.addEventListener("beforeprint", refreshPrintRoot);
+    loadPrintExtras();
+  }
+
+  // ------------------------------------------------------------------
   // Initial load
   // ------------------------------------------------------------------
   renderCriteriaStrip(null);

@@ -87,6 +87,41 @@
   flex-shrink: 0;
 }
 
+/* Save to PDF button — same look as EOPCRF2's header PDF button. */
+.irc8b-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc8b-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc8b-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc8b-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Reset button — sized down to match IRC1a/IRC7's smaller header
    action buttons (was 10px 18px / 14px font). */
 .irc8b-reset-btn {
@@ -613,6 +648,7 @@
     width: 100%;
   }
 
+  .irc8b-pdf-btn,
   .irc8b-reset-btn {
     flex: 1;
     justify-content: center;

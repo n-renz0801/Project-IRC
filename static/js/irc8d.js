@@ -24,11 +24,16 @@
   // Adjust the thresholds here if your office uses a different scale --
   // nothing else in this file depends on the exact cutoffs.
   const ADJECTIVAL_BANDS = [
-    { min: 4.5, label: "Outstanding", cls: "outstanding" },
-    { min: 3.5, label: "Very Satisfactory", cls: "very-satisfactory" },
-    { min: 2.5, label: "Satisfactory", cls: "satisfactory" },
-    { min: 1.5, label: "Unsatisfactory", cls: "unsatisfactory" },
-    { min: -Infinity, label: "Poor", cls: "poor" },
+    { min: 4.5, label: "Outstanding", abbr: "O", cls: "outstanding" },
+    {
+      min: 3.5,
+      label: "Very Satisfactory",
+      abbr: "VS",
+      cls: "very-satisfactory",
+    },
+    { min: 2.5, label: "Satisfactory", abbr: "S", cls: "satisfactory" },
+    { min: 1.5, label: "Unsatisfactory", abbr: "U", cls: "unsatisfactory" },
+    { min: -Infinity, label: "Poor", abbr: "P", cls: "poor" },
   ];
 
   function adjectivalRating(score) {
@@ -94,6 +99,9 @@
       return sum + (isNaN(w) ? 0 : w);
     }, 0);
   }
+
+  // Last rendered result, read by the print layout below.
+  const printState = { kras: [], overall: null, band: null };
 
   // ================= Render =================
   function renderKraCard(kra, kraIndex) {
@@ -177,6 +185,9 @@
 
   function render(kras) {
     listEl.innerHTML = "";
+    printState.kras = kras;
+    printState.overall = null;
+    printState.band = null;
 
     const hasKras = kras.length > 0;
     listEl.style.display = hasKras ? "flex" : "none";
@@ -212,6 +223,8 @@
     if (hasAnyScore) {
       summaryRatingEl.textContent = fmtNum(scoreSum);
       const band = adjectivalRating(scoreSum);
+      printState.overall = scoreSum;
+      printState.band = band;
       summaryAdjectivalEl.textContent = band.label;
       summaryAdjectivalEl.className =
         "irc8d-summary-adjectival irc8d-summary-adjectival--" + band.cls;
@@ -220,6 +233,206 @@
       summaryAdjectivalEl.textContent = "";
       summaryAdjectivalEl.className = "irc8d-summary-adjectival";
     }
+  }
+
+  // ================= Print / Save as PDF =================
+  // Builds a print-only copy of the page laid out like the IRC8D sheet
+  // (single bordered table, overall rating rows, Rater-Ratee Agreement),
+  // then calls window.print(). All print styling lives at the bottom of
+  // irc8d.css. The root is moved to <body> so the print rules can hide
+  // the rest of the page; they only apply while <html> has the
+  // "irc8d-printing" class, which is added just for the print.
+
+  // --- Fixed text taken from the printed form -- edit here if needed ---
+  const PRINT_MFO = "Basic Education Sector";
+  // Same hardcoded "Checked by" signatory as base.html's report footer.
+  const PRINT_SUPERIOR_NAME = "DR. JONATHAN P. DOMINGO";
+  const PRINT_SUPERIOR_POSITION = "SGOD Chief";
+  const PRINT_AGREEMENT_TEXT =
+    "The signatures below confirm that the employee and his/her superior have agreed on content of this appraisal form and the performance rating.";
+
+  const printRoot = document.getElementById("irc8d-print-root");
+  const printBtn = document.getElementById("irc8d-print-btn");
+  const printCache = { preparer: {}, dates: {} };
+  // Signatory dates are stored per tab (see /api/signatory-date/<tab>/<role>).
+  const TAB_ID = document.body.dataset.activeTab || "irc8d";
+
+  // "Prepared by" is filled live into base.html's footer by index.js, so
+  // read it from there first and fall back to /api/preparer.
+  const footerText = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.textContent.replace(/\u00a0/g, " ").trim() : "";
+  };
+
+  if (printRoot) document.body.appendChild(printRoot);
+
+  const pFixed = (n, d) =>
+    n === null || n === undefined || n === "" || isNaN(n)
+      ? ""
+      : Number(n).toFixed(d);
+
+  const pUpper = (v) => escapeHtml(v == null ? "" : String(v).toUpperCase());
+
+  const pDate = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso + "T00:00:00");
+    return isNaN(d)
+      ? iso
+      : d.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+  };
+
+  // Q / E / T cell: blank ratings are shaded gray, as on the form.
+  function pRateCell(v) {
+    const blank = v === null || v === undefined || v === "";
+    return blank
+      ? '<td class="p8-c p8-gray"></td>'
+      : `<td class="p8-c">${escapeHtml(String(v))}</td>`;
+  }
+
+  function buildPrintTable() {
+    const kras = printState.kras || [];
+    const totalRows = kras.reduce(
+      (n, k) => n + Math.max(1, (k.objectives || []).length),
+      0,
+    );
+
+    let body = "";
+    let firstRow = true;
+
+    kras.forEach((kra) => {
+      const objs = kra.objectives || [];
+      const span = Math.max(1, objs.length);
+      const list = objs.length ? objs : [null];
+
+      list.forEach((o, i) => {
+        const r = (o && o.ratings) || {};
+        let tr = "";
+
+        if (firstRow) {
+          tr += `<td class="p8-mfo" rowspan="${totalRows}">${escapeHtml(PRINT_MFO)}</td>`;
+          firstRow = false;
+        }
+        if (i === 0) {
+          tr += `<td class="p8-kra" rowspan="${span}">${pUpper(kra.text)}</td>`;
+        }
+        tr += `<td class="p8-obj">${o ? escapeHtml(o.text) : ""}</td>`;
+        tr += `<td class="p8-c p8-pre">${o ? escapeHtml(o.timeline) : ""}</td>`;
+        if (i === 0) {
+          const w = fmtWeight(kra.weight);
+          tr += `<td class="p8-c" rowspan="${span}">${w === "—" ? "" : w}</td>`;
+        }
+        tr += `<td class="p8-c p8-pre">${o ? escapeHtml(o.actualResults) : ""}</td>`;
+        tr += pRateCell(r.quality);
+        tr += pRateCell(r.efficiency);
+        tr += pRateCell(r.timeliness);
+        tr += `<td class="p8-c p8-b">${o ? pFixed(o.average, 1) : ""}</td>`;
+        tr += `<td class="p8-c p8-b p8-score">${o ? pFixed(o.score, 3) : ""}</td>`;
+
+        body += `<tr>${tr}</tr>`;
+      });
+    });
+
+    const overall = printState.overall;
+    const band = printState.band;
+
+    const footer = `
+      <tr class="p8-total">
+        <td colspan="5" rowspan="2" class="p8-gray p8-nob"></td>
+        <td colspan="5" class="p8-b p8-l">OVERALL RATING FOR ACCOMPLISHMENTS</td>
+        <td class="p8-c p8-b p8-score">${overall == null ? "" : pFixed(overall, 3)}</td>
+      </tr>
+      <tr class="p8-total">
+        <td colspan="5" class="p8-b p8-l">ADJECTIVAL RATING</td>
+        <td class="p8-c p8-b p8-score">${band ? escapeHtml(band.abbr) : ""}</td>
+      </tr>`;
+
+    return `<table class="p8-table">
+      <colgroup>
+        <col style="width:8%"><col style="width:11%"><col style="width:26%"><col style="width:5%"><col style="width:5%"><col style="width:25%"><col style="width:3%"><col style="width:3%"><col style="width:3%"><col style="width:4.5%"><col style="width:6.5%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th rowspan="2">MFOs</th><th rowspan="2">KRAs</th><th rowspan="2">OBJECTIVES</th><th rowspan="2">TIME<br>LINE</th><th rowspan="2">Weight<br>per KRA</th><th rowspan="2">ACTUAL RESULTS</th><th colspan="4">RATING</th><th rowspan="2">Score</th>
+        </tr>
+        <tr><th>Q</th><th>E</th><th>T</th><th>Ave</th></tr>
+      </thead>
+      <tbody>${body}${footer}</tbody>
+    </table>`;
+  }
+
+  function buildPrintHtml() {
+    const employee =
+      footerText("reportPreparedByName") || printCache.preparer.name || "";
+    const employeePos =
+      footerText("reportPreparedByPosition") ||
+      printCache.preparer.position ||
+      "";
+
+    const cell = (label, name, pos, sigLabel) => `
+      <td class="p8-sig-cell">
+        <div class="p8-sig-label">${label}</div>
+        <div class="p8-sig-name">${pUpper(name)}</div>
+        <div class="p8-sig-pos">${pUpper(pos)}</div>
+      </td>`;
+
+    return `
+      <div class="p8-title">PART III: SUMMARY OF RATINGS FOR DISCUSSION</div>
+      ${buildPrintTable()}
+      <div class="p8-agree">
+        <div class="p8-agree-title">Rater-Ratee Agreement</div>
+        <div class="p8-agree-text">${escapeHtml(PRINT_AGREEMENT_TEXT)}</div>
+      </div>
+      <table class="p8-sig">
+        <colgroup><col style="width:50%"><col style="width:50%"></colgroup>
+        <tr>${cell("Name of Employee:", employee, employeePos)}${cell("Name of Superior:", PRINT_SUPERIOR_NAME, PRINT_SUPERIOR_POSITION)}</tr>
+        <tr><td class="p8-sig-row">Signature:</td><td class="p8-sig-row">Signature:</td></tr>
+        <tr><td class="p8-date-row">Date: ${escapeHtml(pDate(printCache.dates.prepared_by))}</td><td class="p8-date-row">Date: ${escapeHtml(pDate(printCache.dates.checked_by))}</td></tr>
+      </table>`;
+  }
+
+  function refreshPrintRoot() {
+    if (printRoot) printRoot.innerHTML = buildPrintHtml();
+  }
+
+  async function loadPrintExtras() {
+    const [p, d1, d2] = await Promise.allSettled([
+      apiCall("GET", "/api/preparer"),
+      apiCall("GET", `/api/signatory-date/${TAB_ID}/prepared_by`),
+      apiCall("GET", `/api/signatory-date/${TAB_ID}/checked_by`),
+    ]);
+    if (p.status === "fulfilled") printCache.preparer = p.value || {};
+    printCache.dates = {
+      prepared_by: d1.status === "fulfilled" && d1.value ? d1.value.date : null,
+      checked_by: d2.status === "fulfilled" && d2.value ? d2.value.date : null,
+    };
+  }
+
+  if (printBtn && printRoot) {
+    const root = document.documentElement;
+
+    printBtn.addEventListener("click", async () => {
+      printBtn.disabled = true;
+      try {
+        await loadPrintExtras();
+        refreshPrintRoot();
+        window.print();
+      } finally {
+        printBtn.disabled = false;
+      }
+    });
+
+    // Ctrl+P / browser-menu print gets the same layout from cached data.
+    window.addEventListener("beforeprint", () => {
+      refreshPrintRoot();
+      root.classList.add("irc8d-printing");
+    });
+    window.addEventListener("afterprint", () => {
+      root.classList.remove("irc8d-printing");
+    });
   }
 
   // ================= Initial load =================

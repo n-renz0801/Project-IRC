@@ -5,6 +5,10 @@ block content %}
   rel="stylesheet"
   href="{{ url_for('static', filename='css/irc8b.css') }}"
 />
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/irc8b_print.css') }}"
+/>
 
 <section id="irc8b-tab" class="tab-panel irc8b-panel">
   <!-- ================= 1. PAGE HEADER ================= -->
@@ -25,6 +29,9 @@ block content %}
         </div>
       </div>
       <div class="irc8b-header-actions">
+        <button type="button" id="irc8b-print-btn" class="irc8b-pdf-btn">
+          <i class="ti ti-file-type-pdf" aria-hidden="true"></i> Save to PDF
+        </button>
         <button type="button" id="irc8b-reset-btn" class="irc8b-reset-btn">
           <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
         </button>
@@ -141,6 +148,9 @@ block content %}
     </div>
   </div>
 </div>
+
+<!-- Print-only copy of the form; built and moved to <body> by irc8b.js -->
+<div id="irc8b-print-root"></div>
 
 <script src="{{ url_for('static', filename='js/irc8b.js') }}"></script>
 

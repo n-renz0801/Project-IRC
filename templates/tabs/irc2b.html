@@ -10,13 +10,10 @@ block content %}
 ("Q2", [("apr", "Apr"), ("may", "May"), ("jun", "Jun")]), ("Q3", [("jul",
 "Jul"), ("aug", "Aug"), ("sep", "Sep")]), ("Q4", [("oct", "Oct"), ("nov",
 "Nov"), ("dec", "Dec")]) ] %} {% set elementary_schools = [ "Bagong Nayon I ES",
-"Bagong Nayon II ES", "Bagong Nayon IV ES", "Cupang ES", "Dela Paz ES", "Jesus
-S. Cabarrus ES", "Juan Sumulong ES", "Kaysakat ES", "Lores ES", "Mambugan I ES",
+"Bagong Nayon II ES", "Bagong Nayon IV ES", "Cupang ES", "Dela Paz ES", "Jesus S. Cabarrus ES", "Juan Sumulong ES", "Kaysakat ES", "Lores ES", "Mambugan I ES",
 "Mambugan II ES", "Mayamot ES", "Muntindilaw ES", "Peace Village ES",
-"Peñafrancia ES", "Rizza ES", "San Antonio Village ES", "San Isidro ES", "Tanza
-ES" ] %} {% set secondary_schools = [ "Antipolo NHS", "Bagong Nayon II NHS",
-"Dalig NHS", "Mambugan NHS", "Maximo L. Gatlabayan MNHS", "San Isidro NHS", "San
-Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %} {%
+"Peñafrancia ES", "Rizza ES", "San Antonio Village ES", "San Isidro ES", "Tanza ES" ] %} {% set secondary_schools = [ "Antipolo NHS", "Bagong Nayon II NHS",
+"Dalig NHS", "Mambugan NHS", "Maximo L. Gatlabayan MNHS", "San Isidro NHS", "San Jose NHS" ] %} {% macro render_table(schools, section_id, section_label) %} {%
 set icon = "ti-building-community" if section_id == "elementary" else
 "ti-school" %}
 <div class="irc2b-section-card irc2b-section-card-{{ section_id }}">
@@ -79,7 +76,7 @@ set icon = "ti-building-community" if section_id == "elementary" else
           </tr>
         </thead>
         <tbody>
-          {% for school in schools %} {% set row_idx = loop.index0 %}
+          {% for raw_school in schools %} {% set school = raw_school.split() | join(" ") %} {% set row_idx = loop.index0 %}
           <tr data-row-index="{{ row_idx }}">
             <td class="irc2b-label-col">
               <span class="irc2b-school-num">{{ loop.index }}.</span>

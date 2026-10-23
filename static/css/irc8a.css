@@ -1,5 +1,180 @@
-/* IRC8A - IPCRF (Individual Performance Commitment and Review Form) */
+/* IRC8A - IPCRF (Individual Performance Commitment and Review Form)
+   Minimal layout: one neutral palette plus a single accent (the app's navy).
+   Selected rating = accent. Warnings use amber, nothing else carries color. */
 
+/* The reset modal lives outside the .irc8a-panel <section>, so it needs
+   the same variables or its background resolves to nothing (transparent). */
+.irc8a-panel,
+.irc8a-confirm-overlay {
+  --i8-ink: #1c2530;
+  --i8-muted: #667282;
+  --i8-line: #e2e6ec;
+  --i8-line-strong: #cdd4dd;
+  --i8-surface: #ffffff;
+  --i8-subtle: #f6f8fa;
+  --i8-accent: var(--navy-deep, #0b2a5b);
+  --i8-accent-soft: #eaf0fa;
+  --i8-ok: #1b7a4b;
+  --i8-warn: #a45a06;
+  --i8-danger: #b42318;
+  --i8-radius: 8px;
+  /* Section colors for the objective card (title band + text) */
+  --i8-plan-fg: #1f4fa3;
+  --i8-plan-bg: #dfe9fa;
+  --i8-perf-fg: #4b3a9e;
+  --i8-perf-bg: #ebe7fb;
+  --i8-eval-fg: #1b7a4b;
+  --i8-eval-bg: #dcf1e5;
+  color: var(--i8-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.irc8a-panel *,
+.irc8a-panel *::before,
+.irc8a-panel *::after,
+.irc8a-confirm-overlay *,
+.irc8a-confirm-overlay *::before,
+.irc8a-confirm-overlay *::after {
+  box-sizing: border-box;
+}
+.irc8a-panel h3,
+.irc8a-panel h4,
+.irc8a-confirm-overlay h4 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--i8-ink);
+}
+.irc8a-muted {
+  color: var(--i8-muted);
+}
+.irc8a-inline-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.irc8a-btn .irc8a-inline-icon,
+.irc8a-icon-btn .irc8a-inline-icon {
+  margin-right: 0;
+}
+
+/* ---------- Labels, inputs, buttons ---------- */
+.irc8a-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--i8-muted);
+  margin-bottom: 2px;
+}
+.irc8a-label--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.irc8a-input,
+.irc8a-field input,
+.irc8a-field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--i8-ink);
+  background: var(--i8-surface);
+  border: 1px solid var(--i8-line-strong);
+  border-radius: 6px;
+}
+.irc8a-input:focus,
+.irc8a-field input[data-upper] {
+  text-transform: uppercase;
+}
+
+.irc8a-field input:focus,
+.irc8a-field textarea:focus {
+  outline: 2px solid var(--i8-accent);
+  outline-offset: -1px;
+  border-color: var(--i8-accent);
+}
+.irc8a-field textarea {
+  resize: vertical;
+}
+textarea.irc8a-input {
+  resize: vertical;
+}
+
+.irc8a-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font: inherit;
+  font-weight: 500;
+  color: var(--i8-ink);
+  background: var(--i8-surface);
+  border: 1px solid var(--i8-line-strong);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.irc8a-btn:hover {
+  background: var(--i8-subtle);
+}
+.irc8a-btn--primary {
+  color: #fff;
+  background: var(--i8-accent);
+  border-color: var(--i8-accent);
+}
+.irc8a-btn--primary:hover {
+  background: var(--i8-accent);
+  filter: brightness(1.15);
+}
+.irc8a-btn--danger {
+  color: #fff;
+  background: var(--i8-danger);
+  border-color: var(--i8-danger);
+}
+.irc8a-btn--danger:hover {
+  background: var(--i8-danger);
+  filter: brightness(1.1);
+}
+.irc8a-btn--ghost {
+  border-style: dashed;
+  color: var(--i8-muted);
+}
+.irc8a-btn--sm {
+  padding: 3px 9px;
+  font-size: 12px;
+}
+.irc8a-btn:focus-visible,
+.irc8a-icon-btn:focus-visible {
+  outline: 2px solid var(--i8-accent);
+  outline-offset: 2px;
+}
+
+.irc8a-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--i8-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.irc8a-icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.irc8a-icon-btn:hover {
+  color: var(--i8-ink);
+  background: var(--i8-line);
+}
+.irc8a-icon-btn--danger:hover {
+  color: var(--i8-danger);
+  background: #fdecea;
+}
+
+/* ---------- Page header (original style, kept as-is) ---------- */
 .irc8a-header {
   margin-bottom: 20px;
   padding-bottom: 20px;
@@ -14,8 +189,6 @@
   flex-wrap: wrap;
 }
 
-/* Title block: badge + divider + title/subtitle, mirroring IRC1a's
-   .irc1a-header-title-main. */
 .irc8a-header-title-main {
   display: flex;
   align-items: center;
@@ -58,10 +231,9 @@
   flex-shrink: 0;
 }
 
-.irc8a-header h2 {
+.irc8a-panel .irc8a-header h2 {
   font-size: 32px;
   font-weight: 600;
-  /* Decreased title/subtitle gap -- was 8px. */
   margin: 0 0 2px 0;
   color: var(--navy-deep, #001550);
   text-transform: uppercase;
@@ -81,105 +253,7 @@
   flex-shrink: 0;
 }
 
-/* ---------- IPCRF header info (Name of Rater/Employee, Bureau, Rating
-   Period, Date of Review) — plain on-screen inputs, no modal, saved
-   individually on blur (see irc8a.js). Reproduced in the printed report;
-   this panel itself is hidden in @media print (see further down). ---------- */
-
-.irc8a-report-header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px 28px;
-  background: #f8f9fc;
-  border: 1px solid #e2e5ea;
-  border-radius: 12px;
-  padding: 18px 22px;
-  margin-bottom: 22px;
-}
-
-.irc8a-report-header-col {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1 1 200px;
-  min-width: 180px;
-}
-
-.irc8a-report-header-col--wide {
-  flex: 2 1 320px;
-}
-
-.irc8a-report-header-field label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: #5a6a8a;
-  text-transform: uppercase;
-  margin-bottom: 5px;
-}
-
-.irc8a-report-header-field input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 11px;
-  border: 1px solid #e2e5ea;
-  border-radius: 7px;
-  font-size: 13.5px;
-  font-family: inherit;
-  background: #fff;
-  color: #1a1a1a;
-}
-
-.irc8a-report-header-field input::placeholder {
-  color: #aab1bb;
-}
-
-.irc8a-report-header-field input:focus {
-  outline: none;
-  border-color: #4a6fa5;
-  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
-}
-
-/* ---------- MFO banner (reads as the page's main title; also hosts Add KRA) ---------- */
-
-.irc8a-mfo-banner {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: linear-gradient(135deg, #1f2937, #131c28);
-  color: #f3f4f6;
-  padding: 26px 30px;
-  border-radius: 16px;
-  margin-bottom: 22px;
-  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.22);
-}
-
-.irc8a-mfo-label {
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 12.5px;
-  color: #7fa8e0;
-  flex-shrink: 0;
-}
-
-.irc8a-mfo-value {
-  font-weight: 700;
-  font-size: 24px;
-  letter-spacing: -0.01em;
-  color: #fff;
-}
-
-.irc8a-mfo-banner .irc8a-add-btn--banner {
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-/* Save to PDF button — same treatment as irc1a-pdf-btn (see irc1a.css),
-   just namespaced to irc8a. Triggers window.print() (see irc8a.js); the
-   @media print block further down builds the actual printed layout. */
-
+/* Save to PDF button (same look as the IRC1a page's) */
 .irc8a-pdf-btn {
   display: flex;
   align-items: center;
@@ -209,8 +283,10 @@
   border-color: #185fa5;
 }
 
-/* Reset button — sits in .irc8a-header, on the page's plain white
-   background, so it uses the same appearance as IRC7's .irc7-reset-btn. */
+.irc8a-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .irc8a-reset-btn {
   display: flex;
@@ -241,24 +317,6 @@
   border-color: #dc2626;
 }
 
-/* ---------- Weight warning banners ---------- */
-
-.irc8a-weight-banner-inline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 6px;
-  margin-top: 10px;
-  background: #fff8e6;
-  color: #8a5a00;
-  border: 1px solid #f2d896;
-}
-
-/* ---------- Buttons ---------- */
-
 .irc8a-add-btn {
   background: #4a6fa5;
   color: white;
@@ -277,1529 +335,1405 @@
   background: #3d5a8a;
 }
 
-.irc8a-add-btn--ghost {
-  background: white;
-  color: #4a6fa5;
-  border: 1px dashed #a8b8d8;
-}
-
-.irc8a-add-btn--ghost:hover {
-  background: #f0f5ff;
-}
-
-.irc8a-add-btn--sm {
-  padding: 6px 12px;
-  font-size: 12px;
-}
-
-.irc8a-inline-icon {
-  width: 14px;
-  height: 14px;
+.irc8a-add-btn .irc8a-inline-icon {
   vertical-align: -2px;
   margin-right: 5px;
-  flex-shrink: 0;
 }
 
-/* ---------- Icon buttons (edit / delete / chevron) ---------- */
-
-.irc8a-icon-btn {
-  background: none;
-  border: 1px solid transparent;
-  color: #6b7280;
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-}
-
-.irc8a-icon-btn svg {
-  width: 15px;
-  height: 15px;
-}
-
-.irc8a-icon-btn:hover {
-  background: #eef1f5;
-  color: #333;
-}
-
-.irc8a-icon-btn--danger:hover {
-  background: #fdecea;
-  color: #c0392b;
-}
-
-/* ---------- Empty state ---------- */
-
-.irc8a-empty-state {
-  text-align: center;
-  padding: 48px 20px;
-  color: #9aa3af;
-  border: 1.5px dashed #dde2e8;
-  border-radius: 12px;
-  background: #fafbfc;
-}
-
-.irc8a-empty-state svg {
-  width: 36px;
-  height: 36px;
-  margin-bottom: 10px;
-  color: #c2cad4;
-}
-
-.irc8a-empty-state p {
-  margin: 0;
-  font-size: 14px;
-}
-
-/* ================================================================
-   KRA color palette
-   Cycles by list position (kraIndex % 4), assigned via a
-   irc8a-kra-palette-N class added in JS. Coral has been removed —
-   only 4 hues remain: Violet, Teal, Pink, Amber.
-
-   Each KRA hue has FOUR lightness tiers (t1 darkest → t4 lightest),
-   all sharing the same hue/saturation family. Every colored header
-   in the card reads from a fixed pair of adjacent tiers, so the
-   color visibly fades the deeper you go:
-
-     irc8a-kra-header / irc8a-score-strip   -> t1 -> t2 (darkest)
-     irc8a-objective-header                  -> t2 -> t3
-     irc8a-obj-banner--planning              -> t3 -> t4 (lightest)
-     irc8a-obj-banner--evaluation             -> t4 -> t3 (reversed,
-                                                so siblings at the
-                                                same depth still
-                                                read as distinct)
-
-   --kra-light / --kra-border are unrelated pale/mid tones used for
-   the card's white-ish body fill and border, unchanged from before.
-
-   ---> To retune any KRA's color, edit its six variables below.
-   Nothing else in this file, irc8a.js, or irc8a.html needs to
-   change — everything downstream cascades from these variables.
-   ================================================================ */
-
-:root {
-  --kra-1-light: #f5f3fe; /* Violet */
-  --kra-1-border: #a78bfa;
-  --kra-1-t1: #1e123a;
-  --kra-1-t2: #311f5c;
-  --kra-1-t3: #452d7b;
-  --kra-1-t4: #593e98;
-
-  --kra-2-light: #e6fbf8; /* Teal */
-  --kra-2-border: #5eead4;
-  --kra-2-t1: #074541;
-  --kra-2-t2: #0e6c65;
-  --kra-2-t3: #189087;
-  --kra-2-t4: #25b1a6;
-
-  --kra-3-light: #fdf1f8; /* Pink */
-  --kra-3-border: #f472b6;
-  --kra-3-t1: #450721;
-  --kra-3-t2: #6d0e35;
-  --kra-3-t3: #90184a;
-  --kra-3-t4: #b1255f;
-
-  --kra-4-light: #fffaeb; /* Amber */
-  --kra-4-border: #fbbf24;
-  --kra-4-t1: #472206;
-  --kra-4-t2: #6f370c;
-  --kra-4-t3: #93481f;
-  --kra-4-t4: #b46122;
-
-  /* Light gold accent used on KRA/objective index badges & eyebrows */
-  --gold-light: #f0cf7d;
-  --gold-light-soft: rgba(240, 207, 125, 0.7);
-}
-
-.irc8a-kra-card.irc8a-kra-palette-1 {
-  --kra-light: var(--kra-1-light);
-  --kra-border: var(--kra-1-border);
-  --kra-t1: var(--kra-1-t1);
-  --kra-t2: var(--kra-1-t2);
-  --kra-t3: var(--kra-1-t3);
-  --kra-t4: var(--kra-1-t4);
-}
-.irc8a-kra-card.irc8a-kra-palette-2 {
-  --kra-light: var(--kra-2-light);
-  --kra-border: var(--kra-2-border);
-  --kra-t1: var(--kra-2-t1);
-  --kra-t2: var(--kra-2-t2);
-  --kra-t3: var(--kra-2-t3);
-  --kra-t4: var(--kra-2-t4);
-}
-.irc8a-kra-card.irc8a-kra-palette-3 {
-  --kra-light: var(--kra-3-light);
-  --kra-border: var(--kra-3-border);
-  --kra-t1: var(--kra-3-t1);
-  --kra-t2: var(--kra-3-t2);
-  --kra-t3: var(--kra-3-t3);
-  --kra-t4: var(--kra-3-t4);
-}
-.irc8a-kra-card.irc8a-kra-palette-4 {
-  --kra-light: var(--kra-4-light);
-  --kra-border: var(--kra-4-border);
-  --kra-t1: var(--kra-4-t1);
-  --kra-t2: var(--kra-4-t2);
-  --kra-t3: var(--kra-4-t3);
-  --kra-t4: var(--kra-4-t4);
-}
-
-/* Card border reads the assigned mid-tone, tying the dark header
-   and pastel body together as one unit. */
-.irc8a-kra-card[class*="irc8a-kra-palette-"] {
-  border: 1px solid var(--kra-border);
-}
-
-/* Body gets the pale tint fill */
-.irc8a-kra-card[class*="irc8a-kra-palette-"] .irc8a-kra-body {
-  background: var(--kra-light);
-}
-
-/* ---------- KRA cards ---------- */
-
-.irc8a-kra-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.irc8a-kra-card {
-  background: white;
-  border: 1px solid #e2e5ea;
-  border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+/* ---------- Form details ---------- */
+.irc8a-details {
+  margin-bottom: 16px;
+  background: var(--i8-surface);
+  border: 1px solid var(--i8-line-strong);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(11, 42, 91, 0.06);
   overflow: hidden;
 }
-
-/* Header: darkest tier of the gradient (t1 -> t2). Two-row stack —
-   a small uppercase eyebrow ("Key Result Area 1") on top, then the
-   index/text/weight/actions row below — plus a bottom shadow so the
-   header visibly "lifts" off the body beneath it. */
-.irc8a-kra-header {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 18px;
-  cursor: pointer;
-  background: linear-gradient(
-    135deg,
-    var(--kra-t1, #1f2937),
-    var(--kra-t2, #29323f)
-  );
-  border-bottom: 1px solid transparent;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
-  transition: filter 0.15s ease;
-}
-
-.irc8a-kra-header:hover {
-  filter: brightness(1.12);
-}
-
-.irc8a-kra-card.is-open .irc8a-kra-header {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-
-.irc8a-kra-header-top {
-  display: flex;
-}
-
-.irc8a-kra-eyebrow {
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--gold-light-soft);
-}
-
-.irc8a-kra-header-main {
+/* The whole header bar is the button: tinted, with a clear toggle pill. */
+.irc8a-details summary {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.irc8a-kra-index {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--gold-light);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 6px 12px;
-  border-radius: 6px;
-}
-
-.irc8a-kra-text {
-  flex: 1;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: #fff;
-  line-height: 1.45;
-  white-space: pre-wrap;
-}
-
-.irc8a-weight-badge {
-  flex-shrink: 0;
-  background: #eaf1fb;
-  color: #1f4f8a;
-  font-size: 13.5px;
-  font-weight: 800;
-  padding: 6px 14px;
-  border-radius: 8px;
-  border: 1.5px solid #bcd4f0;
-  white-space: nowrap;
-}
-
-.irc8a-weight-badge--kra {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--kra-t1, #1f4f8a);
-  font-size: 15px;
-  font-weight: 800;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 8px;
-  box-shadow: none;
-}
-
-.irc8a-kra-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-/* Icon buttons in the KRA header sit on the gradient background */
-.irc8a-kra-header .irc8a-icon-btn {
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.irc8a-kra-header .irc8a-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-}
-
-.irc8a-kra-header .irc8a-icon-btn--danger:hover {
-  background: rgba(220, 53, 69, 0.35);
-  color: #ffb3ab;
-}
-
-.irc8a-kra-body {
-  display: none;
-  padding: 16px 18px 18px;
-  background: #fff; /* fallback if no palette class present */
-}
-
-.irc8a-kra-card.is-open .irc8a-kra-body {
-  display: block;
-}
-
-.irc8a-objectives-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* ---------- Objective cards ---------- */
-
-.irc8a-objective-card {
-  border: 1px solid #e8eaee;
-  border-radius: 10px;
-  background: #fcfcfd;
-  overflow: hidden;
-}
-
-/* Second tier: t2 -> t3, one step lighter than the KRA header. Same
-   two-row eyebrow + content stack as the KRA header above. */
-.irc8a-objective-header {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   padding: 12px 14px;
   cursor: pointer;
-  background: linear-gradient(
-    120deg,
-    var(--kra-t2, #4a6fa5),
-    var(--kra-t3, #5c85c4)
-  );
-  transition: filter 0.15s ease;
+  list-style: none;
+  background: var(--i8-accent-soft);
+  transition: background 0.15s;
+  user-select: none;
 }
-
-.irc8a-objective-header:hover {
-  filter: brightness(1.12);
+.irc8a-details summary::-webkit-details-marker {
+  display: none;
 }
-
-.irc8a-objective-header-top {
-  display: flex;
-  color: var(--gold-light);
+.irc8a-details summary:hover {
+  background: #dde7f7;
 }
-
-.irc8a-objective-eyebrow {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--gold-light-soft);
+.irc8a-details summary:focus-visible {
+  outline: 2px solid var(--i8-accent);
+  outline-offset: -2px;
 }
-
-.irc8a-objective-header-main {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+.irc8a-details[open] summary {
+  border-bottom: 1px solid var(--i8-line-strong);
 }
-
-/* Styled after .irc8a-kra-index, with a light gold accent so it
-   pops against every KRA palette rather than matching any of them. */
-.irc8a-objective-index {
+.irc8a-details-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 26px;
-  background: rgba(255, 255, 255, 0.16);
-  color: var(--gold-light);
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  padding: 0 10px;
-  border-radius: 6px;
-}
-
-.irc8a-objective-text {
-  flex: 1;
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 18px;
   color: #fff;
-  line-height: 1.4;
-  white-space: pre-wrap;
-  padding-top: 3px;
+  background: var(--i8-accent);
+  border-radius: 8px;
 }
-
-.irc8a-objective-meta {
+.irc8a-details-heading {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.irc8a-details-title {
+  font-weight: 600;
+  color: var(--i8-accent);
+}
+.irc8a-details-sum {
+  font-size: 13px;
+  color: var(--i8-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.irc8a-details-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 5px 10px 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--i8-accent);
+  background: #fff;
+  border: 1.5px solid var(--i8-line-strong);
+  border-radius: 999px;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.irc8a-details summary:hover .irc8a-details-toggle {
+  border-color: var(--i8-accent);
+}
+.irc8a-details-toggle i {
+  font-size: 15px;
+  transition: transform 0.2s ease;
+}
+.irc8a-details[open] .irc8a-details-toggle i {
+  transform: rotate(180deg);
+}
+.irc8a-details .irc8a-when-open,
+.irc8a-details[open] .irc8a-when-closed {
+  display: none;
+}
+.irc8a-details[open] .irc8a-when-open {
+  display: inline;
+}
+
+.irc8a-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px 14px 16px;
+  background: var(--i8-subtle);
+}
+/* Each group is a titled card holding related fields */
+.irc8a-dgroup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 12px 14px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 14px 14px;
+  background: var(--i8-surface);
+  border: 1px solid var(--i8-line);
+  border-radius: var(--i8-radius);
+}
+.irc8a-dgroup-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--i8-accent);
+}
+.irc8a-dgroup-title i {
+  font-size: 15px;
+}
+/* Two-field groups stack their fields; the review-period fields sit side by side */
+.irc8a-dgroup:nth-child(1),
+.irc8a-dgroup:nth-child(2),
+.irc8a-dgroup--stretch {
+  grid-template-columns: minmax(0, 1fr);
+}
+.irc8a-dgroup--stretch {
+  align-content: stretch;
+}
+.irc8a-field {
+  display: block;
+}
+.irc8a-field--wide {
+  grid-column: 1 / -1;
+}
+.irc8a-field--grow {
+  display: flex;
+  height: 100%;
+}
+.irc8a-field--grow textarea {
+  flex: 1;
+  min-height: 110px;
+  resize: vertical;
+}
+.irc8a-label--sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+/* Fixed, non-editable position shown under the rater / authority name */
+.irc8a-field-hint {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--i8-muted);
+}
+@media (max-width: 760px) {
+  .irc8a-details-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .irc8a-details-toggle .irc8a-when-closed,
+  .irc8a-details[open] .irc8a-when-open {
+    display: none;
+  }
+  .irc8a-details-toggle {
+    padding: 5px 7px;
+  }
+}
+
+/* ---------- Part tabs: top-level cards with weight and score ---------- */
+.irc8a-part-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.irc8a-part-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: 14px 18px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--i8-ink);
+  background: var(--i8-surface);
+  border: 1px solid var(--i8-line-strong);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(11, 42, 91, 0.06);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.irc8a-part-tab:hover {
+  border-color: var(--i8-accent);
+  background: var(--i8-subtle);
+}
+.irc8a-part-tab:focus-visible {
+  outline: 2px solid var(--i8-accent);
+  outline-offset: 2px;
+}
+.irc8a-part-tab.is-active {
+  color: #fff;
+  background: var(--i8-accent);
+  border-color: var(--i8-accent);
+  box-shadow: 0 2px 8px rgba(11, 42, 91, 0.25);
+}
+.irc8a-part-tab-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--i8-accent);
+}
+.irc8a-part-tab.is-active .irc8a-part-tab-label {
+  color: rgba(255, 255, 255, 0.75);
+}
+.irc8a-part-tab-name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.irc8a-part-tab-stats {
+  display: flex;
+  gap: 28px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+.irc8a-part-tab-name + .irc8a-part-tab-stats {
+  margin-top: 10px;
+}
+.irc8a-part-tab-stat {
+  display: flex;
+  flex-direction: column;
+}
+.irc8a-part-tab-k {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--i8-muted);
+  line-height: 1.3;
+}
+.irc8a-part-tab.is-active .irc8a-part-tab-k {
+  color: rgba(255, 255, 255, 0.7);
+}
+.irc8a-part-tab-v {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.irc8a-part-tab-v.is-warn {
+  color: var(--i8-warn);
+}
+.irc8a-part-tab.is-active .irc8a-part-tab-v.is-warn {
+  color: #ffd699;
+}
+.irc8a-part-tab-v.is-empty {
+  color: var(--i8-muted);
+  font-weight: 500;
+}
+.irc8a-part-tab.is-active .irc8a-part-tab-v.is-empty {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ---------- Workspace: sidebar + detail ---------- */
+.irc8a-workspace {
+  display: grid;
+  grid-template-columns: clamp(260px, 26%, 340px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+  /* Height is set from JS (fitWorkspaceHeight in irc8a.js) to the tallest
+     the detail panel gets across every KRA / objective, so the workspace --
+     and the sidebar capped to it -- never resizes when you switch objectives.
+     Until then it simply hugs the detail panel. */
+  min-height: 0;
+}
+/* Grid cell for the nav. It has no in-flow content, so its height is the row
+   height, i.e. the height of .irc8a-detail. */
+.irc8a-nav-col {
+  position: relative;
+  min-width: 0;
+}
+/* NOTE: this element is a <nav>, so base.css's global `nav { ... }` rule
+   (the top navbar: display:flex; align-items:center; justify-content:center;
+   z-index:100; box-shadow; navy background) also applies to it. Centering a
+   column that is taller than its max-height pushes the first items above the
+   box where they can't be scrolled to -- that is what hid KRA 1. The
+   resets below undo those inherited navbar styles. */
+.irc8a-nav {
+  /* Absolutely placed inside .irc8a-nav-col so it never makes the row taller:
+     natural height when short, capped at the detail panel's height (and
+     scrolling) when long. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: auto;
+  height: auto;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--i8-surface);
+  border: 1px solid var(--i8-line);
+  border-radius: var(--i8-radius);
+  box-shadow: none;
+  z-index: 1;
+}
+.irc8a-nav {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+/* Sticky strip at the top of the nav: Add KRA + KRA weight meter. */
+.irc8a-nav-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 10px;
+  background: var(--i8-surface);
+  border-bottom: 1px solid var(--i8-line-strong);
+}
+.irc8a-nav-add {
+  width: 100%;
+  justify-content: center;
+  padding: 9px 14px;
+}
+.irc8a-nav-add svg {
+  width: 14px;
+  height: 14px;
+  margin-right: 5px;
+}
+.irc8a-nav-total {
+  padding: 8px 10px;
+  border: 1px solid var(--i8-line);
+  border-radius: 6px;
+  background: var(--i8-subtle);
+  font-size: 12.5px;
+}
+.irc8a-nav-total-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+}
+.irc8a-nav-total-head span {
+  color: var(--i8-ink);
+}
+.irc8a-nav-total-head strong {
+  font-variant-numeric: tabular-nums;
+}
+.irc8a-nav-total-bar {
+  height: 6px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--i8-line);
+}
+.irc8a-nav-total-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+}
+.irc8a-nav-total-msg {
+  margin: 6px 0 0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.irc8a-nav-total.is-warn {
+  color: var(--i8-warn);
+  background: #fff8ec;
+  border-color: #f0d9b0;
+}
+.irc8a-nav-total.is-over {
+  color: var(--i8-danger);
+  background: #fdeceb;
+  border-color: #f3c3bf;
+}
+/* Objective-weight warning inside a KRA group in the nav */
+.irc8a-nav-warn {
+  padding: 8px 10px 8px 11px;
+  font-size: 12px;
+  line-height: 1.4;
+  border-top: 0;
+  border-bottom: 1px solid var(--i8-line);
+  border-left: 4px solid var(--i8-warn);
+}
+.irc8a-empty-add-btn {
+  margin-top: 12px;
+}
+.irc8a-nav-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+.irc8a-nav-group + .irc8a-nav-group {
+  border-top: 1px solid var(--i8-line);
+}
+.irc8a-nav-group-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 10px 10px 11px;
+  background: #d6e2f6;
+  border-left: 4px solid var(--i8-accent);
+  border-bottom: 1px solid var(--i8-line-strong);
+}
+.irc8a-nav-group-head.is-selected {
+  background: #bdd1f1;
+}
+.irc8a-nav-group-label {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--i8-accent);
+}
+.irc8a-nav-group-title {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--i8-ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.irc8a-nav-group-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.irc8a-nav-group-weight {
+  flex-shrink: 0;
+  padding: 2px 9px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--i8-accent);
+  border-radius: 999px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.irc8a-nav-weight {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--i8-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.irc8a-nav-group-actions {
+  display: flex;
+  align-items: center;
+  margin-left: -6px;
+}
+.irc8a-nav-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 14px 8px 28px;
+  text-align: left;
+  font: inherit;
+  color: var(--i8-ink);
+  background: none;
+  border: 0;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+.irc8a-nav-item + .irc8a-nav-item {
+  border-top: 1px solid var(--i8-line);
+}
+.irc8a-nav-item {
+  position: relative;
+}
+.irc8a-nav-item::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--i8-line-strong);
+}
+.irc8a-nav-item:hover {
+  background: var(--i8-subtle);
+}
+.irc8a-nav-item.is-selected {
+  background: #f1f5fc;
+  border-left-color: var(--i8-accent);
+}
+.irc8a-nav-item:focus-visible {
+  outline: 2px solid var(--i8-accent);
+  outline-offset: -2px;
+}
+.irc8a-nav-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.irc8a-nav-progress {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+.irc8a-ring {
+  width: 100%;
+  height: 100%;
+}
+.irc8a-ring-track {
+  fill: none;
+  stroke: var(--i8-line-strong);
+  stroke-width: 3;
+}
+.irc8a-ring-arc {
+  fill: none;
+  stroke: var(--i8-warn);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.irc8a-ring-fill {
+  fill: var(--i8-ok);
+}
+.irc8a-ring-check {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.irc8a-nav-code {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--i8-muted);
+  font-variant-numeric: tabular-nums;
+}
+.irc8a-nav-item.is-selected .irc8a-nav-weight {
+  color: var(--i8-accent);
+  font-weight: 600;
+}
+.irc8a-nav-item.is-selected .irc8a-nav-code {
+  color: var(--i8-accent);
+  font-weight: 700;
+}
+
+.irc8a-detail {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- Navy gradient tiers (one fixed scheme for every KRA/objective) ----------
+   Darker = higher in the hierarchy:
+     KRA header        t1 -> t2   (navy-deep -> navy-dark)
+     Objective header  t2 -> t3   (navy-dark -> navy)
+     Section banners   t3 -> t4  (navy -> lighter navy tint)
+   t4 is the only derived colour (a lighter tint of --navy) so the section
+   banners can sit below the objective header. */
+.irc8a-panel {
+  --kra-t1: #001550; /* navy-deep */
+  --kra-t2: #00247a; /* navy-dark */
+  --kra-t3: #0033a0; /* navy */
+  --kra-t4: #2f5fc4; /* navy, lightened */
+  --kra-light: #eef2fb;
+  --kra-border: #0033a0;
+  /* Selected rating row: pale tints of the same navy, one step below the
+     section banners (t3 -> t4), still dark-left to light-right. */
+  --kra-sel-1: #c6d6f4;
+  --kra-sel-2: #e9f0fc;
+}
+
+/* ---------- KRA block: darkest gradient banner + neutral alignment strip ---------- */
+.irc8a-kra-block {
+  overflow: hidden;
+  background: var(--i8-surface);
+  border: 1px solid var(--kra-border, var(--i8-accent));
+  border-radius: var(--i8-radius);
+}
+.irc8a-kra-block-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(90deg, var(--kra-t1), var(--kra-t2, #1d3f7a));
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+}
+.irc8a-kra-block-head .irc8a-label {
+  margin-bottom: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b9c9e6;
+}
+.irc8a-panel .irc8a-kra-block-head h3 {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #fff;
+}
+.irc8a-kra-block-side {
+  display: flex;
+  align-items: center;
   gap: 4px;
   flex-shrink: 0;
 }
-
-/* Weight badge reads white-on-translucent when it's sitting on the
-   objective header's colored gradient. */
-.irc8a-objective-header .irc8a-weight-badge {
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--kra-t2, #1f4f8a);
-  border: none;
+.irc8a-weight-chip {
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--kra-t2, var(--i8-accent));
+  background: #fff;
+  border: 0;
+  border-radius: 12px;
+  font-variant-numeric: tabular-nums;
 }
-
-.irc8a-objective-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
+.irc8a-kra-block-head .irc8a-icon-btn {
+  color: #b9c9e6;
 }
-
-/* Icon buttons in the objective header sit on a colored gradient too */
-.irc8a-objective-header .irc8a-icon-btn {
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.irc8a-objective-header .irc8a-icon-btn:hover {
+.irc8a-kra-block-head .irc8a-icon-btn:hover {
+  color: #fff;
   background: rgba(255, 255, 255, 0.16);
+}
+
+/* Alignment: neutral cards only, no color */
+.irc8a-align {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  padding: 12px;
+  background: var(--kra-light, var(--i8-subtle));
+  border-top: 1px solid var(--i8-line);
+}
+.irc8a-align .irc8a-fact {
+  padding: 10px 12px;
+  background: var(--i8-surface);
+  border: 1px solid var(--i8-line);
+  border-radius: 6px;
+}
+.irc8a-align .irc8a-label {
+  margin-bottom: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.irc8a-align .irc8a-fact-value {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.irc8a-warn {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--i8-warn);
+  background: #fff8ec;
+  border-top: 1px solid var(--i8-line);
+}
+
+/* ---------- Objective: same width as the KRA block, same header layout,
+   but a lighter slate banner and smaller type so the KRA stays on top ---------- */
+.irc8a-obj {
+  overflow: hidden;
+  background: var(--i8-surface);
+  border: 1px solid var(--kra-t3, #3f5273);
+  border-radius: var(--i8-radius);
+}
+.irc8a-obj-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(
+    90deg,
+    var(--kra-t2, #2f4468),
+    var(--kra-t3, #3f5273)
+  );
+}
+.irc8a-obj-head .irc8a-label {
+  margin-bottom: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #d3dcec;
+}
+.irc8a-panel .irc8a-obj-head h3 {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
   color: #fff;
 }
-
-.irc8a-objective-header .irc8a-icon-btn--danger:hover {
-  background: rgba(220, 53, 69, 0.35);
-  color: #ffb3ab;
+.irc8a-obj-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.irc8a-obj-head .irc8a-icon-btn {
+  color: #d3dcec;
+}
+.irc8a-obj-head .irc8a-icon-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
 }
 
-.irc8a-objective-body {
-  display: none;
-  padding: 4px 14px 16px;
+/* ---------- Sections: colored title band + padded body ---------- */
+.irc8a-group {
+  --sec-g1: var(--kra-t3, #3f5273);
+  --sec-g2: var(--kra-t4, #5a6f95);
+  border-top: 1px solid var(--i8-line-strong);
 }
-
-.irc8a-objective-card.is-open .irc8a-objective-body {
-  display: block;
+/* Same two tiers (t3 -> t4) for every section, dark on the left. */
+.irc8a-group--plan,
+.irc8a-group--perf,
+.irc8a-group--eval {
+  --sec-g1: var(--kra-t3, #3f5273);
+  --sec-g2: var(--kra-t4, #5a6f95);
 }
-
-/* ---------- In-page sections (Planning / Evaluation) ---------- */
-
-.irc8a-obj-section {
-  margin: 0 0 20px;
-}
-
-.irc8a-obj-section:last-child {
-  margin-bottom: 0;
-}
-
-/* Third tier: t3 -> t4, the lightest step. Planning and Evaluation
-   sit at the same depth, so they share the same two tiers — the
-   gradient direction is reversed between them so they still read
-   as two distinct, related bands rather than identical blocks. Both
-   get a bottom shadow so they lift slightly off the content below. */
-.irc8a-obj-banner {
+.irc8a-panel .irc8a-group-title {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 9px 14px;
-  margin: 0 -14px 14px;
-  color: #fff;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  position: relative;
+  color: #fff;
+  background: linear-gradient(90deg, var(--sec-g1), var(--sec-g2));
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
 }
-
-.irc8a-obj-banner svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
+.irc8a-group-title .ti {
+  font-size: 18px;
+}
+.irc8a-group-body {
+  padding: 14px;
 }
 
-.irc8a-obj-banner--planning {
-  background: linear-gradient(
-    120deg,
-    var(--kra-t3, #4a6fa5),
-    var(--kra-t4, #6a8fc9)
-  );
-}
-
-.irc8a-obj-banner--evaluation {
-  background: linear-gradient(
-    120deg,
-    var(--kra-t4, #6a8fc9),
-    var(--kra-t3, #4a6fa5)
-  );
-}
-
-/* ---------- Performance indicator groups (Quality / Efficiency / Timeliness) ---------- */
-
-.irc8a-indicator-groups {
+/* Facts: one row, 4 columns (target description gets the most room) */
+.irc8a-facts {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.irc8a-indicator-group {
-  border: 1px solid #e8eaee;
-  border-radius: 8px;
-  padding: 10px 12px;
-  background: white;
-}
-
-.irc8a-indicator-group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.irc8a-indicator-group-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: #374151;
-}
-
-.irc8a-indicator-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-/* Indicator items are clickable — selecting one sets the matching
-   rating dropdown to its rate. Only one item per category can be
-   selected at a time. */
-.irc8a-indicator-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  font-size: 12px;
-  line-height: 1.4;
-  padding: 6px 8px;
-  background: #f7f9fc;
-  border-radius: 6px;
-  border: 1px solid #eef0f3;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.irc8a-indicator-item:hover {
-  background: #eef2f9;
-  border-color: #d5deea;
-}
-
-.irc8a-indicator-item--selected {
-  background: #eaf1fb;
-  border-color: #4a6fa5;
-  box-shadow: 0 0 0 1px #4a6fa5 inset;
-}
-
-.irc8a-indicator-rate {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  background: #1f2937;
-  color: white;
-  font-weight: 700;
-  font-size: 10.5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1px;
-}
-
-.irc8a-indicator-item--selected .irc8a-indicator-rate {
-  background: #4a6fa5;
-}
-
-.irc8a-indicator-text {
-  flex: 1;
-  color: #333;
-  white-space: pre-wrap;
-}
-
-.irc8a-indicator-item-actions {
-  display: flex;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.irc8a-indicator-item-actions .irc8a-icon-btn {
-  width: 22px;
-  height: 22px;
-}
-
-.irc8a-indicator-item-actions .irc8a-icon-btn svg {
-  width: 12px;
-  height: 12px;
-}
-
-.irc8a-indicator-empty {
-  font-size: 11.5px;
-  color: #aab1bb;
-  font-style: italic;
-  padding: 4px 2px 8px;
-}
-
-/* ---------- Field row (MOV + Actual Results side by side) ---------- */
-
-.irc8a-field-row {
-  display: flex;
-  gap: 14px;
-}
-
-.irc8a-field-row .irc8a-field-block {
-  flex: 1;
-  min-width: 0;
-}
-
-/* ---------- MOV ---------- */
-
-.irc8a-field-block {
-  margin-bottom: 16px;
-}
-
-.irc8a-field-block-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.irc8a-field-block-title {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #6b7280;
-}
-
-.irc8a-mov-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: #f7f9fc;
-  border: 1px solid #eef0f3;
-  border-radius: 8px;
-}
-
-.irc8a-mov-link {
-  flex: 1;
-  color: #1f4f8a;
-  font-size: 12.5px;
-  font-weight: 600;
-  text-decoration: none;
+  grid-template-columns:
+    minmax(120px, 1.1fr) minmax(70px, 0.7fr) minmax(90px, 0.8fr)
+    minmax(0, 1.9fr);
+  border: 1px solid var(--i8-line);
+  border-radius: var(--i8-radius);
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
-
-.irc8a-mov-link:hover {
-  text-decoration: underline;
-}
-
-.irc8a-mov-link svg {
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
-}
-
-.irc8a-mov-empty {
-  font-size: 12px;
-  color: #9aa3af;
-  font-style: italic;
-}
-
-/* ---------- Actual results / Timeline ---------- */
-
-.irc8a-actual-box {
+.irc8a-facts > .irc8a-fact {
+  min-width: 0;
   padding: 10px 12px;
-  background: #f7f9fc;
-  border: 1px solid #eef0f3;
-  border-radius: 8px;
-  font-size: 12.5px;
-  color: #333;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  min-height: 20px;
 }
-
-.irc8a-actual-box.is-empty {
-  color: #9aa3af;
-  font-style: italic;
+.irc8a-facts > .irc8a-fact + .irc8a-fact {
+  border-left: 1px solid var(--i8-line);
 }
-
-/* ---------- Ratings ---------- */
-
-.irc8a-ratings-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr) 1fr;
-  gap: 10px;
-  margin-bottom: 12px;
+.irc8a-fact-value {
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
 }
-
-.irc8a-rating-field label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  margin-bottom: 5px;
-}
-
-.irc8a-rating-select {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 7px 8px;
-  border: 1px solid #d8dde4;
-  border-radius: 6px;
-  font-size: 13px;
-  background: white;
-}
-
-.irc8a-rating-select:focus {
-  outline: none;
-  border-color: #4a6fa5;
-  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
-}
-
-.irc8a-rating-readonly {
-  padding: 7px 8px;
-  border: 1px solid #e2e5ea;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 700;
-  background: #f1f2f4;
-  color: #374151;
-  text-align: center;
-}
-
-/* Score strip matches the KRA header — same darkest tier gradient
-   (t1 -> t2) — so the score reads as tied directly back to the KRA
-   it belongs to. */
-.irc8a-score-strip {
+.irc8a-fact--inline .irc8a-fact-value {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: linear-gradient(
-    135deg,
-    var(--kra-t1, #16202e),
-    var(--kra-t2, #29323f)
-  );
-  border-radius: 8px;
-  color: #f3f4f6;
-}
-
-.irc8a-score-strip-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #b7c3d4;
-}
-
-.irc8a-score-strip-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.irc8a-score-strip-formula {
-  font-size: 11px;
-  color: #8695a8;
-}
-
-/* ---------- Overall summary footer ---------- */
-
-.irc8a-summary {
-  display: flex;
-  gap: 24px;
-  margin-top: 20px;
-  padding: 16px 20px;
-  background: #1f2937;
-  border-radius: 12px;
-}
-
-.irc8a-summary-item {
-  display: flex;
-  flex-direction: column;
   gap: 4px;
 }
 
-.irc8a-summary-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #9fb3d1;
+/* ---------- Rating scale ---------- */
+.irc8a-cat + .irc8a-cat {
+  margin-top: 18px;
 }
-
-.irc8a-summary-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #fff;
+.irc8a-cat {
+  overflow: hidden;
+  border: 1px solid var(--i8-line-strong);
+  border-radius: var(--i8-radius);
 }
-
-.irc8a-summary-value--warn {
-  color: #ffb020;
-}
-
-.irc8a-summary-value--ok {
-  color: #6fd68a;
-}
-
-.irc8a-summary-hint {
-  font-size: 11px;
-  color: #8695a8;
-}
-
-/* ---------- Modal ---------- */
-
-.irc8a-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.irc8a-modal-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: -1;
-}
-
-.irc8a-modal-content {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  max-width: 520px;
-  width: 92%;
-  max-height: 88vh;
-  display: flex;
-  flex-direction: column;
-  z-index: 1001;
-}
-
-.irc8a-modal-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+.irc8a-cat-head {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 12px;
+  background: #e9edf3;
+  border-bottom: 1px solid var(--i8-line-strong);
+}
+.irc8a-cat-head h4 {
+  font-size: 14px;
+  font-weight: 700;
+}
+.irc8a-cat-rating {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--i8-perf-fg);
+}
+.irc8a-cat-rating.is-empty {
+  font-weight: 400;
+  color: var(--i8-muted);
+}
+.irc8a-levels {
+  overflow: hidden;
+}
+.irc8a-level {
+  display: grid;
+  grid-template-columns: 28px 118px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 9px 12px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.irc8a-level + .irc8a-level {
+  border-top: 1px solid var(--i8-line);
+}
+.irc8a-level:hover {
+  background: var(--i8-subtle);
+}
+.irc8a-level:focus-visible {
+  outline: 2px solid var(--i8-accent);
+  outline-offset: -2px;
+}
+.irc8a-level.is-selected {
+  background: linear-gradient(90deg, var(--kra-sel-1), var(--kra-sel-2));
+  border-left-color: var(--kra-t3);
+  border-left-width: 5px;
+  padding-left: 10px; /* offsets the wider border so columns stay aligned */
+  box-shadow: inset 0 0 0 1px rgba(0, 51, 160, 0.14);
+}
+.irc8a-level-num {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--i8-ink);
+  border: 1px solid var(--i8-line-strong);
+  border-radius: 50%;
+  align-self: start;
+}
+.irc8a-level {
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease;
+}
+/* Once a level is chosen, fade the others: still readable, but the chosen
+   row stands out. They return to full strength on hover/focus so the user
+   can read them properly before changing the rating. */
+.irc8a-levels.has-selection .irc8a-level:not(.is-selected) {
+  opacity: 0.55;
+}
+.irc8a-levels.has-selection .irc8a-level:not(.is-selected):hover,
+.irc8a-levels.has-selection .irc8a-level:not(.is-selected):focus-visible,
+.irc8a-levels.has-selection .irc8a-level:not(.is-selected):focus-within {
+  opacity: 1;
+}
+.irc8a-level.is-selected .irc8a-level-num {
+  color: #fff;
+  background: linear-gradient(90deg, var(--kra-t2), var(--kra-t3));
+  border-color: var(--kra-t2);
+}
+.irc8a-level-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--i8-muted);
+}
+.irc8a-level.is-selected .irc8a-level-name {
+  font-weight: 700;
+  color: var(--kra-t2);
+}
+.irc8a-level.is-selected .irc8a-level-text {
+  font-weight: 500;
+  color: var(--kra-t1);
+}
+.irc8a-level-text {
+  font-size: 13.5px;
+}
+.irc8a-level-actions {
+  display: flex;
   align-items: center;
 }
 
-.irc8a-modal-header h2 {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 0;
-  color: #1a1a1a;
+/* ---------- Evaluation ---------- */
+.irc8a-eval {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 16px;
+  row-gap: 0;
 }
-
-.irc8a-modal-close {
-  background: none;
-  border: none;
-  font-size: 26px;
-  color: #999;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
+/* Both columns share the same three rows (label / box / extra) via subgrid,
+   so the labels, the boxes and the boxes' bottom edges line up. */
+.irc8a-eval > .irc8a-fact {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  align-content: start;
+  row-gap: 0;
+  min-width: 0;
 }
-
-.irc8a-modal-close:hover {
-  color: #333;
-}
-
-.irc8a-modal-body {
-  padding: 22px 24px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.irc8a-modal-hint {
-  font-size: 12.5px;
-  color: #666;
-  margin: 0 0 16px 0;
-  line-height: 1.5;
-}
-
-.irc8a-modal-hint:empty {
-  display: none;
-}
-
-.irc8a-field-group {
-  margin-bottom: 16px;
-}
-
-.irc8a-field-group:last-child {
-  margin-bottom: 0;
-}
-
-.irc8a-field-label {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 6px;
-}
-
-.irc8a-field-textarea,
-.irc8a-field-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 9px 12px;
-  border: 1px solid #e2e5ea;
-  border-radius: 7px;
-  font-size: 13.5px;
-  font-family: inherit;
-  background: #fbfbfc;
-}
-
-.irc8a-field-textarea {
-  resize: vertical;
-  min-height: 80px;
-  line-height: 1.5;
-}
-
-.irc8a-field-textarea:focus,
-.irc8a-field-input:focus {
-  outline: none;
-  border-color: #4a6fa5;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
-}
-
-.irc8a-modal-footer {
-  padding: 16px 24px;
-  border-top: 1px solid #e0e0e0;
+/* The edit button makes one label taller; give both the same height */
+.irc8a-eval > .irc8a-fact > .irc8a-label {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+  align-items: center;
+  min-height: 26px;
+  margin-bottom: 2px;
 }
-
-.irc8a-modal-btn {
-  padding: 10px 20px;
-  border: 1px solid #d0d0d0;
+.irc8a-eval > .irc8a-fact > .irc8a-box {
+  height: 100%;
+}
+.irc8a-box {
+  padding: 9px 11px;
+  min-height: 64px;
+  font-size: 13.5px;
+  white-space: pre-wrap;
+  background: var(--i8-subtle);
+  border: 1px solid var(--i8-line);
   border-radius: 6px;
+}
+.irc8a-box.is-empty {
+  color: var(--i8-muted);
+}
+.irc8a-mov-wrap {
+  margin-top: 8px;
+}
+.irc8a-mov-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.irc8a-mov-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  color: var(--i8-accent);
+  text-decoration: none;
+}
+.irc8a-mov-link svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.irc8a-mov-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.irc8a-mov-link:hover span {
+  text-decoration: underline;
 }
 
-.irc8a-modal-btn-cancel {
-  background: white;
-  color: #333;
+.irc8a-results {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 16px;
+  border: 1px solid var(--i8-line);
+  border-radius: var(--i8-radius);
+  overflow: hidden;
+}
+.irc8a-result {
+  padding: 10px 14px;
+}
+.irc8a-result + .irc8a-result {
+  border-left: 1px solid var(--i8-line);
+}
+.irc8a-result--total {
+  background: var(--i8-eval-bg);
+}
+.irc8a-result-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--i8-eval-fg);
+  font-variant-numeric: tabular-nums;
 }
 
-.irc8a-modal-btn-cancel:hover {
-  background: #f5f5f5;
-  border-color: #999;
+.irc8a-empty-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 20px;
+  color: var(--i8-muted);
+  border: 1px dashed var(--i8-line-strong);
+  border-radius: var(--i8-radius);
+}
+.irc8a-empty-inline p {
+  margin: 0;
+}
+.irc8a-empty-state {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--i8-muted);
+}
+.irc8a-empty-state svg {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
 }
 
-.irc8a-modal-btn-submit {
-  background: #4a6fa5;
-  color: white;
-  border-color: #4a6fa5;
-}
-
-.irc8a-modal-btn-submit:hover {
-  background: #3d5a8a;
-  border-color: #3d5a8a;
-}
-
-/* ---------- Reset confirmation modal ---------- */
-/* Same visual pattern as IRC7's .irc7-confirm-* dialog. */
-
-.irc8a-confirm-overlay {
-  display: none;
+/* ---------- Entry modal ---------- */
+.irc8a-modal {
   position: fixed;
   inset: 0;
-  background: rgba(17, 24, 39, 0.6);
-  z-index: 1100;
+  z-index: 1000;
   align-items: center;
   justify-content: center;
   padding: 16px;
 }
+.irc8a-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.45);
+}
+.irc8a-modal-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--i8-surface);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(16, 24, 40, 0.25);
+}
+.irc8a-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--i8-line);
+}
+.irc8a-modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--i8-ink);
+}
+.irc8a-modal-close {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--i8-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.irc8a-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+.irc8a-modal-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--i8-muted);
+}
+.irc8a-modal-hint:empty {
+  display: none;
+}
+.irc8a-field-group {
+  margin-bottom: 14px;
+}
+.irc8a-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--i8-line);
+}
 
+/* ---------- Reset confirmation ---------- */
+.irc8a-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(16, 24, 40, 0.45);
+}
 .irc8a-confirm-overlay.visible {
   display: flex;
 }
-
 .irc8a-confirm-box {
-  background: #fff;
-  border-radius: 12px;
   width: 100%;
-  max-width: 360px;
-  padding: 22px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-  text-align: center;
+  max-width: 520px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+  background: var(--i8-surface);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(16, 24, 40, 0.25);
 }
-
-/* The reset modal has more content (option list) than a plain Yes/No
-   confirmation, so it gets a little extra width and left-aligned body
-   text -- the heading/buttons stay centered like every other confirm box. */
-.irc8a-confirm-box--reset {
-  max-width: 420px;
-}
-
 .irc8a-confirm-box h4 {
-  margin: 0 0 10px 0;
+  margin-bottom: 12px;
   font-size: 16px;
-  font-weight: 700;
-  color: #1a1a1a;
 }
-
-.irc8a-confirm-box p {
-  margin: 0 0 20px 0;
-  font-size: 13.5px;
-  color: #555;
-  line-height: 1.5;
-}
-
-/* Reset-scope radio options */
-
 .irc8a-reset-options {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 0 0 16px 0;
-  text-align: left;
+  gap: 8px;
 }
-
 .irc8a-reset-option {
   display: flex;
-  align-items: flex-start;
   gap: 10px;
-  padding: 12px 14px;
-  border: 1.5px solid #e2e5ea;
-  border-radius: 10px;
+  padding: 8px 12px;
   cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+  border: 1px solid var(--i8-line);
+  border-radius: var(--i8-radius);
 }
-
-.irc8a-reset-option:hover {
-  background: #fafbfc;
+.irc8a-reset-intro {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--i8-muted);
 }
-
+.irc8a-reset-suboptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 22px;
+  padding-left: 12px;
+  border-left: 3px solid var(--i8-accent);
+}
+.irc8a-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .irc8a-reset-option:has(input:checked) {
-  border-color: #4a6fa5;
-  background: #eef2f8;
+  border-color: var(--i8-accent);
+  background: var(--i8-accent-soft);
 }
-
-.irc8a-reset-option input[type="radio"] {
+.irc8a-reset-option input {
   margin-top: 3px;
-  accent-color: #4a6fa5;
-  flex-shrink: 0;
-  cursor: pointer;
+  accent-color: var(--i8-accent);
 }
-
 .irc8a-reset-option-text {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
-
-.irc8a-reset-option-text strong {
-  font-size: 13.5px;
-  color: #1a1a1a;
-}
-
 .irc8a-reset-option-text small {
-  font-size: 12px;
-  color: #666;
-  line-height: 1.4;
+  color: var(--i8-muted);
 }
-
-/* When "Reset entire form" is picked, the warning copy below turns red to
-   signal the heavier, structural action -- see irc8a.js's radio change
-   listener. */
+#irc8a-reset-confirm-warning {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--i8-muted);
+}
 #irc8a-reset-confirm-warning.irc8a-reset-warning--danger {
-  color: #b91c1c;
-  font-weight: 600;
+  color: var(--i8-danger);
 }
-
 .irc8a-confirm-actions {
   display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-.irc8a-btn-secondary,
-.irc8a-btn-danger {
-  border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.irc8a-btn-secondary {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.irc8a-btn-secondary:hover {
-  background: #e5e7eb;
-}
-
-.irc8a-btn-danger {
-  background: #dc2626;
-  color: #fff;
-}
-
-.irc8a-btn-danger:hover {
-  background: #b91c1c;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  position: sticky;
+  bottom: -20px;
+  margin-bottom: -20px;
+  padding: 12px 0 20px;
+  background: var(--i8-surface);
 }
 
 /* ---------- Responsive ---------- */
-
 @media (max-width: 900px) {
-  .irc8a-indicator-groups {
+  .irc8a-workspace {
     grid-template-columns: 1fr;
+    min-height: 0; /* stacked layout: nav is static, no forced height */
   }
-
-  .irc8a-ratings-grid {
-    grid-template-columns: 1fr 1fr;
+  .irc8a-nav-col {
+    position: static;
   }
-
-  .irc8a-field-row {
-    flex-direction: column;
-    gap: 0;
+  .irc8a-nav {
+    position: static;
+    max-height: 280px;
+  }
+  .irc8a-eval {
+    grid-template-columns: 1fr;
+    row-gap: 16px;
+  }
+  .irc8a-eval > .irc8a-fact {
+    display: block;
+    grid-row: auto;
+    grid-template-rows: none;
+  }
+  .irc8a-eval > .irc8a-fact > .irc8a-box {
+    height: auto;
   }
 }
-
+@media (max-width: 760px) {
+  .irc8a-facts {
+    grid-template-columns: 1fr 1fr;
+  }
+  .irc8a-facts > .irc8a-fact + .irc8a-fact {
+    border-left: 0;
+  }
+  .irc8a-facts > .irc8a-fact:nth-child(even) {
+    border-left: 1px solid var(--i8-line);
+  }
+  .irc8a-facts > .irc8a-fact:nth-child(n + 3) {
+    border-top: 1px solid var(--i8-line);
+  }
+}
 @media (max-width: 640px) {
-  .irc8a-header h2 {
+  .irc8a-panel .irc8a-header h2 {
     font-size: 21px;
   }
-
   .irc8a-header-badge {
     height: 44px;
     padding: 0 12px;
   }
-
   .irc8a-header-badge-group {
     font-size: 9px;
   }
-
   .irc8a-header-badge-page {
     font-size: 15px;
   }
-
   .irc8a-header-divider {
     height: 44px;
   }
-
   .irc8a-header-actions {
     width: 100%;
   }
-
+  .irc8a-pdf-btn,
   .irc8a-reset-btn {
     flex: 1;
     justify-content: center;
   }
-
-  .irc8a-mfo-banner {
-    flex-wrap: wrap;
-  }
-
-  .irc8a-mfo-banner .irc8a-add-btn--banner {
-    margin-left: 0;
-  }
-
   .irc8a-add-btn {
     justify-content: center;
   }
-
-  .irc8a-ratings-grid {
-    grid-template-columns: 1fr 1fr;
+  .irc8a-facts {
+    grid-template-columns: 1fr;
   }
-
-  .irc8a-summary {
-    flex-direction: column;
-    gap: 12px;
+  .irc8a-facts > .irc8a-fact + .irc8a-fact,
+  .irc8a-facts > .irc8a-fact:nth-child(even) {
+    border-left: 0;
+    border-top: 1px solid var(--i8-line);
+  }
+  .irc8a-level {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+  .irc8a-level-name {
+    grid-column: 2;
+  }
+  .irc8a-level-text,
+  .irc8a-level-actions {
+    grid-column: 2;
+  }
+  .irc8a-results {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .irc8a-result:nth-child(odd) {
+    border-left: 0;
+  }
+  .irc8a-result {
+    border-top: 1px solid var(--i8-line);
   }
 }
-
-/* ---------- Print-only container: hidden on screen, shown only inside
-   @media print below (see #irc8a-print-report in irc8a.html and
-   buildPrintReport() in irc8a.js). ---------- */
-
-.irc8a-print-only {
-  display: none;
-}
-
-/* ------------------------------------------------------------------
-   Print / Save-to-PDF
-   Triggered by #irc8a-pdf-btn -> window.print() (see irc8a.js). Unlike
-   IRC1a's print stylesheet, which prints the same on-screen table,
-   IRC8A's on-screen layout is an editable accordion of KRA/objective
-   cards that looks nothing like the official DEPED RPMS "Individual
-   Performance Commitment and Review Form" (IPCRF) sheet it's required
-   to match (see irc8a_pdf_format.pdf). So instead of reflowing the
-   on-screen DOM, buildPrintReport() in irc8a.js rebuilds a dedicated
-   replica of that sheet into #irc8a-print-report right before print,
-   and this stylesheet swaps it in for the whole interactive page. Only
-   ever active on this page since irc8a.css is only loaded here, so
-   these rules can safely target the shared <header>/<nav> from
-   base.html without leaking into other tabs.
------------------------------------------------------------------- */
-
 @media print {
-  /* The official form is a wide, many-column table -- landscape "long"
-     bond paper, same 13in dimension IRC1a prints on, just rotated. */
-  @page {
-    size: 13in 8.5in;
-    margin: 0.4in;
+  .irc8a-panel,
+  .irc8a-panel * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-
-  /* base.css pins header+nav and makes .content the sole scrolling
-     element via overflow-y: auto + a flexed height (see irc1a.css's
-     print block for the same fix, needed here for the same reason). */
-  html,
-  body {
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  header,
-  nav {
+  .irc8a-header-actions,
+  .irc8a-nav,
+  .irc8a-icon-btn,
+  .irc8a-btn {
     display: none !important;
   }
+  .irc8a-workspace {
+    display: block;
+  }
+}
 
-  .content {
-    overflow: visible !important;
-    height: auto !important;
-    padding: 0 !important;
-  }
+/* Make the reset modal clearly visible */
+.irc8a-confirm-overlay {
+  background: rgba(16, 24, 40, 0.6);
+}
+.irc8a-confirm-box {
+  background: #ffffff;
+  border: 1px solid #cdd4dd;
+  box-shadow: 0 16px 48px rgba(16, 24, 40, 0.35);
+}
 
-  /* Everything on screen inside the tab (header + its actions, the
-     editable report-header panel, the MFO banner, KRA cards, empty
-     state, bottom summary) is replaced wholesale by
-     #irc8a-print-report -- hide every other direct child of the tab
-     section and show only the printed replica. */
-  #irc8a-tab > *:not(#irc8a-print-report) {
-    display: none !important;
-  }
+/* ---------- Required-field asterisk (shown while a field is empty) ---------- */
+.irc8a-req {
+  color: #d93025;
+  font-weight: 700;
+  margin-left: 3px;
+  cursor: help;
+}
 
-  /* Belt-and-suspenders: only ever shown via a style toggle and default
-     to display:none already, but force them off in case a print is
-     triggered while one is open. */
-  #irc8a-entry-modal,
-  #irc8a-reset-confirm-overlay {
-    display: none !important;
-  }
+/* Level with no descriptor: shown but not rateable */
+.irc8a-level.is-disabled {
+  cursor: default;
+}
+.irc8a-level.is-disabled:hover {
+  background: transparent;
+}
+.irc8a-level.is-disabled .irc8a-level-num,
+.irc8a-level.is-disabled .irc8a-level-name {
+  opacity: 0.5;
+}
 
-  * {
-    scrollbar-width: none !important;
-  }
+/* =====================================================================
+   IRC8A-specific additions (everything above is the shared Part I-B
+   design carried over from the OPCRF form)
+   ===================================================================== */
 
-  *::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-  }
+/* Single summary card where OPCRF has the Part I-A / I-B / I-C tabs.
+   Not clickable, so it shows the active (navy) look permanently. */
+.irc8a-part-tab--static {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  cursor: default;
+}
+.irc8a-part-tab--static:hover {
+  background: var(--i8-accent);
+  border-color: var(--i8-accent);
+}
+.irc8a-part-tab--static .irc8a-part-tab-stats {
+  margin-top: 0;
+  padding-top: 0;
+}
+.irc8a-part-tab-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
 
-  /* Chrome/Edge/Safari drop background colors on print by default --
-     this keeps the header-band shading below intentional. "Background
-     graphics" still needs to be left ON in the print dialog. */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
+/* Planning facts: only Timeline + Weight on this form */
+.irc8a-facts {
+  grid-template-columns: minmax(0, 2fr) minmax(90px, 0.8fr);
+}
+@media (max-width: 760px) {
+  .irc8a-facts {
+    grid-template-columns: 1fr;
   }
-
-  .irc8a-print-only {
-    display: block !important;
+  .irc8a-facts > .irc8a-fact + .irc8a-fact {
+    border-left: 0;
+    border-top: 1px solid var(--i8-line);
   }
-
-  .irc8a-print-page {
-    font-size: 8px;
-    color: #000;
-  }
-
-  .irc8a-print-title {
-    text-align: center;
-    font-weight: 800;
-    font-size: 13px;
-    letter-spacing: 0.02em;
-    margin: 0 0 6px;
-    padding: 5px 0;
-    text-transform: uppercase;
-    background: #3c7d22 !important;
-    color: #fff;
-    break-after: avoid;
-    page-break-after: avoid;
-  }
-
-  /* Name of Rater / Employee, Positions, Bureau, Rating Period, Date of
-     Review -- values come straight from #irc8a-report-header's inputs
-     (see irc8a.js's buildPrintReport()). */
-  .irc8a-print-header-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 6px;
-    font-size: 8.5px;
-    border: 1px solid #000;
-    background: #daf2d0 !important;
-    /* Keep every row (incl. Rating Period, the last one) glued to the
-       rows above it -- without this a row can land right on the page
-       boundary and get pushed to the next page on its own, stranding
-       "Rating Period" away from the rest of the header block instead of
-       staying connected to it. */
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  .irc8a-print-header-table tr {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  .irc8a-print-header-table td {
-    padding: 3px 6px;
-    vertical-align: top;
-    border: 1px solid #000;
-  }
-
-  .irc8a-print-header-label {
-    font-weight: 700;
-    white-space: nowrap;
-    width: 1%;
-  }
-
-  .irc8a-print-header-value {
-    font-weight: 700;
-    min-width: 120px;
-  }
-
-  .irc8a-print-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-
-  /* ==================================================================
-     COLUMN WIDTHS — edit here.
-     table-layout: fixed above means the table takes widths only from
-     these <col> rules (set via the <colgroup> in buildPrintReport(),
-     irc8a.js) and ignores cell content. Values are % of the table's
-     total width and should add up to 100.
-     Order matches the column order in buildPrintReport():
-     MFOs, KRAs, Objectives, Timeline, Weight, Quality, Efficiency,
-     Timeliness, MOVs, Actual Results, Q, E, T, Ave, Score.
-     ================================================================== */
-  .irc8a-col-mfo {
-    width: 5%;
-  }
-  .irc8a-col-kra {
-    width: 6%;
-  }
-  .irc8a-col-objectives {
-    width: 11%;
-  }
-  .irc8a-col-timeline {
-    width: 5%;
-  }
-  .irc8a-col-weight {
-    width: 4%;
-  }
-  .irc8a-col-quality {
-    width: 13%;
-  }
-  .irc8a-col-efficiency {
-    width: 13%;
-  }
-  .irc8a-col-timeliness {
-    width: 13%;
-  }
-  .irc8a-col-movs {
-    width: 8%;
-  }
-  .irc8a-col-actual {
-    width: 8%;
-  }
-  .irc8a-col-q {
-    width: 2.5%;
-  }
-  .irc8a-col-e {
-    width: 2.5%;
-  }
-  .irc8a-col-t {
-    width: 2.5%;
-  }
-  .irc8a-col-ave {
-    width: 3%;
-  }
-  .irc8a-col-score {
-    width: 3.5%;
-  }
-
-  .irc8a-print-table th,
-  .irc8a-print-table td {
-    border: 1px solid #000;
-    padding: 3px 4px;
-    vertical-align: top;
-    font-size: 7.5px;
-    line-height: 1.3;
-    overflow-wrap: break-word;
-    word-break: break-word;
-  }
-
-  .irc8a-print-table thead th {
-    text-align: center;
-    font-weight: 700;
-    background: #83cceb !important;
-  }
-
-  .irc8a-print-band-row th {
-    font-size: 8px;
-    font-style: italic;
-    text-transform: uppercase;
-    background: #f2ceef !important;
-  }
-
-  .irc8a-print-mfo,
-  .irc8a-print-kra,
-  .irc8a-print-weight {
-    text-align: center;
-    font-weight: 700;
-    vertical-align: middle;
-  }
-
-  .irc8a-print-objective-label {
-    font-weight: 700;
-    margin-right: 3px;
-  }
-
-  .irc8a-print-rate {
-    font-weight: 700;
-  }
-
-  /* Cells with no indicator defined at that rate level (or no MOV/actual
-     result/rating filled in) -- grayed out and empty, no "Not specified"
-     text, matching irc8a_pdf_format.pdf. */
-  .irc8a-print-blank {
-    background: #bfbfbf !important;
-  }
-
-  .irc8a-print-rating-cell {
-    text-align: center;
-    font-weight: 700;
-  }
-
-  .irc8a-print-empty {
-    color: #666;
-    font-style: italic;
-  }
-
-  /* Overall Rating for Accomplishments -- rendered as the table's own
-     last row (not a separate box below it) so it's visually part of the
-     main table: total weight sits in the Weight column, the label spans
-     Actual Results through Ave, and the total score lines up under the
-     Score column, matching irc8a_pdf_format.pdf. */
-  .irc8a-print-total-row td {
-    background: #daf2d0 !important;
-    font-weight: 700;
-  }
-
-  .irc8a-print-overall-label {
-    text-align: right;
-    text-transform: uppercase;
-    padding-right: 8px !important;
-  }
-
-  .irc8a-print-overall-score {
-    text-align: center;
-    font-size: 9px;
-  }
-
-  /* Avoid splitting an objective's rate-level rows awkwardly across a
-     page break. */
-  .irc8a-print-table tr {
-    break-inside: avoid;
-  }
-
-  /* Keep the main table attached to the header block above it instead of
-     starting on its own page. */
-  .irc8a-print-header-table,
-  .irc8a-print-table {
-    break-before: avoid;
-    break-after: auto;
-  }
-
-  /* The report-signatory footer (Prepared by / Checked by / Approving
-     Authority) lives in base.html, outside #irc8a-tab, so the
-     "#irc8a-tab > *" hide rule above never reaches it. It's not part of
-     the official IPCRF sheet this page reproduces, so hide it here. */
-  .report-signatory {
-    display: none !important;
-  }
+}
+.irc8a-label-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.irc8a-box .irc8a-mov-link {
+  display: inline-flex;
 }

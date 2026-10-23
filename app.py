@@ -858,11 +858,36 @@ def _get_irc8a_approving_authority():
     return authority
 
 
+_irc8a_header_columns_checked = False
+
+
+def _ensure_irc8a_header_columns():
+    """db.create_all() only creates MISSING TABLES -- it never adds a column
+    to a table that already exists. Databases created before the "Statement
+    of Purpose" field was added therefore lack irc8a_report_header.
+    statement_of_purpose, and every header read/write would fail. This adds
+    it once per process, in place, without touching any existing data."""
+    global _irc8a_header_columns_checked
+    if _irc8a_header_columns_checked:
+        return
+    from sqlalchemy import inspect, text
+    inspector = inspect(db.engine)
+    if "irc8a_report_header" in inspector.get_table_names():
+        columns = {c["name"] for c in inspector.get_columns("irc8a_report_header")}
+        if "statement_of_purpose" not in columns:
+            db.session.execute(
+                text("ALTER TABLE irc8a_report_header ADD COLUMN statement_of_purpose TEXT NOT NULL DEFAULT ''")
+            )
+            db.session.commit()
+    _irc8a_header_columns_checked = True
+
+
 def _get_irc8a_report_header():
     """Single global row holding IRC8A's printed-report header fields (see
     IRC8AReportHeader in models.py). Created lazily with blank fields on
     first access, same convention as _get_preparer() /
     _get_irc8a_approving_authority() above."""
+    _ensure_irc8a_header_columns()
     header = IRC8AReportHeader.query.first()
     if header is None:
         header = IRC8AReportHeader()
@@ -1109,6 +1134,7 @@ def save_irc8a_report_header():
         "positionOfEmployee": "position_of_employee",
         "bureau": "bureau",
         "ratingPeriod": "rating_period",
+        "statementOfPurpose": "statement_of_purpose",
     }
     for json_key, column in text_fields.items():
         if json_key in data:

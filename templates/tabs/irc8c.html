@@ -25,6 +25,9 @@ block content %}
         </div>
       </div>
       <div class="irc8c-header-actions">
+        <button type="button" id="irc8c-pdf-btn" class="irc8c-pdf-btn">
+          <i class="ti ti-file-type-pdf" aria-hidden="true"></i> Save to PDF
+        </button>
         <button type="button" id="irc8c-reset-btn" class="irc8c-reset-btn">
           <i class="ti ti-refresh-alert" aria-hidden="true"></i> Reset All Data
         </button>
@@ -252,6 +255,11 @@ block content %}
     </div>
   </div>
 </div>
+
+<!-- Print-only copy of the form; built and moved to <body> by irc8c.js.
+     Its styling lives in the "Print / Save to PDF" section at the end of
+     irc8c.css (letter, portrait). -->
+<div id="irc8c-print-root"></div>
 
 <script src="{{ url_for('static', filename='js/irc8c.js') }}"></script>
 

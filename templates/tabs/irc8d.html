@@ -23,6 +23,11 @@ block content %}
           </p>
         </div>
       </div>
+      <div class="irc8d-header-actions">
+        <button type="button" id="irc8d-print-btn" class="irc8d-pdf-btn">
+          <i class="ti ti-file-type-pdf" aria-hidden="true"></i> Save to PDF
+        </button>
+      </div>
     </div>
   </div>
 
@@ -98,6 +103,9 @@ block content %}
     </div>
   </div>
 </section>
+
+<!-- Print-only copy of the form; built and moved to <body> by irc8d.js -->
+<div id="irc8d-print-root"></div>
 
 <script src="{{ url_for('static', filename='js/irc8d.js') }}"></script>
 

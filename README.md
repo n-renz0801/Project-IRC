@@ -36,3 +36,7 @@ SGOD_PMES.exe
 - **SQLite**
 - **HTML / CSS / JavaScript**
 - **PyInstaller**
+
+## Compile Command
+
+- python -m PyInstaller --clean --onefile --windowed --name SGOD_IRC --icon="static/images/Project_IRC.ico" --add-data "templates;templates" --add-data "static;static" --hidden-import webview main.py
