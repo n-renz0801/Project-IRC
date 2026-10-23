@@ -499,7 +499,10 @@
     const row = table.querySelector(`tbody tr[data-row-index="${rowIndex}"]`);
     const labelCell = row ? row.querySelector(".irc2b-label-col") : null;
     if (!labelCell) return null;
-    return (labelCell.textContent || "").replace(/^\s*\d+\.\s*/, "").trim();
+    return (labelCell.textContent || "")
+      .replace(/^\s*\d+\.\s*/, "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   // No "Save" button on this grid -- every checkbox persists itself the

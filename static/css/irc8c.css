@@ -110,6 +110,41 @@
   flex-shrink: 0;
 }
 
+/* Save to PDF button — same look as EOPCRF I / II / IV. */
+.irc8c-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc8c-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc8c-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc8c-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Reset button — sized down to match IRC1a/IRC8b's smaller header
    action buttons (was 10px 18px / 14px font). */
 .irc8c-reset-btn {
@@ -1023,8 +1058,205 @@
     width: 100%;
   }
 
+  .irc8c-pdf-btn,
   .irc8c-reset-btn {
     flex: 1;
     justify-content: center;
+  }
+}
+
+/* ==================================================================
+   Print / Save to PDF
+   Letter (8.5 x 11 in), portrait, one page -- laid out to match
+   irc8c_print_format.pdf (the sheet's "Part II: Summary of Ratings for
+   Discussion" + "Part IV: Development Plans"). The print root is
+   built by irc8c.js and hidden on screen; only it is shown in print.
+   Column widths are the sheet's own 5-column grid (116 / 127 / 139 /
+   57 / 65 pt of a 504 pt wide table), shared by every table so their
+   edges line up exactly as on the sheet.
+   ================================================================== */
+
+@page {
+  size: 8.5in 11in;
+  margin: 0.75in 0.8in 0.75in 0.7in;
+}
+
+#irc8c-print-root {
+  display: none;
+}
+
+@media print {
+  /* Hide the whole app chrome without needing to know base.html's markup. */
+  body > *:not(#irc8c-print-root) {
+    display: none !important;
+  }
+  html::before,
+  html::after,
+  body::before,
+  body::after {
+    display: none !important;
+    content: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background-image: none !important;
+  }
+
+  #irc8c-print-root {
+    display: block;
+    color: #000;
+    /* 7.19pt / 9.8pt line pitch are the sheet's own measurements. */
+    font-size: 7.19pt;
+    line-height: 12pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  #irc8c-print-root,
+  #irc8c-print-root *,
+  #irc8c-print-root *::before,
+  #irc8c-print-root *::after {
+    box-sizing: border-box;
+    /* The sheet is set in a narrow face; Calibri is tightened slightly
+       so wrapping matches it when "Aptos Narrow" isn't installed. */
+    font-family:
+      "Aptos Narrow", Calibri, Carlito, "Segoe UI", Arial, "Liberation Sans",
+      sans-serif;
+    letter-spacing: -0.01em;
+    box-shadow: none;
+  }
+
+  /* ---------- Titles / headings / paragraph ---------- */
+  #irc8c-print-root .r8c-title,
+  #irc8c-print-root .r8c-heading-center {
+    text-align: center;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  #irc8c-print-root .r8c-title {
+    margin: 0 0 8pt;
+  }
+  #irc8c-print-root .r8c-heading {
+    margin: 7pt 0 0;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+  #irc8c-print-root .r8c-agree {
+    margin: 8pt 0 9pt;
+  }
+  #irc8c-print-root .r8c-heading-center {
+    margin: 7pt 0 8pt;
+  }
+
+  /* ---------- Tables ---------- */
+  #irc8c-print-root .r8c-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    break-inside: avoid;
+  }
+  #irc8c-print-root .r8c-table th,
+  #irc8c-print-root .r8c-table td {
+    border: 0.5pt solid #000;
+    padding: 0 2.25pt;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 7.19pt;
+    line-height: 9.8pt;
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+  /* Heavier outer frame (and header underline), lighter inner lines. */
+  #irc8c-print-root .r8c-table tr > :first-child {
+    border-left: 1.5pt solid #000;
+  }
+  #irc8c-print-root .r8c-table tr > :last-child {
+    border-right: 1.5pt solid #000;
+  }
+  #irc8c-print-root .r8c-table tr:first-child > * {
+    border-top: 1.5pt solid #000;
+  }
+  #irc8c-print-root .r8c-table tr:last-child > * {
+    border-bottom: 1.5pt solid #000;
+  }
+
+  /* Part II: Final rating box -- sits over columns 2-3 of the grid. */
+  #irc8c-print-root .r8c-summary {
+    width: 52.78%;
+    margin-left: 23.02%;
+  }
+  #irc8c-print-root .r8c-summary td {
+    height: 10.3pt;
+  }
+  #irc8c-print-root .r8c-summary .r8c-val {
+    text-align: right;
+    font-weight: 700;
+  }
+
+  /* Employee-Superior Agreement */
+  #irc8c-print-root .r8c-agreement td {
+    text-align: left;
+  }
+  #irc8c-print-root .r8c-agreement .r8c-agr-name td {
+    height: 9.6pt;
+  }
+  #irc8c-print-root .r8c-agreement .r8c-agr-sign td {
+    height: 15.2pt;
+    vertical-align: bottom;
+  }
+  #irc8c-print-root .r8c-agreement .r8c-agr-date td {
+    height: 9.6pt;
+  }
+  #irc8c-print-root .r8c-agreement .r8c-name {
+    text-align: center;
+    font-weight: 700;
+  }
+  #irc8c-print-root .r8c-agreement .r8c-date {
+    text-align: center;
+  }
+
+  /* Part IV: Development Plans */
+  #irc8c-print-root .r8c-dev th {
+    height: 29.5pt;
+    padding: 0 1pt;
+    border: 1.5pt solid #000;
+    text-align: center;
+    font-weight: 700;
+    white-space: normal;
+  }
+  #irc8c-print-root .r8c-dev td {
+    height: 49pt; /* blank rows keep their body, like the paper form */
+    padding: 1pt 2.25pt;
+  }
+  #irc8c-print-root .r8c-dev tbody tr {
+    break-inside: avoid;
+  }
+
+  /* ---------- Signatories (same column grid as the tables) ---------- */
+  #irc8c-print-root .r8c-signs {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin-top: 24pt;
+    break-inside: avoid;
+  }
+  #irc8c-print-root .r8c-signs td {
+    padding: 0;
+    border: 0;
+    text-align: center;
+    vertical-align: top;
+  }
+  #irc8c-print-root .r8c-sign-name {
+    font-weight: 700;
+    line-height: 11pt;
+  }
+  #irc8c-print-root .r8c-sign-role {
+    line-height: 11pt;
   }
 }

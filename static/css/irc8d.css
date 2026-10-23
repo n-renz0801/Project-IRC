@@ -500,3 +500,250 @@
     font-size: 22px;
   }
 }
+
+/* ================================================================
+   Save to PDF button
+   ================================================================ */
+
+.irc8d-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.irc8d-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  appearance: none;
+  background: #fff;
+  color: #185fa5;
+  border: 1.5px solid #cfe0f2;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc8d-pdf-btn i {
+  font-size: 13px;
+}
+
+.irc8d-pdf-btn:hover {
+  background: #eaf2fb;
+  border-color: #185fa5;
+}
+
+.irc8d-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .irc8d-header-actions {
+    width: 100%;
+  }
+  .irc8d-pdf-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* ================================================================
+   Print layout -- matches the IRC8D sheet (portrait).
+   The print root is hidden on screen; the rules below only take
+   effect while irc8d.js has put "irc8d-printing" on <html>.
+   ================================================================ */
+
+@page {
+  size: 8.5in 11in;
+  margin: 0.5in;
+}
+
+#irc8d-print-root {
+  display: none;
+}
+
+@media print {
+  html.irc8d-printing body > *:not(#irc8d-print-root) {
+    display: none !important;
+  }
+  html.irc8d-printing::before,
+  html.irc8d-printing::after,
+  html.irc8d-printing body::before,
+  html.irc8d-printing body::after {
+    display: none !important;
+    content: none !important;
+  }
+  html.irc8d-printing,
+  html.irc8d-printing body {
+    background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background-image: none !important;
+  }
+
+  html.irc8d-printing #irc8d-print-root {
+    display: block;
+    color: #000;
+    font-size: 7pt;
+    line-height: 1.2;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  #irc8d-print-root,
+  #irc8d-print-root *,
+  #irc8d-print-root *::before,
+  #irc8d-print-root *::after {
+    box-sizing: border-box;
+    font-family: Calibri, Carlito, Arial, "Liberation Sans", sans-serif;
+    box-shadow: none;
+  }
+
+  .p8-title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 11pt;
+    margin: 0 0 4px;
+  }
+
+  /* ---------- Main table ---------- */
+  .p8-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    border: 1.5pt solid #375623;
+  }
+  .p8-table th,
+  .p8-table td {
+    border: 0.5pt solid #000;
+    padding: 2px 3px;
+    vertical-align: middle;
+    text-align: left;
+    overflow-wrap: anywhere;
+    font-size: 6.5pt;
+  }
+  .p8-table thead {
+    display: table-header-group;
+  }
+  .p8-table thead th {
+    background: #c6e0b4;
+    border: 0.75pt solid #375623;
+    text-align: center;
+    font-weight: 700;
+    font-size: 7pt;
+    padding: 2px 2px;
+  }
+  .p8-table tr {
+    break-inside: avoid;
+  }
+  .p8-table .p8-c {
+    text-align: center;
+  }
+  .p8-table .p8-l {
+    text-align: left;
+  }
+  .p8-table .p8-b {
+    font-weight: 700;
+  }
+  .p8-table .p8-pre {
+    white-space: pre-wrap;
+  }
+  .p8-table .p8-gray {
+    background: #808080;
+  }
+  .p8-table .p8-mfo {
+    text-align: center;
+    font-size: 7.5pt;
+  }
+  .p8-table .p8-kra {
+    text-align: center;
+    font-weight: 700;
+    font-size: 6.5pt;
+  }
+  .p8-table .p8-obj {
+    vertical-align: top;
+    font-size: 6.5pt;
+  }
+  .p8-table .p8-score {
+    font-size: 8pt;
+  }
+  .p8-table .p8-total td {
+    font-size: 7pt;
+  }
+  .p8-table .p8-total .p8-score {
+    font-size: 8.5pt;
+  }
+  .p8-table .p8-nob {
+    border-left: 0.5pt solid #000;
+  }
+
+  /* ---------- Rater-Ratee Agreement ---------- */
+  .p8-agree {
+    border: 0.5pt solid #000;
+    border-top: 0;
+    padding: 3px 3px 10px;
+    break-inside: avoid;
+  }
+  .p8-agree-title {
+    font-weight: 700;
+    font-style: italic;
+    font-size: 7pt;
+  }
+  .p8-agree-text {
+    margin-top: 4px;
+    font-size: 6.5pt;
+  }
+
+  .p8-sig {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    break-inside: avoid;
+  }
+  .p8-sig td {
+    border: 0.5pt solid #000;
+    font-size: 7pt;
+    vertical-align: top;
+  }
+  .p8-sig-cell {
+    padding: 2px 0 3px;
+    height: 0.62in;
+  }
+  .p8-sig-label {
+    padding-left: 0.55in;
+    font-size: 7.5pt;
+  }
+  .p8-sig-name {
+    text-align: center;
+    font-weight: 700;
+    font-size: 8pt;
+    margin-top: 5px;
+  }
+  .p8-sig-pos {
+    text-align: center;
+    font-size: 6pt;
+    margin-top: 4px;
+  }
+  .p8-sig-row {
+    height: 0.34in;
+    padding: 2px 0 0 0.55in;
+    font-size: 7.5pt;
+  }
+  .p8-date-row {
+    height: 0.2in;
+    padding: 2px 0 0 0.55in;
+    font-size: 7.5pt;
+  }
+}

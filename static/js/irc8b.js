@@ -406,6 +406,138 @@
   sectionsCbcEl.addEventListener("click", handleRateClick);
   sectionsCsEl.addEventListener("click", handleRateClick);
 
+  // ================= Print / Save as PDF =================
+  // Builds a print-only copy of the form (scale, Core Behavioral
+  // Competencies, Core Skills, signatories) laid out like EOPCRF2's print
+  // sheet, then calls window.print(). Styling is in irc8b_print.css (long
+  // bond, landscape). The root is moved to <body> so the print stylesheet
+  // can hide the rest of the page.
+  const printRoot = document.getElementById("irc8b-print-root");
+  const printBtn = document.getElementById("irc8b-print-btn");
+  const printCache = { header: {}, authority: { name: "" } };
+  if (printRoot) document.body.appendChild(printRoot);
+
+  const pText = (v) => escapeHtml(v == null ? "" : String(v));
+  const pNum = (n, digits) =>
+    n === null || n === undefined || isNaN(n) ? "" : n.toFixed(digits);
+
+  function printScale() {
+    const rows = [5, 4, 3, 2, 1]
+      .map(
+        (n) =>
+          `<tr><td class="q-c">${n}</td><td>${pText(RATING_LABELS[n])}</td></tr>`,
+      )
+      .join("");
+    return `<div class="q-scale">
+      <div class="q-scale-title">Rating Scale</div>
+      <table class="q-table q-scale-table">
+        <colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+        <thead><tr><th>Numerical Rating</th><th>Adjectival Rating</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }
+
+  function printSection(section) {
+    const secAvg = sectionAverage(section);
+    const bodies = section.subsections
+      .map((sub) => {
+        const n = sub.criteria.length;
+        const subAvg = subsectionAverage(sub.key);
+        const rows = sub.criteria
+          .map((text, i) => {
+            const r = ratings[sub.key][i];
+            const first =
+              i === 0
+                ? `<td rowspan="${n}" class="q-comp">${pText(sub.title)}</td>`
+                : "";
+            const avg =
+              i === 0
+                ? `<td rowspan="${n}" class="q-c q-avg">${pNum(subAvg, 2)}</td>`
+                : "";
+            return `<tr>${first}<td>${i + 1}. ${pText(text)}</td><td class="q-c">${r == null ? "" : pText(RATING_LABELS[r])}</td><td class="q-c">${r == null ? "" : r}</td>${avg}</tr>`;
+          })
+          .join("");
+        return `<tbody class="qb-comp">${rows}</tbody>`;
+      })
+      .join("");
+    const total = `<tbody class="qb-total"><tr><td colspan="4" class="q-total-label">${pText(section.title)} Average</td><td class="q-c q-total-val">${pNum(secAvg, 2)}</td></tr></tbody>`;
+    return `<div class="q-part">
+      <h3>${pText(section.title.toUpperCase())}</h3>
+      <table class="q-table q-main">
+        <colgroup><col style="width:9%"><col style="width:61%"><col style="width:13%"><col style="width:7%"><col style="width:10%"></colgroup>
+        <thead><tr><th>Competencies</th><th>Criteria</th><th>Remarks/ Observations</th><th>RATING</th><th>AVERAGE</th></tr></thead>
+        ${bodies}${total}
+      </table>
+    </div>`;
+  }
+
+  function printOverall() {
+    const avgs = DATA.map(sectionAverage).filter((v) => v !== null);
+    const overall = average(avgs);
+    return `<div class="q-part q-overall">
+      <table class="q-table">
+        <colgroup><col style="width:90%"><col style="width:10%"></colgroup>
+        <tbody class="qb-total"><tr><td class="q-total-label">Overall Average (Core Behavioral Competencies and Core Skills)</td><td class="q-c q-total-val">${pNum(overall, 2)}</td></tr></tbody>
+      </table>
+    </div>`;
+  }
+
+  function buildPrintHtml() {
+    const h = printCache.header || {};
+    const a = printCache.authority || {};
+    const up = (v) => (v == null ? "" : String(v).toUpperCase());
+    const sign = (name, role) =>
+      `<div class="q-sign"><div class="q-sign-name">${pText(up(name))}</div><div class="q-sign-role">${role}</div></div>`;
+    return `
+      <div class="q-top">
+        <div class="q-page-label">IRC 8B &ndash; Core Behavioral Competencies and Core Skills</div>
+        ${printScale()}
+      </div>
+      ${DATA.map(printSection).join("")}
+      ${printOverall()}
+      <div class="q-signs">
+        <div class="q-signs-row">${sign(h.nameOfEmployee, "RATEE")}${sign(h.nameOfRater, "RATER")}</div>
+        <div class="q-signs-row">${sign(a.name, "APPROVING AUTHORITY")}</div>
+      </div>`;
+  }
+
+  function refreshPrintRoot() {
+    if (printRoot) printRoot.innerHTML = buildPrintHtml();
+  }
+
+  // Ratee / Rater / Approving Authority names are the ones typed into the
+  // "Form details" block on the IRC8A page (nameOfEmployee, nameOfRater, and
+  // the global approving-authority row).
+  async function loadPrintExtras() {
+    const get = async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("request failed");
+      return res.json();
+    };
+    const [h, a] = await Promise.allSettled([
+      get("/api/irc8a/report-header"),
+      get("/api/irc8a/approving-authority"),
+    ]);
+    if (h.status === "fulfilled") printCache.header = h.value;
+    if (a.status === "fulfilled") printCache.authority = a.value;
+  }
+
+  if (printBtn && printRoot) {
+    printBtn.addEventListener("click", async () => {
+      printBtn.disabled = true;
+      try {
+        await loadPrintExtras();
+        refreshPrintRoot();
+        window.print();
+      } finally {
+        printBtn.disabled = false;
+      }
+    });
+    // Ctrl+P / browser menu print gets the same layout from cached data.
+    window.addEventListener("beforeprint", refreshPrintRoot);
+  }
+
   // ================= Initial load =================
   loadRatings();
 })();

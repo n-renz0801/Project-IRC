@@ -1179,6 +1179,8 @@ class IRC8AReportHeader(db.Model):
     bureau = db.Column(db.String(255), nullable=False, default="")  # "Bureau/Center/Service/Division"
     rating_period = db.Column(db.String(255), nullable=False, default="")
     date_of_review = db.Column(db.Date, nullable=True)
+    # Free-text "Statement of Purpose" of the office (printed under the header table).
+    statement_of_purpose = db.Column(db.Text, nullable=False, default="", server_default="")
 
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -1191,6 +1193,7 @@ class IRC8AReportHeader(db.Model):
             "bureau": self.bureau,
             "ratingPeriod": self.rating_period,
             "dateOfReview": self.date_of_review.isoformat() if self.date_of_review else None,
+            "statementOfPurpose": self.statement_of_purpose or "",
         }
 
 
