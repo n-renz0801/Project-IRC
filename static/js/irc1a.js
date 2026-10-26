@@ -328,7 +328,12 @@
     const avg = average(values);
 
     const avgSpan = table.querySelector(`.irc1a-avg[data-month="${month}"]`);
-    if (avgSpan) avgSpan.textContent = avg === null ? "—" : avg.toFixed(3);
+    if (avgSpan) {
+      avgSpan.textContent = avg === null ? "—" : avg.toFixed(3);
+      avgSpan.classList.remove(...BAND_CLASSES);
+      const monthBand = bandClass(avg);
+      if (monthBand) avgSpan.classList.add(monthBand);
+    }
 
     monthAverages[month] = avg;
   }
@@ -350,6 +355,19 @@
       `.irc1a-row-desc[data-indicator="${indicatorId}"]`,
     );
     paintDescriptiveBadge(rowDescSpan, avg);
+
+    // Meter bar under the rating strip: width = average out of 4,
+    // colored by the same band as the Description badge.
+    const meterFill = table.querySelector(
+      `.irc1a-meter-fill[data-indicator="${indicatorId}"]`,
+    );
+    if (meterFill) {
+      meterFill.style.width =
+        avg === null ? "0%" : Math.min(100, (avg / 4) * 100) + "%";
+      meterFill.classList.remove(...BAND_CLASSES);
+      const meterBand = bandClass(avg);
+      if (meterBand) meterFill.classList.add(meterBand);
+    }
 
     rowAverages[indicatorId] = avg;
     return avg;

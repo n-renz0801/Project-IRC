@@ -78,6 +78,14 @@
   #irc8b-print-root .q-part {
     margin-top: 6px;
   }
+  /* Core Skills (the 2nd .q-part; the Overall Average block is also a
+     .q-part but is excluded) starts on its own page. The Overall
+     Average and signatories follow it, so they land on page 2 too. */
+  #irc8b-print-root .q-part + .q-part:not(.q-overall) {
+    page-break-before: always; /* legacy alias */
+    break-before: page;
+    margin-top: 0;
+  }
   #irc8b-print-root .q-part h3 {
     margin: 0 0 1px;
     padding: 0;

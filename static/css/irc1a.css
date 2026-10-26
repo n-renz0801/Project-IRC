@@ -999,7 +999,11 @@
 }
 
 /* ------------------------------------------------------------------
-   4. Bottom Section — Detailed Data Table
+   4. Bottom Section — TA Indicator Ratings ("meter rows")
+   Each indicator is its own block: full-width indicator text with its
+   Average + Description on the right, a strip of 12 month inputs, and a
+   thin meter bar showing the average out of 4. The markup is still a
+   real <table> (irc1a.js relies on it), displayed as blocks/grids.
 ------------------------------------------------------------------ */
 
 .irc1a-table-card {
@@ -1011,66 +1015,124 @@
   box-sizing: border-box;
 }
 
+.irc1a-table-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+}
+
+.irc1a-inline-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.irc1a-inline-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .irc1a-table-wrapper {
   background: white;
-  border: none;
-  border-radius: 0;
   overflow-x: auto;
-  overflow-y: visible;
+}
+
+.irc1a-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.irc1a-table,
+.irc1a-table thead,
+.irc1a-table tbody,
+.irc1a-table tfoot,
+.irc1a-table tr,
+.irc1a-table th,
+.irc1a-table td {
+  display: block;
 }
 
 .irc1a-table {
   width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
   font-size: 13px;
 }
 
-.irc1a-table thead {
-  background: #1f2937;
-  border-bottom: 3px solid #4a6fa5;
+.irc1a-table thead tr,
+.irc1a-table tbody tr,
+.irc1a-table tfoot tr {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 6px;
+  padding: 0 20px;
+}
+
+.irc1a-table thead tr {
+  position: relative;
+  height: 36px;
+  align-items: center;
+  border-bottom: 2px solid #1f2937;
 }
 
 .irc1a-table thead th {
-  padding: 13px 8px;
+  padding: 0;
   text-align: center;
+  font-size: 12px;
   font-weight: 600;
-  color: #f3f4f6;
-  white-space: nowrap;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  background: #1f2937;
-  outline: none;
-  box-shadow: none;
+  color: #566074;
 }
 
-.irc1a-table thead th:last-child {
-  border-right: none;
+.irc1a-table tbody tr {
+  row-gap: 10px;
+  padding-top: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e8ebf1;
+  transition: background-color 0.15s ease;
 }
 
-.irc1a-indicator-col {
-  /* Percentages (rather than fixed px) so the table always sums to
-     exactly 100% of whatever width its container gives it -- it can
-     never force the page wider than .content, at any screen size. */
-  width: 22%;
+.irc1a-table tbody tr:hover {
+  background: #fafbfd;
+}
+
+/* td.* so this beats the `.irc1a-table td { display: block }` reset above. */
+.irc1a-table td.irc1a-indicator-col {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
   text-align: left;
 }
 
-/* Hanging-indent layout: the number sits in a fixed-width, right-
-   aligned column so "1." through "10." all right-align to the same
-   edge, and the text column starts at that same fixed x-position on
-   every row -- including on wrapped continuation lines, since the
-   text lives in its own flex item rather than flowing under the
-   number. */
+/* Hanging indent: number in its own right-aligned column so wrapped
+   lines of the indicator text stay aligned. */
 .irc1a-indicator-wrap {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .irc1a-indicator-num {
   flex-shrink: 0;
   min-width: 20px;
   text-align: right;
+  font-weight: 500;
+  color: #8a93a5;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1079,76 +1141,65 @@
   min-width: 0;
 }
 
-.irc1a-rowavg-col {
-  width: 5%;
+.irc1a-row-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.irc1a-row-avg {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  font-variant-numeric: tabular-nums;
+}
+
+.irc1a-row-desc {
+  display: inline-block;
+  box-sizing: border-box;
+  min-width: 124px;
   text-align: center;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: #e5e7eb;
+  color: #4b5563;
 }
 
-.irc1a-rowdesc-col {
-  width: 7%;
+.irc1a-month-cell {
+  min-width: 0;
   text-align: center;
-}
-
-.irc1a-table
-  th:not(.irc1a-indicator-col):not(.irc1a-rowavg-col):not(.irc1a-rowdesc-col),
-.irc1a-table
-  td:not(.irc1a-indicator-col):not(.irc1a-rowavg-cell):not(
-    .irc1a-rowdesc-cell
-  ) {
-  width: 5.5%;
-}
-
-.irc1a-table tbody tr {
-  border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.15s ease;
-}
-
-.irc1a-table tbody tr:nth-child(odd) {
-  background: #fafbfc;
-}
-
-.irc1a-table tbody tr:nth-child(even) {
-  background: white;
-}
-
-.irc1a-table tbody tr:hover {
-  background: #f0f5ff;
-}
-
-.irc1a-table tbody td {
-  padding: 10px 8px;
-  border-right: 1px solid #e8e8e8;
-}
-
-.irc1a-table
-  tbody
-  td:not(.irc1a-indicator-col):not(.irc1a-rowavg-cell):not(
-    .irc1a-rowdesc-cell
-  ) {
-  text-align: center;
-}
-
-.irc1a-table tbody td:last-child {
-  border-right: none;
 }
 
 .irc1a-table tbody input[type="number"] {
   display: block;
   width: 100%;
-  max-width: 60px;
-  margin: 0 auto;
   box-sizing: border-box;
-  padding: 6px 4px;
-  border: 1px solid #e2e5ea;
-  border-radius: 6px;
+  margin: 0;
+  padding: 11px 0;
+  border: 1px solid #d5dbe6;
+  border-radius: 8px;
   font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   text-align: center;
-  background: #fbfbfc;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  color: #1f2937;
+  background: #fbfcfe;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
     background 0.2s ease;
+}
+
+.irc1a-table tbody input[type="number"]::placeholder {
+  color: #aab2c0;
+  font-weight: 400;
+}
+
+.irc1a-table tbody input[type="number"]:hover {
+  border-color: #8fa2c4;
 }
 
 .irc1a-table tbody input[type="number"]:focus {
@@ -1169,78 +1220,92 @@
   appearance: textfield;
 }
 
-.irc1a-table tfoot {
-  background: #f8f9fa;
-  border-top: 2px solid #d0d0d0;
+/* Meter bar (width + band color are set by recalcRow() in irc1a.js) */
+.irc1a-meter-cell {
+  grid-column: 1 / -1;
 }
 
-.irc1a-table tfoot tr:last-child {
-  border-bottom: none;
+.irc1a-meter {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: #e8ebf1;
+  overflow: hidden;
 }
 
-.irc1a-table tfoot td {
-  padding: 12px 8px;
-  border-right: 1px solid #e8e8e8;
-  font-weight: 500;
-  color: #333;
+.irc1a-meter-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: #cbd2de;
+  transition:
+    width 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.irc1a-meter-fill.irc1a-band-poor {
+  background: #ef4444;
+}
+
+.irc1a-meter-fill.irc1a-band-fair {
+  background: #f59e0b;
+}
+
+.irc1a-meter-fill.irc1a-band-satisfactory {
+  background: #3b82f6;
+}
+
+.irc1a-meter-fill.irc1a-band-very-satisfactory {
+  background: #22c55e;
+}
+
+/* Footer: overall average + one band-tinted chip per month */
+.irc1a-table tfoot tr {
+  row-gap: 10px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  background: #f4f6fa;
+  border-top: 2px solid #1f2937;
+}
+
+.irc1a-foot-label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.irc1a-avg {
+  display: block;
+  padding: 8px 0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   text-align: center;
+  color: #566074;
 }
 
-.irc1a-table tfoot td.irc1a-indicator-col {
-  text-align: left;
-}
-
-.irc1a-table tfoot td:last-child {
-  border-right: none;
-}
-
-.irc1a-average-row {
-  background: #eff4f9;
-}
-
-.irc1a-rowavg-cell,
-.irc1a-rowdesc-cell {
-  text-align: center;
-}
-
-/* Row Average — pill badge */
-.irc1a-row-avg {
-  display: inline-block;
-  font-weight: 600;
-  color: #185fa5;
-  background: #e6f1fb;
-  font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 999px;
-}
-
-/* Descriptive Rating — color-coded badge per row */
-.irc1a-row-desc {
-  display: inline-block;
-  font-weight: 600;
-  font-size: 11.5px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: #e5e7eb;
-  color: #4b5563;
-}
-
-.irc1a-row-desc.irc1a-band-poor {
+/* Band colors shared by Description badges and footer month chips */
+.irc1a-row-desc.irc1a-band-poor,
+.irc1a-avg.irc1a-band-poor {
   background: #fee2e2;
   color: #b91c1c;
 }
 
-.irc1a-row-desc.irc1a-band-fair {
+.irc1a-row-desc.irc1a-band-fair,
+.irc1a-avg.irc1a-band-fair {
   background: #fef3c7;
   color: #b45309;
 }
 
-.irc1a-row-desc.irc1a-band-satisfactory {
+.irc1a-row-desc.irc1a-band-satisfactory,
+.irc1a-avg.irc1a-band-satisfactory {
   background: #dbeafe;
   color: #1d4ed8;
 }
 
-.irc1a-row-desc.irc1a-band-very-satisfactory {
+.irc1a-row-desc.irc1a-band-very-satisfactory,
+.irc1a-avg.irc1a-band-very-satisfactory {
   background: #dcfce7;
   color: #15803d;
 }
@@ -1301,28 +1366,35 @@
     min-height: 76px;
   }
 
-  /* Table: smaller font + tighter cell padding so the (percentage-
-     width) columns still read comfortably once they're narrower. */
+  /* Ratings table */
   .irc1a-table {
-    font-size: 11px;
+    font-size: 12px;
   }
 
-  .irc1a-table thead th,
-  .irc1a-table tbody td,
-  .irc1a-table tfoot td {
-    padding: 7px 5px;
+  .irc1a-table td.irc1a-indicator-col {
+    font-size: 13px;
   }
 
   .irc1a-table tbody input[type="number"] {
-    max-width: 34px;
-    font-size: 11px;
-    padding: 5px 3px;
+    font-size: 12px;
+    padding: 9px 0;
   }
 
-  .irc1a-row-avg,
+  .irc1a-row-avg {
+    font-size: 16px;
+  }
+
   .irc1a-row-desc {
-    font-size: 10.5px;
-    padding: 2px 7px;
+    min-width: 108px;
+    font-size: 11px;
+  }
+
+  .irc1a-avg {
+    font-size: 12px;
+  }
+
+  .irc1a-inline-legend {
+    font-size: 11px;
   }
 }
 
@@ -1357,6 +1429,18 @@
 }
 
 @media (max-width: 950px) {
+  .irc1a-table tbody input[type="number"],
+  .irc1a-avg {
+    font-size: 11px;
+  }
+
+  .irc1a-table thead tr,
+  .irc1a-table tbody tr,
+  .irc1a-table tfoot tr {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
   .irc1a-hero-row {
     /* Give the badge card relatively more of the row so it doesn't get
        squeezed to an unreadable sliver as the trend card's chart still
@@ -1429,13 +1513,31 @@
     justify-content: center;
   }
 
-  .irc1a-table-wrapper {
-    font-size: 12px;
+  /* Ratings table: 12 columns get too tight on a phone, so the
+     month strip wraps to 2 rows of 6 and each cell carries its own
+     month label (the header strip is hidden). */
+  .irc1a-table thead {
+    display: none;
   }
 
-  .irc1a-table thead th,
-  .irc1a-table tbody td {
-    padding: 8px 6px;
+  .irc1a-table tbody tr,
+  .irc1a-table tfoot tr {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .irc1a-table td.irc1a-indicator-col {
+    flex-wrap: wrap;
+  }
+
+  .irc1a-month-cell::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 3px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #8a93a5;
   }
 
   .irc1a-dark-header,
@@ -1690,100 +1792,75 @@
     font-size: 9.5px !important;
   }
 
-  .irc1a-table-wrapper {
-    font-size: 8px !important;
+  .irc1a-table-card-header {
+    display: block !important;
   }
 
-  /* Unify every piece of text inside the table to the same size --
-     .irc1a-table carries its own explicit font-size (set higher up,
-     for on-screen breakpoints) that would otherwise win over the
-     inherited 8px above, and form elements like the rating <input>s
-     don't inherit font-size from their ancestors at all, so each one
-     needs to be pinned to the same value directly. */
+  .irc1a-inline-legend {
+    font-size: 8px !important;
+    gap: 3px 10px !important;
+    margin-top: 4px !important;
+  }
+
   .irc1a-table,
   .irc1a-table thead th,
-  .irc1a-table tbody td,
-  .irc1a-table tfoot td,
-  .irc1a-table tbody input[type="number"],
-  .irc1a-indicator-num,
-  .irc1a-indicator-text,
-  .irc1a-row-avg,
+  .irc1a-foot-label,
+  .irc1a-avg,
   .irc1a-row-desc,
-  .irc1a-avg {
+  .irc1a-table tbody input[type="number"],
+  .irc1a-indicator-num {
     font-size: 8px !important;
   }
 
-  .irc1a-table thead th,
-  .irc1a-table tbody td,
-  .irc1a-table tfoot td {
-    padding: 3px 2px !important;
+  .irc1a-table td.irc1a-indicator-col {
+    font-size: 8.5px !important;
+    gap: 8px !important;
   }
 
-  .irc1a-row-avg,
+  .irc1a-row-avg {
+    font-size: 10px !important;
+  }
+
   .irc1a-row-desc {
-    padding: 1px 4px;
-    white-space: normal;
+    min-width: 0 !important;
+    padding: 2px 6px !important;
   }
 
-  .irc1a-indicator-wrap {
-    gap: 3px;
+  .irc1a-avg {
+    padding: 3px 0 !important;
   }
 
-  /* Long unbroken segments like "tools/process/procedure" were
-     running past the (now narrower) indicator column instead of
-     wrapping. Turning on hyphenation gives the browser somewhere to
-     break inside long words too, not just at existing slashes/spaces,
-     so nothing renders outside the column. Needs the page's lang
-     attribute to work, which base.html already sets (<html lang="en">). */
-  .irc1a-indicator-text {
-    overflow-wrap: break-word;
-    word-break: break-word;
-    -webkit-hyphens: auto;
-    -ms-hyphens: auto;
-    hyphens: auto;
+  .irc1a-table thead {
+    display: block !important;
   }
 
-  /* Narrow the TA Indicator column and give that reclaimed width to
-     Average + Description -- their pill badges (e.g. "Very
-     Satisfactory") were the tightest fit at print scale. Month columns
-     are left untouched; the 3 numbers below still sum to 34% same as
-     the original 22 + 5 + 7. */
-  .irc1a-indicator-col,
-  .irc1a-table tfoot td.irc1a-indicator-col {
-    width: 16% !important;
+  .irc1a-table thead tr {
+    height: 20px !important;
   }
 
-  .irc1a-rowavg-col {
-    width: 7% !important;
+  .irc1a-table thead tr,
+  .irc1a-table tbody tr,
+  .irc1a-table tfoot tr {
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    column-gap: 3px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
   }
 
-  .irc1a-rowdesc-col {
-    width: 11% !important;
+  .irc1a-table tbody tr,
+  .irc1a-table tfoot tr {
+    row-gap: 4px !important;
+    padding-top: 6px !important;
+    padding-bottom: 7px !important;
   }
 
-  /* By default a <tfoot> (display: table-footer-group) is meant to
-     repeat on every printed page when its table spans more than one,
-     the same way <thead> repeats as a running header -- which is why
-     the "Overall Average" row was showing up at the bottom of every
-     page instead of just once, after the real last row. Switching its
-     display to a plain row group opts out of that repeat-per-page
-     behavior, so it only renders once, in its normal document-order
-     position after the last indicator row. */
-  .irc1a-table tfoot {
-    display: table-row-group;
+  .irc1a-month-cell::before {
+    display: none !important;
   }
 
-  /* ---------------------------------------------------------------
-     Rating inputs: on screen these look like boxed form fields
-     (border + off-white fill + inset shadow); on a printed report
-     they should just read as plain numbers, so all of that is
-     stripped back to bare text. Critically, width has to be pinned
-     to 100% (of the fixed-width table cell) rather than just removing
-     max-width -- a bare <input type="number"> without an explicit
-     width falls back to the browser's own intrinsic default, which is
-     far wider than this cell (~0.4in). That oversized input was
-     bleeding past its cell into neighboring columns and off the right
-     edge of the page, which is what was actually getting cut off. */
+  /* Rating inputs read as plain numbers on paper. Width is pinned to
+     100% of the grid cell: a bare number input falls back to the
+     browser's much wider intrinsic width and bleeds off the page. */
   .irc1a-table tbody input[type="number"] {
     border: none !important;
     background: transparent !important;
@@ -1795,6 +1872,10 @@
     padding: 1px 0 !important;
     -webkit-appearance: none;
     appearance: none;
+  }
+
+  .irc1a-table tbody input[type="number"]::placeholder {
+    color: transparent;
   }
 
   /* Report signatory footer print scaling now lives centrally in
