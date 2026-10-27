@@ -1327,6 +1327,8 @@
   const printRoot = document.getElementById("irc8a-print-root");
   const printBtn = document.getElementById("irc8a-pdf-btn");
   if (printRoot) document.body.appendChild(printRoot);
+  // Hyphenation (hyphens: auto in the print CSS) only works with a language set.
+  if (printRoot) printRoot.setAttribute("lang", "en");
 
   const SCALE_LABELS = {
     5: "5<br>(Outstanding)",
@@ -1403,98 +1405,186 @@
     return `${colgroup}<thead>${row1}<tr>${row2}</tr><tr>${row3}</tr></thead>`;
   }
 
-  // One <tbody> per KRA. Each objective is three rows (Quality / Efficiency /
-  // Timeliness); cells that apply to the whole objective span those rows.
-  function printKraBody(kra, cols) {
-    const objs = kra.objectives.length ? kra.objectives : [null];
-    const totalRows = objs.length * 3;
+  // One <tbody> per group of rows that share a KRA on one page. A group is a
+  // run of Quality / Efficiency / Timeliness rows, which may start or end part
+  // way through an objective. Cells that apply to the whole objective span
+  // that objective's rows within the group, and the MFO / KRA cells span every
+  // row of the group, so no merged cell ever crosses a page.
+  //
+  // When an objective is cut by a page break, the rows that carry on at the
+  // top of the next page are a "continuation": the MFO, KRA and every
+  // objective-level cell (objective, timeline, weight, MOV, actual results,
+  // averages) stay empty there instead of repeating.
+  const PRINT_REPEAT_KRA_ON_CLEAN_BREAK = true; // see printGroupBody
+  function printGroupBody(group, cols) {
+    const { kra, rows, kraContinued } = group;
+    const n = rows.length;
+    // The group starts part-way through an objective: leave its labels blank.
+    const continued = rows[0].ci > 0;
+    // A KRA that carries on at a page break between two objectives repeats
+    // its MFO / KRA text (set the constant above to false to leave it blank).
+    const showKra = continued
+      ? false
+      : kraContinued
+        ? PRINT_REPEAT_KRA_ON_CLEAN_BREAK
+        : true;
     let html = `<tbody class="pb-kra">`;
-    objs.forEach((obj, oi) => {
-      INDICATOR_CATEGORIES.forEach((cat, ci) => {
-        let tr = "<tr>";
-        cols.forEach((c) => {
-          const first = oi === 0 && ci === 0;
-          switch (c.k) {
-            case "mfo":
-              if (first)
-                tr += `<td rowspan="${totalRows}" class="pc-kra">${pText(MFO_NAME)}</td>`;
-              break;
-            case "kra":
-              if (first)
-                tr += `<td rowspan="${totalRows}" class="pc-kra">${pText(kra.text)}${
-                  hasVal(kra.weight) ? `<br>(${pWeight(kra.weight)})` : ""
-                }</td>`;
-              break;
-            case "meas":
-              tr += `<td class="pc-meas">${cat.label}</td>`;
-              break;
-            case "rate":
-              tr += `<td class="pc-c">${obj && hasVal(obj.ratings[cat.key]) ? Number(obj.ratings[cat.key]) : ""}</td>`;
-              break;
-            case "r5":
-            case "r4":
-            case "r3":
-            case "r2":
-            case "r1": {
-              const n = Number(c.k.slice(1));
-              const item = obj ? obj[cat.key].find((i) => i.rate === n) : null;
-              tr += `<td>${item ? pText(item.label) : ""}</td>`;
-              break;
-            }
-            default:
-              if (ci !== 0) break; // objective-level cell, only on first row
-              {
-                let v = "";
-                let cls = "";
-                if (obj) {
-                  if (c.k === "obj") v = pText(obj.text);
-                  else if (c.k === "time") v = pText(obj.timeline);
-                  else if (c.k === "wt")
-                    ((v = pWeight(obj.weight)), (cls = "pc-c"));
-                  else if (c.k === "mov")
-                    v = obj.mov
-                      ? `<span class="pc-link">${pText(obj.mov)}</span>`
-                      : "";
-                  else if (c.k === "act") v = pText(obj.actualResults);
-                  else if (c.k === "avg") {
-                    const a = computeAverage(obj);
-                    ((v = a === null ? "" : fmt3(a)), (cls = "pc-c"));
-                  } else if (c.k === "wavg") {
-                    const s = computeScore(obj);
-                    ((v = s === null ? "" : fmt3(s)), (cls = "pc-c"));
-                  }
-                }
-                tr += `<td rowspan="3" class="${cls}">${v}</td>`;
-              }
+    rows.forEach((r, ri) => {
+      const { obj, oi, ci } = r;
+      const cat = INDICATOR_CATEGORIES[ci];
+      // First row of this objective within the group, and how many rows it
+      // has here (a cut objective has fewer than three).
+      const segStart = ri === 0 || rows[ri - 1].oi !== oi;
+      let segLen = 0;
+      if (segStart)
+        while (ri + segLen < n && rows[ri + segLen].oi === oi) segLen++;
+      const segContinued = segStart && ci > 0;
+      let tr = "<tr>";
+      cols.forEach((c) => {
+        switch (c.k) {
+          case "mfo":
+            if (ri === 0)
+              tr += `<td rowspan="${n}" class="pc-kra">${showKra ? pText(MFO_NAME) : ""}</td>`;
+            break;
+          case "kra":
+            if (ri === 0)
+              tr += `<td rowspan="${n}" class="pc-kra">${
+                showKra
+                  ? pText(kra.text) +
+                    (hasVal(kra.weight) ? `<br>(${pWeight(kra.weight)})` : "")
+                  : ""
+              }</td>`;
+            break;
+          case "meas":
+            tr += `<td class="pc-meas">${cat.label}</td>`;
+            break;
+          case "rate":
+            tr += `<td class="pc-c">${obj && hasVal(obj.ratings[cat.key]) ? Number(obj.ratings[cat.key]) : ""}</td>`;
+            break;
+          case "r5":
+          case "r4":
+          case "r3":
+          case "r2":
+          case "r1": {
+            const num = Number(c.k.slice(1));
+            const item = obj ? obj[cat.key].find((i) => i.rate === num) : null;
+            tr += `<td>${item ? pText(item.label) : ""}</td>`;
+            break;
           }
-        });
-        html += tr + "</tr>";
+          default: {
+            if (!segStart) break; // objective-level cell, once per objective
+            let v = "";
+            let cls = "";
+            if (obj && !segContinued) {
+              if (c.k === "obj") v = pText(obj.text);
+              else if (c.k === "time") v = pText(obj.timeline);
+              else if (c.k === "wt")
+                ((v = pWeight(obj.weight)), (cls = "pc-c"));
+              else if (c.k === "mov")
+                v = obj.mov
+                  ? `<span class="pc-link">${pText(obj.mov)}</span>`
+                  : "";
+              else if (c.k === "act") v = pText(obj.actualResults);
+              else if (c.k === "avg") {
+                const a = computeAverage(obj);
+                ((v = a === null ? "" : fmt3(a)), (cls = "pc-c"));
+              } else if (c.k === "wavg") {
+                const sc = computeScore(obj);
+                ((v = sc === null ? "" : fmt3(sc)), (cls = "pc-c"));
+              }
+            } else if (c.k === "wt" || c.k === "avg" || c.k === "wavg")
+              cls = "pc-c";
+            tr += `<td rowspan="${segLen}" class="${cls}">${v}</td>`;
+          }
+        }
       });
+      html += tr + "</tr>";
     });
     return html + "</tbody>";
   }
 
-  function printTable() {
-    const cols = printCols();
-    let kras = state.kras;
-    if (!kras.length) {
-      // Nothing entered yet: print blank rows, as on the paper form.
-      kras = [{ text: "", weight: null, objectives: [null, null] }];
-    }
+  // Total row, printed at the end of the last page's table.
+  function printTotalBody(cols) {
     const t = formTotals();
-    const bodies = kras.map((k) => printKraBody(k, cols)).join("");
-    // Total row: total KRA weight lines up under Weight Allocation (col 5),
-    // the label runs to the Weighted Average column, which holds the score.
+    // Total KRA weight lines up under Weight Allocation (col 5), the label
+    // runs to the Weighted Average column, which holds the score.
     const wtIdx = cols.findIndex((c) => c.k === "wt");
-    const total = `<tbody class="pb-total"><tr>
+    return `<tbody class="pb-total"><tr>
       <td colspan="${wtIdx}" class="pc-total-label"></td>
       <td class="pc-c">${t.weight ? pWeight(t.weight) : ""}</td>
       <td colspan="${cols.length - wtIdx - 2}" class="pc-total-label">Overall Rating for Accomplishments</td>
       <td class="pc-c">${t.score === null ? "" : fmt3(t.score)}</td>
     </tr></tbody>`;
-    return `<div class="p-part">
-      <table class="p-table">${printTableHead(cols)}${bodies}${total}</table>
-    </div>`;
+  }
+
+  // ---- Pagination ----
+  // The browser cannot tell us where a page ends, and a table cut by it loses
+  // its bottom line and leaves merged cells hanging across the break. So the
+  // pages are laid out here: rows (Quality / Efficiency / Timeliness of each
+  // objective) are added to the current page one by one, measuring the real
+  // rendered height each time. When the next row would not fit, the page's
+  // table is closed there (a complete, bordered table) and the rest carries
+  // on in a new table on the next page. If that cuts an objective in two, the
+  // second half has empty MFO / KRA / objective cells (see printGroupBody).
+  const PRINT_PAGE_W = "12.3in"; // 13in long bond - 2 x 0.35in margins
+  const PRINT_PAGE_H = 7.8 * 96; // 8.5in - 2 x 0.35in, in CSS px
+  const PRINT_SAFETY = 14; // px kept free, in case print renders a bit taller
+
+  function paginatePrint(kras, pageHtml) {
+    const units = [];
+    kras.forEach((k) => {
+      const objs = k.objectives.length ? k.objectives : [null];
+      objs.forEach((o, oi) => {
+        INDICATOR_CATEGORIES.forEach((cat, ci) =>
+          units.push({ kra: k, row: { obj: o, oi, ci } }),
+        );
+      });
+    });
+
+    // Lay the print copy out off-screen at the exact page width so it can be
+    // measured. (A height of 0 means it could not be measured; everything
+    // then lands on one page and the stylesheet's own break rules apply.)
+    const prevStyle = printRoot.style.cssText;
+    printRoot.style.cssText = `display:block;position:absolute;left:-100000px;top:0;width:${PRINT_PAGE_W};visibility:hidden;`;
+    const measure = (groups, first, last) => {
+      printRoot.innerHTML = pageHtml(groups, first, last);
+      return printRoot.firstElementChild.getBoundingClientRect().height;
+    };
+    const limit = PRINT_PAGE_H - PRINT_SAFETY;
+
+    try {
+      const pages = [[]];
+      const seen = new Set(); // KRAs already printed on an earlier row
+      units.forEach((u, idx) => {
+        const cur = pages[pages.length - 1];
+        const tail = cur[cur.length - 1];
+        const trial = cur.slice();
+        if (tail && tail.kra === u.kra)
+          trial[trial.length - 1] = { ...tail, rows: [...tail.rows, u.row] };
+        else
+          trial.push({
+            kra: u.kra,
+            rows: [u.row],
+            kraContinued: seen.has(u.kra),
+          });
+        const isLastUnit = idx === units.length - 1;
+        // A page always takes at least one row (so page 1 never holds only
+        // the header, even if the first row is very tall).
+        if (
+          !cur.length ||
+          measure(trial, pages.length === 1, isLastUnit) <= limit
+        )
+          pages[pages.length - 1] = trial;
+        else
+          pages.push([
+            { kra: u.kra, rows: [u.row], kraContinued: seen.has(u.kra) },
+          ]);
+        seen.add(u.kra);
+      });
+      return pages;
+    } finally {
+      printRoot.style.cssText = prevStyle;
+    }
   }
 
   function buildPrintHtml() {
@@ -1506,7 +1596,8 @@
       `<tr><th>${l1}</th><td>${pText(v1)}</td><th>${l2}</th><td>${pText(v2)}</td></tr>`;
     const sign = (name, role) =>
       `<div class="p-sign"><div class="p-sign-name">${pText(name)}</div><div class="p-sign-role">${role}</div></div>`;
-    return `
+
+    const headHtml = `
       <div class="p-head">
         ${headerImg ? `<img class="p-header-img" src="${headerImg}" alt="Department of Education">` : ""}
         <div class="p-title">INDIVIDUAL PERFORMANCE COMMITMENT AND REVIEW FORM (IPCRF)</div>
@@ -1517,13 +1608,39 @@
         ${info("Review Period:", h.ratingPeriod, "Approving Authority:", up(authority))}
         ${info("Bureau/Center/Service/Division:", h.bureau, "Date of Review:", pFmtDate(h.dateOfReview))}
         <tr><th>Statement of Purpose:</th><td colspan="3">${pText(h.statementOfPurpose)}</td></tr>
-      </table>
-      ${printTable()}
+      </table>`;
+    const signsHtml = `
       <div class="p-signs">
         ${sign(up(h.nameOfEmployee), "RATEE")}
         ${sign(up(h.nameOfRater), "RATER")}
         ${sign(up(authority), "APPROVING AUTHORITY")}
       </div>`;
+
+    const cols = printCols();
+    let kras = state.kras;
+    if (!kras.length) {
+      // Nothing entered yet: print blank rows, as on the paper form.
+      kras = [{ text: "", weight: null, objectives: [null, null] }];
+    }
+    const thead = printTableHead(cols);
+    const totalHtml = printTotalBody(cols);
+
+    // One .p-page per printed page: the header block only on the first, the
+    // column headings on every one, the total row and signatories on the last.
+    const pageHtml = (groups, first, last) => `<div class="p-page">
+      ${first ? headHtml : ""}
+      <div class="p-part">
+        <table class="p-table">${thead}${groups
+          .map((g) => printGroupBody(g, cols))
+          .join("")}${last ? totalHtml : ""}</table>
+      </div>
+      ${last ? signsHtml : ""}
+    </div>`;
+
+    const pages = paginatePrint(kras, pageHtml);
+    return pages
+      .map((groups, i) => pageHtml(groups, i === 0, i === pages.length - 1))
+      .join("");
   }
 
   function refreshPrintRoot() {

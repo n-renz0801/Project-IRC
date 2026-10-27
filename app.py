@@ -50,6 +50,7 @@ from models import (
     IRC7_COLUMN_TYPE_TEXT,
     IRC7_COLUMN_TYPE_NUMBER,
     IRC7_COLUMN_TYPE_PARAGRAPH,
+    IRC7_COLUMN_TYPE_CHECKBOX,
     IRC8B_SECTION_CBC,
     IRC8B_SECTION_CS,
 )
@@ -2822,7 +2823,7 @@ def add_irc7_columns():
     if not isinstance(new_columns, list) or not new_columns:
         return jsonify({"error": "'columns' must be a non-empty list"}), 400
 
-    valid_types = (IRC7_COLUMN_TYPE_TEXT, IRC7_COLUMN_TYPE_NUMBER, IRC7_COLUMN_TYPE_PARAGRAPH)
+    valid_types = (IRC7_COLUMN_TYPE_TEXT, IRC7_COLUMN_TYPE_NUMBER, IRC7_COLUMN_TYPE_PARAGRAPH, IRC7_COLUMN_TYPE_CHECKBOX)
 
     # Current table order; new columns get spliced into this list.
     ordered = IRC7Column.query.order_by(IRC7Column.sort_order.asc()).all()
@@ -2884,8 +2885,15 @@ def edit_irc7_column(column_id):
     if not name:
         return jsonify({"error": "Name cannot be empty"}), 400
     col_type = data.get("type") or column.type
-    if col_type not in (IRC7_COLUMN_TYPE_TEXT, IRC7_COLUMN_TYPE_NUMBER, IRC7_COLUMN_TYPE_PARAGRAPH):
+    if col_type not in (IRC7_COLUMN_TYPE_TEXT, IRC7_COLUMN_TYPE_NUMBER, IRC7_COLUMN_TYPE_PARAGRAPH, IRC7_COLUMN_TYPE_CHECKBOX):
         return jsonify({"error": f"Invalid column type: {col_type!r}"}), 400
+
+    # Checkbox values ("1"/NULL) aren't meaningful as text/number/paragraph
+    # content and vice versa, so switching to or from a checkbox column
+    # clears that column's stored values (every year) instead of leaving
+    # values that would be misread under the new type.
+    if col_type != column.type and IRC7_COLUMN_TYPE_CHECKBOX in (col_type, column.type):
+        IRC7CellValue.query.filter_by(column_id=column.id).delete()
 
     column.name = name
     column.type = col_type
@@ -2959,10 +2967,15 @@ def save_irc7_cell():
 
     if IRC7Row.query.get(row_id) is None:
         return jsonify({"error": "Row not found"}), 404
-    if IRC7Column.query.get(column_id) is None:
+    column = IRC7Column.query.get(column_id)
+    if column is None:
         return jsonify({"error": "Column not found"}), 404
 
-    if value == "":
+    if column.type == IRC7_COLUMN_TYPE_CHECKBOX:
+        # Normalize to "1" (checked) / NULL (unchecked) no matter how the
+        # client phrased it (true, "true", "1", 1, ...).
+        value = "1" if value in (True, 1, "1", "true", "True") else None
+    elif value == "":
         value = None
 
     cell = IRC7CellValue.query.filter_by(row_id=row_id, column_id=column_id, year=year).first()

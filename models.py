@@ -78,6 +78,9 @@ IRC6_KIND_OUTPUT = "output"
 IRC7_COLUMN_TYPE_TEXT = "text"
 IRC7_COLUMN_TYPE_NUMBER = "number"
 IRC7_COLUMN_TYPE_PARAGRAPH = "paragraph"
+# Cell values for a checkbox column are stored in IRC7CellValue.value as
+# "1" (checked); unchecked is stored as NULL, same as any other cleared cell.
+IRC7_COLUMN_TYPE_CHECKBOX = "checkbox"
 
 IRC8B_SECTION_CBC = "cbc"
 IRC8B_SECTION_CS = "cs"

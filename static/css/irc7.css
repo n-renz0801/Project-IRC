@@ -738,6 +738,24 @@
   appearance: textfield;
 }
 
+/* Checkbox columns: a centered native checkbox instead of a boxed field. */
+.irc7-cell-input.irc7-cell-input--checkbox {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 4px auto;
+  display: block;
+  cursor: pointer;
+  accent-color: #4a6fa5;
+  box-shadow: none;
+}
+
+/* The whole cell is a click target for its checkbox (see the delegated
+   click handler on tbody in irc7.js), so show it as clickable. */
+.irc7-editable-cell:has(.irc7-cell-input--checkbox) {
+  cursor: pointer;
+}
+
 /* ---------- Modal (shared: Add Column & Edit) ---------- */
 
 .irc7-modal {
@@ -1566,6 +1584,15 @@
     padding: 0 !important;
     width: 100% !important;
     text-align: center;
+  }
+
+  /* Checkboxes keep their native box so a ticked cell still reads on paper. */
+  .irc7-cell-input.irc7-cell-input--checkbox {
+    width: 10px !important;
+    height: 10px !important;
+    margin: 0 auto !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   /* Avoid splitting a table row awkwardly across a page break. */

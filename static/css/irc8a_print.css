@@ -10,6 +10,7 @@
   display: none;
 }
 
+/* Print-only: hide the app, show the print copy, one .p-page per page. */
 @media print {
   /* Hide the whole app chrome (nav, footer, the interactive form) without
      needing to know base.html's markup. */
@@ -43,194 +44,272 @@
 
   #irc8a-print-root {
     display: block;
-    color: #000;
-    font-family: "Arial Narrow", Arial, "Liberation Sans Narrow", sans-serif;
-    font-stretch: condensed;
-    font-size: 6.5pt;
-    line-height: 1.2;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
   }
-  #irc8a-print-root *,
-  #irc8a-print-root *::before,
-  #irc8a-print-root *::after {
-    box-sizing: border-box;
-    font-family: "Arial Narrow", Arial, "Liberation Sans Narrow", sans-serif;
-    font-stretch: condensed;
+  .p-page + .p-page {
+    break-before: page;
   }
+}
 
-  /* ---------- Page header ---------- */
-  .p-annex {
-    display: inline-block;
-    border: 1px solid #000;
-    padding: 1px 8px;
-    font-weight: 700;
-    font-size: 8pt;
-  }
-  .p-head,
-  .p-part,
-  .p-annex {
-    box-shadow: none;
-    background: none;
-  }
-  .p-head,
-  .p-part {
-    border: 0;
-    padding: 0;
-  }
-  .p-head::before,
-  .p-head::after,
-  .p-part::before,
-  .p-part::after {
-    content: none;
-    display: none;
-  }
-  .p-head {
-    text-align: center;
-    margin: -6px 0 6px;
-  }
-  .p-header-img {
-    display: block;
-    height: 0.9in;
-    width: auto;
-    margin: 0 auto 3px;
-  }
-  .p-title {
-    font-weight: 700;
-    font-size: 9pt;
-    margin-top: 3px;
-  }
-  .p-ver {
-    font-size: 6.5pt;
-    font-weight: 700;
-  }
+/* Layout of the print copy. These rules are NOT inside @media print on
+   purpose: irc8a.js lays the copy out off-screen at the page width to measure
+   it and decide where each page ends. On screen the root stays hidden
+   (display: none above), so none of this is ever visible. */
+#irc8a-print-root {
+  color: #000;
+  font-family: "Arial Narrow", Arial, "Liberation Sans Narrow", sans-serif;
+  font-stretch: condensed;
+  font-size: 6.5pt;
+  line-height: 1.2;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+#irc8a-print-root *,
+#irc8a-print-root *::before,
+#irc8a-print-root *::after {
+  box-sizing: border-box;
+  font-family: "Arial Narrow", Arial, "Liberation Sans Narrow", sans-serif;
+  font-stretch: condensed;
+}
 
-  /* ---------- Identifying block ---------- */
-  .p-info {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 6px;
-  }
-  .p-info th,
-  .p-info td {
-    border: 0.5pt solid #000;
-    padding: 1.5px 4px;
-    text-align: left;
-    font-size: 7pt;
-    height: 13px;
-  }
-  .p-info th {
-    width: 17%;
-    font-weight: 700;
-    background: #f2f2f2;
-  }
-  .p-info td {
-    width: 33%;
-    font-weight: 700;
-    white-space: pre-line;
-  }
+/* ---------- Page header ---------- */
+.p-annex {
+  display: inline-block;
+  border: 1px solid #000;
+  padding: 1px 8px;
+  font-weight: 700;
+  font-size: 10pt;
+}
+.p-head,
+.p-part,
+.p-annex {
+  box-shadow: none;
+  background: none;
+}
+.p-head,
+.p-part {
+  border: 0;
+  padding: 0;
+}
+.p-head::before,
+.p-head::after,
+.p-part::before,
+.p-part::after {
+  content: none;
+  display: none;
+}
+.p-head {
+  text-align: center;
+  margin: -6px 0 6px;
+}
+.p-header-img {
+  display: block;
+  height: 0.9in;
+  width: auto;
+  margin: 0 auto 3px;
+}
+.p-title {
+  font-weight: 700;
+  font-size: 11pt;
+  margin-top: 3px;
+}
+.p-ver {
+  font-size: 8pt;
+  font-weight: 700;
+}
 
-  /* ---------- Parts ---------- */
-  .p-part {
-    margin-top: 8px;
-  }
-  .p-part h3 {
-    margin: 0 0 2px;
-    font-size: 8pt;
-    font-weight: 700;
-    text-decoration: underline;
-    break-after: avoid;
-  }
-  .p-intro {
-    margin: 0 0 3px;
-    font-size: 6.5pt;
-    break-after: avoid;
-  }
+/* ---------- Identifying block ---------- */
+.p-info {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 6px;
+}
+.p-info th,
+.p-info td {
+  border: 0.5pt solid #000;
+  padding: 1.5px 4px;
+  text-align: left;
+  font-size: 8.5pt;
+  height: 15px;
+}
+.p-info th {
+  width: 17%;
+  font-weight: 700;
+  background: #f2f2f2;
+}
+.p-info td {
+  -webkit-hyphens: auto;
+  hyphens: auto;
+  width: 33%;
+  font-weight: 700;
+  white-space: pre-line;
+}
 
-  .p-table {
-    width: 100%;
-    table-layout: fixed;
-    border-collapse: collapse;
-  }
-  .p-table th,
-  .p-table td {
-    border: 0.5pt solid #000;
-    padding: 1px 2px;
-    vertical-align: top;
-    text-align: left;
-    overflow-wrap: anywhere;
-    white-space: pre-line;
-    font-size: 6pt;
-  }
-  .p-table th {
-    background: #d9d9d9;
-    text-align: center;
-    vertical-align: middle;
-    font-weight: 700;
-    white-space: normal;
-  }
-  .p-table .ph-band th {
-    background: #bfbfbf;
-    font-size: 6.5pt;
-  }
-  .p-table thead {
-    display: table-header-group; /* repeat headers on every page */
-  }
-  .p-table tbody.pb-kra {
-    break-inside: avoid;
-  }
-  .p-table tr {
-    break-inside: avoid;
-  }
-  .p-table tbody.pb-total {
-    break-inside: avoid;
-  }
-  .p-table td {
-    height: 17px; /* gives blank rows body, like the paper form */
-  }
-  .p-table .pc-kra {
-    font-weight: 700;
-  }
-  .p-table .pc-meas {
-    font-weight: 700;
-    text-align: center;
-    vertical-align: middle;
-  }
-  .p-table .pc-c {
-    text-align: center;
-    vertical-align: middle;
-  }
-  .p-table .pc-link {
-    word-break: break-all;
-    text-decoration: underline;
-  }
-  .p-table .pc-total-label {
-    text-align: right;
-    font-weight: 700;
-    background: #f2f2f2;
-    height: auto;
-  }
+/* ---------- Parts ---------- */
+.p-part {
+  margin-top: 8px;
+}
+.p-part h3 {
+  margin: 0 0 2px;
+  font-size: 8pt;
+  font-weight: 700;
+  text-decoration: underline;
+  break-after: avoid;
+}
+.p-intro {
+  margin: 0 0 3px;
+  font-size: 6.5pt;
+  break-after: avoid;
+}
 
-  /* ---------- Signatories ---------- */
-  .p-signs {
-    display: flex;
-    justify-content: space-around;
-    margin-top: 28px;
-    break-inside: avoid;
-  }
-  .p-sign {
-    width: 3in;
-    text-align: center;
-  }
-  .p-sign-name {
-    border-bottom: 0.5pt solid #000;
-    min-height: 14px;
-    font-size: 8pt;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-  .p-sign-role {
-    font-size: 7pt;
-    margin-top: 1px;
-  }
+/* Borders: classic collapsed grid, 1px solid. (0.5pt hairlines can vanish
+   in the print preview / PDF raster, which is what made some lines look
+   missing.) */
+.p-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.p-table th,
+.p-table td {
+  border: 1px solid #000;
+  padding: 1px 2px;
+  vertical-align: top;
+  text-align: left;
+  overflow-wrap: anywhere; /* last resort for strings with no hyphen point */
+  white-space: pre-line;
+  font-size: 8.5pt;
+  /* Break long words with a hyphen instead of cutting them bare. Needs the
+     lang attribute set on #irc8a-print-root (irc8a.js does this). */
+  -webkit-hyphens: auto;
+  hyphens: auto;
+  hyphenate-limit-chars: 6 3 3; /* word >= 6 letters, 3+ before / after */
+}
+.p-table th {
+  background: #d9d9d9;
+  text-align: center;
+  vertical-align: middle;
+  font-weight: 700;
+  white-space: normal;
+}
+.p-table .ph-band th {
+  background: #bfbfbf;
+  font-size: 9pt;
+}
+.p-table thead {
+  display: table-header-group; /* repeat headers on every page */
+}
+
+/* Keep the table continuous: KRA groups never start on a new page and
+   never have to fit on one page. The table is cut only between rows.
+   !important beats any inline page-break styles set by irc8a.js. */
+.p-table,
+.p-table tbody,
+.p-table tbody.pb-kra,
+.p-table tr,
+.p-table th,
+.p-table td {
+  break-before: auto !important;
+  page-break-before: auto !important;
+}
+.p-table tbody,
+.p-table tbody.pb-kra {
+  break-inside: auto !important;
+  break-after: auto !important;
+  page-break-inside: auto !important;
+  page-break-after: auto !important;
+}
+
+/* Rows stay whole (no text cut mid-row)... */
+.p-table tr {
+  break-inside: avoid;
+  break-after: auto !important;
+}
+/* An objective (its Quality / Efficiency / Timeliness rows plus the cells
+   that span them: objective, timeline, weight, MOV, actual results, rating)
+   is never cut. If it does not fit at the bottom of a page, the whole
+   objective moves to the next page and the table carries on from there. */
+.p-table td[rowspan],
+.p-table th[rowspan] {
+  break-inside: avoid !important;
+}
+
+/* The MFO and KRA cells span every objective of the KRA, so they must be
+   allowed to split; otherwise the whole KRA would jump to a new page. They
+   sit in the first two columns of the KRA's first row. */
+.p-table tbody > tr:first-child > td:nth-child(-n + 2),
+.p-table td.pc-kra {
+  break-inside: auto !important;
+}
+
+/* Safety net: the very first objective may split if it cannot fit under the
+   header, so page 1 always carries table content. */
+.p-table tbody:first-of-type > tr:first-child > td,
+.p-table tbody:first-of-type > tr:first-child {
+  break-inside: auto !important;
+}
+
+.p-table tbody.pb-total {
+  break-inside: avoid; /* keep the total row from being orphaned alone */
+}
+
+.p-table td {
+  height: 17px; /* gives blank rows body, like the paper form */
+}
+.p-table .pc-kra {
+  font-weight: 700;
+}
+.p-table .pc-meas {
+  font-weight: 700;
+  text-align: center;
+  vertical-align: middle;
+}
+.p-table .pc-c {
+  text-align: center;
+  vertical-align: middle;
+}
+.p-table .pc-link {
+  -webkit-hyphens: none; /* URLs: never add hyphens, they would corrupt it */
+  hyphens: none;
+  word-break: break-all;
+  text-decoration: none;
+  font-style: italic;
+  font-size: 3.5pt; /* MOV column contents */
+}
+.p-table .pc-total-label {
+  text-align: right;
+  font-weight: 700;
+  background: #f2f2f2;
+  height: auto;
+}
+
+/* ---------- Signatories ---------- */
+.p-signs {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 28px;
+  break-inside: avoid;
+}
+.p-sign {
+  width: 3in;
+  text-align: center;
+}
+.p-sign-name {
+  border-bottom: 0.5pt solid #000;
+  min-height: 14px;
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.p-sign-role {
+  font-size: 7pt;
+  margin-top: 1px;
+}
+
+/* One .p-page = one printed page. flow-root makes its measured height include
+   its children's margins. */
+.p-page {
+  display: flow-root;
+}
+.p-page + .p-page .p-part {
+  margin-top: 0;
 }

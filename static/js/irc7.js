@@ -75,6 +75,7 @@
     text: 140,
     number: 100,
     paragraph: 220,
+    checkbox: 80,
   };
 
   // ---------- Data model for added groups/columns ----------
@@ -437,6 +438,7 @@
       <option value="text">Text</option>
       <option value="number">Number</option>
       <option value="paragraph">Paragraph</option>
+      <option value="checkbox">Checkbox</option>
     `;
     typeSelect.value = col ? col.type : "text";
 
@@ -646,6 +648,10 @@
 
   async function saveColumnEdit(col, newName, newType) {
     const typeChanged = col.type !== newType;
+    // The server wipes a column's stored values when it switches to or
+    // from "checkbox" (see edit_irc7_column), so mirror that locally.
+    const crossesCheckbox =
+      typeChanged && (col.type === "checkbox" || newType === "checkbox");
 
     const res = await fetch(`/irc/irc7/column/${col.id}`, {
       method: "PUT",
@@ -664,6 +670,12 @@
       groupRow.querySelector(`th[data-col-id="${col.id}"]`);
     if (th) th.textContent = newName;
 
+    if (crossesCheckbox) {
+      Object.keys(cellValues).forEach((key) => {
+        if (key.endsWith(`:${col.id}`)) delete cellValues[key];
+      });
+    }
+
     if (typeChanged) {
       const colEl = colgroup.querySelector(`col[data-col-id="${col.id}"]`);
       if (colEl) {
@@ -674,7 +686,9 @@
       tbody.querySelectorAll(`td[data-col-id="${col.id}"]`).forEach((td) => {
         const tr = td.closest("tr");
         const rowId = Number(tr.dataset.rowId);
-        const oldVal = td.querySelector("input")?.value || "";
+        const oldInput = td.querySelector("input");
+        const oldVal =
+          !crossesCheckbox && oldInput ? getCellInputValue(oldInput) : "";
         const keepValue =
           newType !== "number" ||
           oldVal === "" ||
@@ -691,8 +705,7 @@
 
       const totalsCell = totalsRow.querySelector(`td[data-col-id="${col.id}"]`);
       if (totalsCell) {
-        totalsCell.textContent =
-          newType === "number" ? formatSum(computeColumnSum(col.id)) : "";
+        totalsCell.textContent = computeTotalText(col.id, newType);
       }
 
       recalcLayout();
@@ -945,18 +958,28 @@
     totalsRow.appendChild(buildTotalsCell(colId, type));
   }
 
+  // A checkbox cell's "value" is its checked state, stored as "1" /
+  // "" (the same empty-string-clears convention every other type uses).
+  function getCellInputValue(input) {
+    if (input.type === "checkbox") return input.checked ? "1" : "";
+    return input.value;
+  }
+
   function buildCellInput(type, rowId, colId, initialValue) {
     const input = document.createElement("input");
-    input.type = type === "number" ? "number" : "text";
+    input.type =
+      type === "number" ? "number" : type === "checkbox" ? "checkbox" : "text";
     input.className = "irc7-cell-input irc7-cell-input--" + type;
     if (type === "number") input.step = "any";
     if (type === "paragraph") input.placeholder = "Enter text...";
-    if (initialValue !== undefined && initialValue !== null) {
+    if (type === "checkbox") {
+      input.checked = initialValue === "1" || initialValue === "true";
+    } else if (initialValue !== undefined && initialValue !== null) {
       input.value = initialValue;
     }
 
     input.addEventListener("change", () => {
-      saveCellValue(rowId, colId, input.value);
+      saveCellValue(rowId, colId, getCellInputValue(input));
       updateColumnTotal(colId);
     });
 
@@ -1002,23 +1025,49 @@
     return sum;
   }
 
+  // Number of ticked checkboxes in a checkbox column.
+  function computeColumnCheckedCount(colId) {
+    return tbody.querySelectorAll(
+      `td[data-col-id="${colId}"] input[type="checkbox"]:checked`,
+    ).length;
+  }
+
+  // Text shown in a column's totals cell: a running sum for "number"
+  // columns, a count of ticked boxes for "checkbox" columns, blank otherwise.
+  function computeTotalText(colId, type) {
+    if (type === "number") return formatSum(computeColumnSum(colId));
+    if (type === "checkbox") return String(computeColumnCheckedCount(colId));
+    return "";
+  }
+
   function buildTotalsCell(colId, type) {
     const td = document.createElement("td");
     td.className = "irc7-totals-cell";
     td.dataset.colId = colId;
-    if (type === "number") {
-      td.textContent = formatSum(computeColumnSum(colId));
-    }
+    td.textContent = computeTotalText(colId, type);
     return td;
   }
 
   function updateColumnTotal(colId) {
     const col = columns.find((c) => c.id === colId);
-    if (!col || col.type !== "number") return;
+    if (!col || (col.type !== "number" && col.type !== "checkbox")) return;
     const cell = totalsRow.querySelector(`td[data-col-id="${colId}"]`);
     if (!cell) return;
-    cell.textContent = formatSum(computeColumnSum(colId));
+    cell.textContent = computeTotalText(colId, col.type);
   }
+
+  // Clicking anywhere in a checkbox column's cell (not just on the tiny
+  // box itself) toggles that row's checkbox. Delegated on tbody so it also
+  // covers rows/columns added later and cells rebuilt by a type change.
+  tbody.addEventListener("click", (e) => {
+    const td = e.target.closest("td.irc7-editable-cell");
+    if (!td || !tbody.contains(td)) return;
+    const input = td.querySelector('input[type="checkbox"]');
+    // Clicks on the box itself already toggle natively.
+    if (!input || e.target === input) return;
+    input.checked = !input.checked;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
 
   // ================= REMOVE COLUMN / GROUP =================
   //
@@ -1289,14 +1338,16 @@
     // DOM are left completely alone.
     cellValues = {};
     tbody.querySelectorAll(".irc7-cell-input").forEach((input) => {
-      input.value = "";
+      if (input.type === "checkbox") input.checked = false;
+      else input.value = "";
     });
 
     // Every number column's sum drops to 0 now that its inputs are
     // empty -- recompute in place rather than assuming "0" everywhere,
     // in case a future change makes the sum ignore truly-empty cells.
     columns.forEach((col) => {
-      if (col.type === "number") updateColumnTotal(col.id);
+      if (col.type === "number" || col.type === "checkbox")
+        updateColumnTotal(col.id);
     });
   }
 
