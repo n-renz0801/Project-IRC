@@ -1,24 +1,9 @@
 (function () {
-  const sectionsCbcEl = document.getElementById("irc8b-sections-cbc");
-  const sectionsCsEl = document.getElementById("irc8b-sections-cs");
-  if (!sectionsCbcEl || !sectionsCsEl) return;
-
-  // Maps a DATA section key to the container it renders into, now that
-  // Core Behavioral Competencies and Core Skills each get their own
-  // guided-flow step/section instead of sharing one #irc8b-sections list.
-  const SECTION_CONTAINERS = {
-    cbc: sectionsCbcEl,
-    cs: sectionsCsEl,
-  };
-
-  const summaryCbcEl = document.getElementById("irc8b-summary-cbc");
-  const summaryCbcDescEl = document.getElementById("irc8b-summary-cbc-desc");
-  const summaryCsEl = document.getElementById("irc8b-summary-cs");
-  const summaryCsDescEl = document.getElementById("irc8b-summary-cs-desc");
-  const summaryOverallEl = document.getElementById("irc8b-summary-overall");
-  const summaryOverallDescEl = document.getElementById(
-    "irc8b-summary-overall-desc",
-  );
+  const workspaceEl = document.getElementById("irc8b-workspace");
+  if (!workspaceEl) return;
+  const navEl = document.getElementById("irc8b-nav");
+  const detailEl = document.getElementById("irc8b-detail");
+  const partTabsEl = document.getElementById("irc8b-part-tabs");
 
   const resetBtn = document.getElementById("irc8b-reset-btn");
   const resetConfirmOverlay = document.getElementById(
@@ -156,30 +141,29 @@
   ];
 
   // ================= State =================
-  // ratings[subsectionKey] = [r1, r2, r3, r4, r5]  (each null or 1-5)
+  // ratings[subsectionKey] = [r1..r5]   (each null or 1-5)
   const ratings = {};
-  DATA.forEach((section) => {
-    section.subsections.forEach((sub) => {
-      ratings[sub.key] = sub.criteria.map(() => null);
-    });
-  });
-
-  // Which section (cbc/cs) each subsection belongs to -- needed when
-  // saving a rating, since the server stores sectionKey alongside it
-  // (see models.IRC8BRating) even though the client mostly indexes by
-  // subsectionKey alone.
   const SUBSECTION_TO_SECTION = {};
   DATA.forEach((section) => {
     section.subsections.forEach((sub) => {
+      ratings[sub.key] = sub.criteria.map(() => null);
       SUBSECTION_TO_SECTION[sub.key] = section.key;
     });
   });
 
   const YEAR = new Date().getFullYear();
 
-  // Ratings themselves are persisted server-side (see /irc/irc8b/data and
-  // /irc/irc8b/rating) -- the sections/subsections/criteria above stay
-  // hardcoded, only the numbers the user picks are saved.
+  // View state: which part (II-A / II-B) and which competency is open.
+  let activePart = "cbc";
+  const sel = { subKey: null };
+  const PART_SHORT = {
+    cbc: { name: "Core Behavioral Competencies" },
+    cs: { name: "Core Skills" },
+  };
+
+  // ================= Server sync =================
+  // Only the numbers the user enters are persisted; the
+  // sections/subsections/indicators above stay hardcoded.
   async function loadRatings() {
     try {
       const res = await fetch(`/irc/irc8b/data?year=${YEAR}`);
@@ -189,11 +173,10 @@
 
       Object.keys(serverRatings).forEach((subKey) => {
         if (!ratings[subKey]) return; // unknown subsection key -- ignore
-        const idxMap = serverRatings[subKey];
-        Object.keys(idxMap).forEach((idxStr) => {
+        Object.entries(serverRatings[subKey]).forEach(([idxStr, value]) => {
           const idx = Number(idxStr);
           if (idx >= 0 && idx < ratings[subKey].length) {
-            ratings[subKey][idx] = idxMap[idxStr];
+            ratings[subKey][idx] = value;
           }
         });
       });
@@ -203,7 +186,9 @@
     render();
   }
 
-  async function saveRating(subKey, idx, value) {
+  // `fields` is { rating } -- the server only touches the fields present
+  // in the body.
+  async function saveEntry(subKey, idx, fields) {
     try {
       const res = await fetch("/irc/irc8b/rating", {
         method: "POST",
@@ -213,20 +198,18 @@
           sectionKey: SUBSECTION_TO_SECTION[subKey],
           subsectionKey: subKey,
           criterionIndex: idx,
-          rating: value,
+          ...fields,
         }),
       });
       if (!res.ok) throw new Error("Save failed");
     } catch (err) {
-      console.error("Failed to save IRC8b rating:", err);
+      console.error("Failed to save IRC8B entry:", err);
     }
   }
 
   // ================= Reset-page confirmation modal =================
-  // There's no bulk-clear endpoint (only per-criterion POST /rating,
-  // which accepts rating: null to clear one), so reset fires one
-  // best-effort clear request per currently-set rating -- same
-  // per-item pattern used everywhere else these reset buttons appear.
+  // No bulk-clear endpoint: reset fires one best-effort clear request per
+  // indicator that currently has a rating.
   function openResetConfirm() {
     resetConfirmOverlay.classList.add("visible");
   }
@@ -248,7 +231,7 @@
       Object.keys(ratings).forEach((subKey) => {
         ratings[subKey].forEach((value, idx) => {
           if (value !== null) {
-            clears.push(saveRating(subKey, idx, null));
+            clears.push(saveEntry(subKey, idx, { rating: null }));
           }
           ratings[subKey][idx] = null;
         });
@@ -273,18 +256,21 @@
     return div.innerHTML;
   }
 
+  function escapeAttr(str) {
+    return escapeHtml(str).replace(/"/g, "&quot;");
+  }
+
   function average(values) {
     const rated = values.filter((v) => v !== null && v !== undefined);
     if (rated.length === 0) return null;
     return rated.reduce((sum, v) => sum + v, 0) / rated.length;
   }
 
-  // Converts a numeric average into the closest 1-5 descriptive label
-  // (e.g. 4.3 -> "Consistently demonstrate"). Empty when nothing rated.
+  // Closest 1-5 adjectival rating for a numeric average, e.g. 4.3 ->
+  // "Consistently Demonstrated". Empty when nothing is rated.
   function ratingDescription(avg) {
     if (avg === null || avg === undefined || isNaN(avg)) return "";
-    let rounded = Math.round(avg);
-    rounded = Math.min(5, Math.max(1, rounded));
+    const rounded = Math.min(5, Math.max(1, Math.round(avg)));
     return RATING_LABELS[rounded];
   }
 
@@ -299,94 +285,221 @@
     return average(subAvgs);
   }
 
-  // ================= Render =================
-  function render() {
-    sectionsCbcEl.innerHTML = "";
-    sectionsCsEl.innerHTML = "";
-
-    DATA.forEach((section) => {
-      const container = SECTION_CONTAINERS[section.key];
-      if (!container) return; // unknown section key -- shouldn't happen
-
-      const sectionCard = document.createElement("div");
-      sectionCard.className = "irc8b-section";
-
-      const secAvg = sectionAverage(section);
-
-      const subHtml = section.subsections
-        .map((sub) => renderSubsection(sub))
-        .join("");
-
-      sectionCard.innerHTML = `
-        <div class="irc8b-section-header">
-          <span class="irc8b-section-title">${escapeHtml(section.title)}</span>
-          <span class="irc8b-section-avg">${fmtNum(secAvg)}</span>
-        </div>
-        <div class="irc8b-subsection-list">${subHtml}</div>
-      `;
-
-      container.appendChild(sectionCard);
-    });
-
-    updateSummary();
+  // ================= Icons / progress ring =================
+  // Ring on each competency in the sidebar: arc = rated / total indicators.
+  const RING_R = 8;
+  const RING_C = 2 * Math.PI * RING_R;
+  function progressRing(done, total) {
+    const track = `<circle class="irc8b-ring-track" cx="12" cy="12" r="${RING_R}"></circle>`;
+    if (total > 0 && done === total) {
+      return `<svg class="irc8b-ring" viewBox="0 0 24 24" aria-hidden="true"><circle class="irc8b-ring-fill" cx="12" cy="12" r="10.5"></circle><path class="irc8b-ring-check" d="M7.8 12.4l3 3 5.4-6"></path></svg>`;
+    }
+    const frac = total ? done / total : 0;
+    const arc =
+      done > 0
+        ? `<circle class="irc8b-ring-arc" cx="12" cy="12" r="${RING_R}" stroke-dasharray="${(RING_C * frac).toFixed(2)} ${RING_C.toFixed(2)}" transform="rotate(-90 12 12)"></circle>`
+        : "";
+    return `<svg class="irc8b-ring" viewBox="0 0 24 24" aria-hidden="true">${track}${arc}</svg>`;
   }
 
-  function renderSubsection(sub) {
-    const subAvg = subsectionAverage(sub.key);
+  function subProgress(subKey) {
+    const list = ratings[subKey];
+    const done = list.filter((v) => v !== null).length;
+    return {
+      done,
+      total: list.length,
+      state: done === 0 ? "none" : done === list.length ? "done" : "partial",
+    };
+  }
+  const PROGRESS_LABELS = {
+    none: "Not started",
+    partial: "In progress",
+    done: "Complete",
+  };
+
+  function currentSection() {
+    return DATA.find((s) => s.key === activePart);
+  }
+
+  function ensureSelection() {
+    const section = currentSection();
+    if (section.subsections.some((sub) => sub.key === sel.subKey)) return;
+    sel.subKey = section.subsections[0].key;
+  }
+
+  // ================= Render: part tabs =================
+  function renderPartTabs() {
+    const cards = DATA.map((section) => {
+      const meta = PART_SHORT[section.key];
+      const avg = sectionAverage(section);
+      const active = section.key === activePart;
+      return `
+        <button type="button" class="irc8b-part-tab${active ? " is-active" : ""}" data-part="${section.key}" role="tab" aria-selected="${active}">
+          <span class="irc8b-part-tab-name">${escapeHtml(meta.name)}</span>
+          <span class="irc8b-part-tab-stats">
+            <span class="irc8b-part-tab-stat" title="Average of the rated competencies">
+              <span class="irc8b-part-tab-k">Average</span>
+              <span class="irc8b-part-tab-v${avg === null ? " is-empty" : ""}">${fmtNum(avg)}</span>
+            </span>
+          </span>
+          <span class="irc8b-part-tab-desc">${escapeHtml(ratingDescription(avg))}</span>
+        </button>`;
+    }).join("");
+
+    // Total card (not clickable): average across the parts that are rated.
+    const overallAvg = average(
+      DATA.map((s) => sectionAverage(s)).filter((v) => v !== null),
+    );
+    const total = `
+      <div class="irc8b-part-total" role="status">
+        <span class="irc8b-part-tab-name">Overall Average</span>
+        <span class="irc8b-part-tab-stats">
+          <span class="irc8b-part-tab-stat">
+            <span class="irc8b-part-tab-k">Average</span>
+            <span class="irc8b-part-tab-v${overallAvg === null ? " is-empty" : ""}">${fmtNum(overallAvg)}</span>
+          </span>
+        </span>
+        <span class="irc8b-part-tab-desc">${escapeHtml(ratingDescription(overallAvg))}</span>
+      </div>`;
+    partTabsEl.innerHTML = cards + total;
+  }
+
+  // ================= Render: sidebar =================
+  function renderNav() {
+    const section = currentSection();
+    const meta = PART_SHORT[section.key];
+    const secAvg = sectionAverage(section);
+
+    const items = section.subsections
+      .map((sub) => {
+        const prog = subProgress(sub.key);
+        const isSel = sub.key === sel.subKey;
+        const tip = `${PROGRESS_LABELS[prog.state]} (${prog.done}/${prog.total} rated)`;
+        return `
+          <button type="button" class="irc8b-nav-item${isSel ? " is-selected" : ""}" data-action="select-sub" data-sub="${sub.key}" title="${escapeAttr(sub.title)}"${isSel ? ' aria-current="true"' : ""}>
+            <span class="irc8b-nav-main">
+              <span class="irc8b-nav-progress" title="${escapeAttr(tip)}" role="img" aria-label="${escapeAttr(tip)}">${progressRing(prog.done, prog.total)}</span>
+              <span class="irc8b-nav-code">${escapeHtml(sub.title)}</span>
+            </span>
+            <span class="irc8b-nav-avg" title="Competency average">${fmtNum(subsectionAverage(sub.key))}</span>
+          </button>`;
+      })
+      .join("");
+
+    navEl.innerHTML = `
+      <div class="irc8b-nav-group">
+        <div class="irc8b-nav-group-head">
+          <div class="irc8b-nav-group-row">
+            <span class="irc8b-nav-group-title">${escapeHtml(meta.name)}</span>
+            <span class="irc8b-nav-group-weight" title="Section average">${fmtNum(secAvg)}</span>
+          </div>
+        </div>
+        ${items}
+      </div>`;
+  }
+
+  // ================= Render: detail panel =================
+  function renderDetail() {
+    const section = currentSection();
+    const meta = PART_SHORT[section.key];
+    const subs = section.subsections;
+    const idx = subs.findIndex((sub) => sub.key === sel.subKey);
+    const sub = subs[idx];
+    const secAvg = sectionAverage(section);
 
     const rowsHtml = sub.criteria
       .map((text, i) => renderCriterionRow(sub.key, i, text))
       .join("");
+    const prev = subs[idx - 1];
+    const next = subs[idx + 1];
 
-    return `
-      <div class="irc8b-subsection-card">
+    detailEl.innerHTML = `
+      <div class="irc8b-intro">
+        <div class="irc8b-intro-head">
+          <div>
+            <h3>${escapeHtml(meta.name)}</h3>
+          </div>
+          <span class="irc8b-intro-weighted" title="Average of the rated competencies in this section">
+            <span class="irc8b-label">Section average</span>
+            <strong>${fmtNum(secAvg)}</strong>
+          </span>
+        </div>
+      </div>
+
+      <section class="irc8b-subsection-card">
         <div class="irc8b-subsection-header">
-          <span class="irc8b-subsection-title">${escapeHtml(sub.title)}</span>
-          <span class="irc8b-subsection-avg">${fmtNum(subAvg)}</span>
+          <div>
+            <span class="irc8b-label">Competency ${idx + 1} of ${subs.length}</span>
+            <h3>${escapeHtml(sub.title)}</h3>
+          </div>
+          <span class="irc8b-subsection-avg" title="Competency average">${fmtNum(subsectionAverage(sub.key))}</span>
         </div>
         <div class="irc8b-criteria-list">${rowsHtml}</div>
-      </div>
-    `;
+        <div class="irc8b-pager">
+          <button type="button" class="irc8b-pager-btn" data-action="select-sub" data-sub="${prev ? prev.key : ""}"${prev ? "" : " disabled"}>&larr; ${prev ? escapeHtml(prev.title) : "Previous"}</button>
+          <button type="button" class="irc8b-pager-btn" data-action="select-sub" data-sub="${next ? next.key : ""}"${next ? "" : " disabled"}>${next ? escapeHtml(next.title) : "Next"} &rarr;</button>
+        </div>
+      </section>`;
   }
+
+  // Short labels shown inside the rating buttons; the full adjectival rating
+  // is in each button's tooltip.
+  const SHORT_LABELS = {
+    5: "Role model",
+    4: "Consistent",
+    3: "Most times",
+    2: "Sometimes",
+    1: "Rarely",
+  };
 
   function renderCriterionRow(subKey, index, text) {
     const current = ratings[subKey][index];
     const buttons = [5, 4, 3, 2, 1]
       .map((r) => {
-        const selected = current === r ? " irc8b-rate-btn--selected" : "";
-        return `<button type="button" class="irc8b-rate-btn${selected}" data-sub="${subKey}" data-idx="${index}" data-rate="${r}" title="${r} — ${RATING_LABELS[r]}">${r}</button>`;
+        const selected = current === r ? " is-selected" : "";
+        return `<button type="button" class="irc8b-rate-btn irc8b-rate-btn--r${r}${selected}" data-sub="${subKey}" data-idx="${index}" data-rate="${r}" title="${r} — ${RATING_LABELS[r]}" aria-pressed="${current === r}"><b>${r}</b><small>${SHORT_LABELS[r]}</small></button>`;
       })
       .join("");
 
     return `
       <div class="irc8b-criterion-row">
         <span class="irc8b-criterion-num">${index + 1}</span>
-        <span class="irc8b-criterion-text">${escapeHtml(text)}</span>
-        <div class="irc8b-rate-group">${buttons}</div>
+        <div class="irc8b-criterion-body">
+          <span class="irc8b-criterion-text">${escapeHtml(text)}</span>
+        </div>
+        <div class="irc8b-rate-seg" role="group" aria-label="Rating for indicator ${index + 1}">${buttons}</div>
       </div>
     `;
   }
 
-  function updateSummary() {
-    const cbcSection = DATA.find((s) => s.key === "cbc");
-    const csSection = DATA.find((s) => s.key === "cs");
-
-    const cbcAvg = sectionAverage(cbcSection);
-    const csAvg = sectionAverage(csSection);
-    const sectionAvgs = [cbcAvg, csAvg].filter((v) => v !== null);
-    const overallAvg = average(sectionAvgs);
-
-    summaryCbcEl.textContent = fmtNum(cbcAvg);
-    summaryCbcDescEl.textContent = ratingDescription(cbcAvg);
-
-    summaryCsEl.textContent = fmtNum(csAvg);
-    summaryCsDescEl.textContent = ratingDescription(csAvg);
-
-    summaryOverallEl.textContent = fmtNum(overallAvg);
-    summaryOverallDescEl.textContent = ratingDescription(overallAvg);
+  // ================= Render: all =================
+  function render() {
+    ensureSelection();
+    renderPartTabs();
+    renderNav();
+    renderDetail();
   }
 
-  // ================= Delegated clicks =================
+  // ================= Events =================
+  partTabsEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-part]");
+    if (!btn || btn.dataset.part === activePart) return;
+    activePart = btn.dataset.part;
+    sel.subKey = null; // falls back to the first competency of that part
+    render();
+  });
+
+  function handleSelectSub(e) {
+    const btn = e.target.closest('[data-action="select-sub"]');
+    if (!btn || btn.disabled || !btn.dataset.sub) return;
+    sel.subKey = btn.dataset.sub;
+    render();
+    if (btn.closest("#irc8b-detail")) {
+      workspaceEl.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+  }
+  navEl.addEventListener("click", handleSelectSub);
+
   function handleRateClick(e) {
     const btn = e.target.closest(".irc8b-rate-btn");
     if (!btn) return;
@@ -400,11 +513,13 @@
     ratings[subKey][idx] = newValue;
 
     render();
-    saveRating(subKey, idx, newValue);
+    saveEntry(subKey, idx, { rating: newValue });
   }
 
-  sectionsCbcEl.addEventListener("click", handleRateClick);
-  sectionsCsEl.addEventListener("click", handleRateClick);
+  detailEl.addEventListener("click", (e) => {
+    handleRateClick(e);
+    handleSelectSub(e);
+  });
 
   // ================= Print / Save as PDF =================
   // Builds a print-only copy of the form (scale, Core Behavioral

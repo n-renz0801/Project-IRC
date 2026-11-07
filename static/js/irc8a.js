@@ -544,6 +544,7 @@
             <h3>${title ? escapeHtml(title) : "Untitled objective"}</h3>
           </div>
           <div class="irc8a-obj-actions">
+            <span class="irc8a-obj-score" title="Weighted average for this objective"><span class="irc8a-obj-score-k">Weighted score</span><span class="irc8a-obj-score-v${score === null ? " is-empty" : ""}">${score === null ? "—" : fmt3(score)}</span></span>
             <button type="button" class="irc8a-icon-btn" data-action="edit-objective" title="Edit objective">${ICON_EDIT}</button>
             <button type="button" class="irc8a-icon-btn irc8a-icon-btn--danger" data-action="delete-objective" title="Delete objective">${ICON_TRASH}</button>
           </div>

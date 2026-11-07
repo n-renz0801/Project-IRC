@@ -39,91 +39,80 @@ block content %}
     </div>
   </div>
 
-  <!-- ================= GUIDED FLOW: 1. Overall summary -> 2. Rating Scale -> 3. Core Behavioral -> 4. Core Skills ================= -->
-  <div class="irc8b-flow">
-    <div class="irc8b-flow-rail" aria-hidden="true">
-      <span class="irc8b-flow-badge">1</span>
-      <span class="irc8b-flow-badge">2</span>
-      <span class="irc8b-flow-badge">3</span>
-      <span class="irc8b-flow-badge">4</span>
+  <!-- Rating scale: collapsed by default, same pattern as irc8a's "Form details" -->
+  <details class="irc8b-details" id="irc8b-scale-details">
+    <summary>
+      <span class="irc8b-details-icon" aria-hidden="true"
+        ><i class="ti ti-star"></i
+      ></span>
+      <span class="irc8b-details-heading">
+        <span class="irc8b-details-title">Rating scale</span>
+        <span class="irc8b-details-sum"
+          >5 (Role model) to 1 (Rarely demonstrate)</span
+        >
+      </span>
+      <span class="irc8b-details-toggle">
+        <span class="irc8b-when-closed">Click to expand</span>
+        <span class="irc8b-when-open">Collapse</span>
+        <i class="ti ti-chevron-down" aria-hidden="true"></i>
+      </span>
+    </summary>
+    <div class="irc8b-scale">
+      <table class="irc8b-scale-table">
+        <thead>
+          <tr>
+            <th>Numerical Rating</th>
+            <th>Adjectival Rating</th>
+            <th>Definition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>5</strong></td>
+            <td>Role model</td>
+            <td>
+              Behavioral indicator is consistently exhibited and is worthy of
+              emulation.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>4</strong></td>
+            <td>Consistently demonstrate</td>
+            <td>Behavioral indicator is constantly shown.</td>
+          </tr>
+          <tr>
+            <td><strong>3</strong></td>
+            <td>Most of the time demonstrate</td>
+            <td>Behavioral indicator is often shown.</td>
+          </tr>
+          <tr>
+            <td><strong>2</strong></td>
+            <td>Sometimes demonstrate</td>
+            <td>Behavioral indicator is irregularly shown.</td>
+          </tr>
+          <tr>
+            <td><strong>1</strong></td>
+            <td>Rarely demonstrate</td>
+            <td>Behavioral indicator is seldom shown.</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+  </details>
 
-    <!-- 2. DASHBOARD: overall summary, shown before data entry -->
-    <div class="irc8b-flow-section irc8b-flow-section-1">
-      <p class="irc8b-flow-label">Overall summary</p>
-      <div id="irc8b-summary" class="irc8b-summary">
-        <div class="irc8b-summary-item">
-          <span class="irc8b-summary-label">Core Behavioral Competencies</span>
-          <span class="irc8b-summary-value" id="irc8b-summary-cbc"
-            >&mdash;</span
-          >
-          <span class="irc8b-summary-desc" id="irc8b-summary-cbc-desc"></span>
-        </div>
-        <div class="irc8b-summary-item">
-          <span class="irc8b-summary-label">Core Skills</span>
-          <span class="irc8b-summary-value" id="irc8b-summary-cs">&mdash;</span>
-          <span class="irc8b-summary-desc" id="irc8b-summary-cs-desc"></span>
-        </div>
-        <div class="irc8b-summary-item irc8b-summary-item--overall">
-          <span class="irc8b-summary-label">Overall Average</span>
-          <span class="irc8b-summary-value" id="irc8b-summary-overall"
-            >&mdash;</span
-          >
-          <span
-            class="irc8b-summary-desc"
-            id="irc8b-summary-overall-desc"
-          ></span>
-        </div>
-      </div>
-    </div>
+  <!-- Core Behavioral Competencies / Core Skills cards (clickable) + overall average card; built by irc8b.js -->
+  <div id="irc8b-part-tabs" class="irc8b-part-tabs" role="tablist"></div>
 
-    <!-- 3. RATING SCALE — its own step, shown once ahead of both data-entry sections below -->
-    <div class="irc8b-flow-section irc8b-flow-section-2">
-      <p class="irc8b-flow-label">Rating scale</p>
-      <div class="irc8b-legend">
-        <span class="irc8b-legend-title">Rating Scale</span>
-        <div class="irc8b-legend-items">
-          <span class="irc8b-legend-item"><strong>5</strong> Role model</span>
-          <span class="irc8b-legend-item"
-            ><strong>4</strong> Consistently demonstrate</span
-          >
-          <span class="irc8b-legend-item"
-            ><strong>3</strong> Most of the time demonstrate</span
-          >
-          <span class="irc8b-legend-item"
-            ><strong>2</strong> Sometimes demonstrate</span
-          >
-          <span class="irc8b-legend-item"
-            ><strong>1</strong> Rarely demonstrate</span
-          >
-        </div>
-      </div>
+  <!-- Sidebar (competencies) + detail panel (indicators to rate) -->
+  <div id="irc8b-workspace" class="irc8b-workspace">
+    <div class="irc8b-nav-col">
+      <nav id="irc8b-nav" class="irc8b-nav" aria-label="Competencies"></nav>
     </div>
-
-    <!-- 4. DATA ENTRY: Core Behavioral Competencies -->
-    <div class="irc8b-flow-section irc8b-flow-section-3">
-      <p class="irc8b-flow-label">Core Behavioral Competencies</p>
-      <div id="irc8b-sections-cbc" class="irc8b-sections">
-        <!-- CBC section / subsection / criteria cards rendered here by irc8b.js -->
-      </div>
-    </div>
-
-    <!-- 5. DATA ENTRY: Core Skills -->
-    <div class="irc8b-flow-section irc8b-flow-section-4">
-      <p class="irc8b-flow-label">Core Skills</p>
-      <div id="irc8b-sections-cs" class="irc8b-sections">
-        <!-- Core Skills section / subsection / criteria cards rendered here by irc8b.js -->
-      </div>
-    </div>
-    <!-- /.irc8b-flow -->
+    <div id="irc8b-detail" class="irc8b-detail"></div>
   </div>
 </section>
 
 <!-- ================= RESET-PAGE CONFIRMATION MODAL ================= -->
-<!-- Page-agnostic wording; same .irc8b-confirm-* shape as the
-     delete-confirmation dialogs on IRC6/IRC9 (single centered box, no
-     header/footer divider lines, no close-X button) even though this
-     page has no delete flow of its own to borrow the CSS from. -->
 <div id="irc8b-reset-confirm-overlay" class="irc8b-confirm-overlay">
   <div class="irc8b-confirm-box">
     <h4>Reset the contents of this page?</h4>
