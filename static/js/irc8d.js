@@ -293,22 +293,38 @@
       : `<td class="p8-c">${escapeHtml(String(v))}</td>`;
   }
 
-  function buildPrintTable() {
-    const kras = printState.kras || [];
-    const totalRows = kras.reduce(
-      (n, k) => n + Math.max(1, (k.objectives || []).length),
-      0,
-    );
+  // ---- Page geometry: keep in sync with @page in irc8d.css ----
+  const PRINT_PAGE_W = "7.5in"; // 8.5in letter - 2 x 0.5in margins
+  const PRINT_PAGE_H = 10 * 96; // 11in - 2 x 0.5in, in CSS px
+  const PRINT_SAFETY = 14; // px kept free in case print renders a bit taller
+  // When a KRA carries on at the top of the next page, repeat its name and
+  // weight there (true) or leave those two cells blank (false).
+  const PRINT_REPEAT_KRA_ON_BREAK = true;
 
+  // One unit = one objective row (a KRA with no objectives gives one blank row).
+  function printUnits() {
+    let kras = printState.kras || [];
+    if (!kras.length) kras = [{ text: "", weight: null, objectives: [] }];
+    const units = [];
+    kras.forEach((kra) => {
+      const objs = (kra.objectives || []).length ? kra.objectives : [null];
+      objs.forEach((o) => units.push({ kra, obj: o }));
+    });
+    return units;
+  }
+
+  // groups = [{ kra, rows: [objective|null, ...], kraContinued }] for ONE page.
+  // Every page gets its own complete <table>, so MFO / KRA / weight rowspans
+  // never cross a page break and the bottom border always closes.
+  function buildPrintTable(groups, last) {
+    const totalRows = groups.reduce((n, g) => n + g.rows.length, 0);
     let body = "";
     let firstRow = true;
 
-    kras.forEach((kra) => {
-      const objs = kra.objectives || [];
-      const span = Math.max(1, objs.length);
-      const list = objs.length ? objs : [null];
-
-      list.forEach((o, i) => {
+    groups.forEach((g) => {
+      const kra = g.kra;
+      const showKra = !g.kraContinued || PRINT_REPEAT_KRA_ON_BREAK;
+      g.rows.forEach((o, i) => {
         const r = (o && o.ratings) || {};
         let tr = "";
 
@@ -317,13 +333,13 @@
           firstRow = false;
         }
         if (i === 0) {
-          tr += `<td class="p8-kra" rowspan="${span}">${pUpper(kra.text)}</td>`;
+          tr += `<td class="p8-kra" rowspan="${g.rows.length}">${showKra ? pUpper(kra.text) : ""}</td>`;
         }
         tr += `<td class="p8-obj">${o ? escapeHtml(o.text) : ""}</td>`;
         tr += `<td class="p8-c p8-pre">${o ? escapeHtml(o.timeline) : ""}</td>`;
         if (i === 0) {
           const w = fmtWeight(kra.weight);
-          tr += `<td class="p8-c" rowspan="${span}">${w === "—" ? "" : w}</td>`;
+          tr += `<td class="p8-c" rowspan="${g.rows.length}">${showKra && w !== "—" ? w : ""}</td>`;
         }
         tr += `<td class="p8-c p8-pre">${o ? escapeHtml(o.actualResults) : ""}</td>`;
         tr += pRateCell(r.quality);
@@ -339,7 +355,8 @@
     const overall = printState.overall;
     const band = printState.band;
 
-    const footer = `
+    const footer = last
+      ? `
       <tr class="p8-total">
         <td colspan="5" rowspan="2" class="p8-gray p8-nob"></td>
         <td colspan="5" class="p8-b p8-l">OVERALL RATING FOR ACCOMPLISHMENTS</td>
@@ -348,7 +365,8 @@
       <tr class="p8-total">
         <td colspan="5" class="p8-b p8-l">ADJECTIVAL RATING</td>
         <td class="p8-c p8-b p8-score">${band ? escapeHtml(band.abbr) : ""}</td>
-      </tr>`;
+      </tr>`
+      : "";
 
     return `<table class="p8-table">
       <colgroup>
@@ -364,6 +382,65 @@
     </table>`;
   }
 
+  // ---- Pagination ----
+  // The browser can't tell us where a page ends, and a table it cuts loses its
+  // bottom line and leaves merged cells hanging. So pages are laid out here:
+  // rows are added one by one, measuring the real rendered height each time.
+  // When the next row would not fit, the page's table is closed there and the
+  // rest carries on in a fresh table (same KRA, if it was mid-KRA) on the next.
+  function paginatePrint(units, pageHtml) {
+    const prevStyle = printRoot.style.cssText;
+    printRoot.style.cssText = `display:block;position:absolute;left:-100000px;top:0;width:${PRINT_PAGE_W};visibility:hidden;`;
+    const measure = (groups, first, last) => {
+      printRoot.innerHTML = pageHtml(groups, first, last);
+      return printRoot.firstElementChild.getBoundingClientRect().height;
+    };
+    const limit = PRINT_PAGE_H - PRINT_SAFETY;
+
+    try {
+      const pages = [[]];
+      const seen = new Set(); // KRAs already placed on an earlier row
+      units.forEach((u) => {
+        const cur = pages[pages.length - 1];
+        const tail = cur[cur.length - 1];
+        const trial = cur.slice();
+        if (tail && tail.kra === u.kra)
+          trial[trial.length - 1] = { ...tail, rows: [...tail.rows, u.obj] };
+        else
+          trial.push({
+            kra: u.kra,
+            rows: [u.obj],
+            kraContinued: seen.has(u.kra),
+          });
+        // A page always takes at least one row, so page 1 is never title-only.
+        if (!cur.length || measure(trial, pages.length === 1, false) <= limit)
+          pages[pages.length - 1] = trial;
+        else
+          pages.push([
+            { kra: u.kra, rows: [u.obj], kraContinued: seen.has(u.kra) },
+          ]);
+        seen.add(u.kra);
+      });
+
+      // The last page also carries the overall-rating rows, agreement and
+      // signatures. If they don't fit, move its last row to a new page so the
+      // footer is never stranded on a page without table rows.
+      const lastPage = pages[pages.length - 1];
+      const rowCount = lastPage.reduce((n, g) => n + g.rows.length, 0);
+      if (rowCount > 1 && measure(lastPage, pages.length === 1, true) > limit) {
+        const g = lastPage[lastPage.length - 1];
+        const row = g.rows[g.rows.length - 1];
+        const wasContinued = g.rows.length > 1 || g.kraContinued;
+        if (g.rows.length > 1) g.rows = g.rows.slice(0, -1);
+        else lastPage.pop();
+        pages.push([{ kra: g.kra, rows: [row], kraContinued: wasContinued }]);
+      }
+      return pages;
+    } finally {
+      printRoot.style.cssText = prevStyle;
+    }
+  }
+
   function buildPrintHtml() {
     const employee =
       footerText("reportPreparedByName") || printCache.preparer.name || "";
@@ -372,16 +449,15 @@
       printCache.preparer.position ||
       "";
 
-    const cell = (label, name, pos, sigLabel) => `
+    const cell = (label, name, pos) => `
       <td class="p8-sig-cell">
         <div class="p8-sig-label">${label}</div>
         <div class="p8-sig-name">${pUpper(name)}</div>
         <div class="p8-sig-pos">${pUpper(pos)}</div>
       </td>`;
 
-    return `
-      <div class="p8-title">PART III: SUMMARY OF RATINGS FOR DISCUSSION</div>
-      ${buildPrintTable()}
+    const titleHtml = `<div class="p8-title">PART III: SUMMARY OF RATINGS FOR DISCUSSION</div>`;
+    const endHtml = `
       <div class="p8-agree">
         <div class="p8-agree-title">Rater-Ratee Agreement</div>
         <div class="p8-agree-text">${escapeHtml(PRINT_AGREEMENT_TEXT)}</div>
@@ -392,6 +468,19 @@
         <tr><td class="p8-sig-row">Signature:</td><td class="p8-sig-row">Signature:</td></tr>
         <tr><td class="p8-date-row">Date: ${escapeHtml(pDate(printCache.dates.prepared_by))}</td><td class="p8-date-row">Date: ${escapeHtml(pDate(printCache.dates.checked_by))}</td></tr>
       </table>`;
+
+    // One .p8-page per printed page: title on the first, table header on
+    // every one, overall rating + agreement + signatures on the last.
+    const pageHtml = (groups, first, last) => `<div class="p8-page">
+      ${first ? titleHtml : ""}
+      ${buildPrintTable(groups, last)}
+      ${last ? endHtml : ""}
+    </div>`;
+
+    const pages = paginatePrint(printUnits(), pageHtml);
+    return pages
+      .map((groups, i) => pageHtml(groups, i === 0, i === pages.length - 1))
+      .join("");
   }
 
   function refreshPrintRoot() {

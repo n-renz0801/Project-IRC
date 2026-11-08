@@ -94,6 +94,7 @@
     rows: {},
     irc8aItems: [], // [{ id, label, average }]
     irc8bItems: [], // [{ id, label, average }]  -- id === subsection key
+    edit: null, // row open in the edit modal: { slot, source, refs }
   };
 
   // ------------------------------------------------------------------
@@ -104,6 +105,15 @@
   const ratingBadge = document.getElementById("irc8c-rating-badge");
   const criteriaStrip = document.getElementById("irc8c-criteria-strip");
   const devTableBody = document.getElementById("irc8c-dev-table-body");
+
+  const editOverlay = document.getElementById("irc8c-edit-overlay");
+  const editForm = document.getElementById("irc8c-edit-form");
+  const editTitle = document.getElementById("irc8c-edit-title");
+  const editSub = document.getElementById("irc8c-edit-sub");
+  const editFields = document.getElementById("irc8c-edit-fields");
+  const editError = document.getElementById("irc8c-edit-error");
+  const editCancelBtn = document.getElementById("irc8c-edit-cancel");
+  const editSubmitBtn = document.getElementById("irc8c-edit-submit");
 
   const resetBtn = document.getElementById("irc8c-reset-btn");
   const resetConfirmOverlay = document.getElementById(
@@ -313,16 +323,32 @@
     return source === "irc8a" ? state.irc8aItems : state.irc8bItems;
   }
 
-  function renderRefDropdown(row, field, source) {
+  const FIELD_DEFS = {
+    strengthRef: { label: "Strengths", direction: "highest" },
+    devNeedsRef: { label: "Development Needs", direction: "lowest" },
+  };
+  const TEXT_FIELDS = [
+    {
+      field: "actionPlan",
+      label: "Action Plan (Recommended Developmental Intervention)",
+    },
+    { field: "timeline", label: "Timeline" },
+    { field: "resourcesNeeded", label: "Resources Needed" },
+  ];
+  const SOURCE_LABELS = {
+    irc8a: "IRC8a objectives",
+    irc8b: "IRC8b competencies",
+  };
+
+  // Used inside the edit modal only. `currentRef` is the in-progress pick.
+  function renderRefDropdown(field, currentRef, source) {
     const items = itemsForSource(source);
-    const currentRef = row[field];
-    const direction = field === "strengthRef" ? "highest" : "lowest";
+    const direction = FIELD_DEFS[field].direction;
     const candidates = topN(items, TOP_N, direction);
 
-    // Always keep the currently-saved pick in the list, even if it's
-    // fallen out of the top 5 since it was chosen, or -- if the
-    // objective/subsection is gone entirely -- show it as
-    // no-longer-available rather than silently dropping the selection.
+    // Always keep the currently-saved pick in the list, even if it has
+    // fallen out of the top N since it was chosen, or -- if the item is
+    // gone entirely -- show it as no-longer-available.
     let extra = null;
     if (currentRef && !candidates.some((c) => c.id === currentRef)) {
       const match = items.find((c) => c.id === currentRef);
@@ -336,26 +362,23 @@
     }
 
     const current = extra || items.find((c) => c.id === currentRef);
-    const rankedCandidates = candidates.map((c, i) => ({ ...c, rank: i + 1 }));
-    const allOptions = extra
-      ? [{ ...extra, rank: null }, ...rankedCandidates]
-      : rankedCandidates;
+    const ranked = candidates.map((c, i) => ({ ...c, rank: i + 1 }));
+    const allOptions = extra ? [{ ...extra, rank: null }, ...ranked] : ranked;
+
+    const metaLine = (c) =>
+      `${escapeHtml(c.source)}${c.source ? " &middot; " : ""}${c.average.toFixed(2)}`;
 
     const triggerInner = current
       ? `
         <span class="irc8c-ref-trigger-content">
           <span class="irc8c-ref-main">${escapeHtml(current.main)}</span>
-          ${
-            current.unavailable
-              ? ""
-              : `<span class="irc8c-ref-meta">${escapeHtml(current.source)}${current.source ? " &middot; " : ""}${current.average.toFixed(2)}</span>`
-          }
+          ${current.unavailable ? "" : `<span class="irc8c-ref-meta">${metaLine(current)}</span>`}
         </span>
       `
       : `<span class="irc8c-ref-trigger-text irc8c-ref-placeholder">— Select —</span>`;
 
     const rankClass =
-      field === "strengthRef"
+      direction === "highest"
         ? "irc8c-ref-rank-positive"
         : "irc8c-ref-rank-negative";
 
@@ -364,7 +387,7 @@
         const isSelected = c.id === currentRef;
         const metaHtml = c.unavailable
           ? ""
-          : `<p class="irc8c-ref-meta">${escapeHtml(c.source)}${c.source ? " &middot; " : ""}${c.average.toFixed(2)}</p>`;
+          : `<p class="irc8c-ref-meta">${metaLine(c)}</p>`;
         const rankHtml = c.rank
           ? `<span class="irc8c-ref-rank ${rankClass}">${c.rank}</span>`
           : `<span class="irc8c-ref-rank irc8c-ref-rank-neutral">&ndash;</span>`;
@@ -381,7 +404,7 @@
       .join("");
 
     return `
-      <div class="irc8c-ref-dropdown" data-field="${field}" data-slot="${row.slot}">
+      <div class="irc8c-ref-dropdown" data-field="${field}">
         <button type="button" class="irc8c-ref-trigger" aria-haspopup="listbox" aria-expanded="false">
           ${triggerInner}
           <span class="irc8c-ref-trigger-caret">&#9662;</span>
@@ -396,18 +419,13 @@
     `;
   }
 
-  // Locked view for Strengths / Development Needs: plain read text, no
-  // dropdown present at all, so nothing is clickable and nothing is
-  // ellipsis-truncated the way a native <select> would be. The
-  // dropdown only exists while the row is unlocked (see
-  // renderRefDropdown).
-  function renderLockedRefCell(row, field, source, placeholderLabel) {
+  // Table cells are always read-only; edits happen in the modal.
+  function renderRefCell(row, field, source) {
     const currentRef = row[field];
     if (!currentRef) {
-      return `<td class="irc8c-cell-text"><span class="irc8c-cell-empty">${escapeHtml(placeholderLabel)}</span></td>`;
+      return `<td class="irc8c-cell-text"><span class="irc8c-cell-empty">N/A</span></td>`;
     }
-    const items = itemsForSource(source);
-    const match = items.find((c) => c.id === currentRef);
+    const match = itemsForSource(source).find((c) => c.id === currentRef);
     if (!match) {
       return `<td class="irc8c-cell-text"><span class="irc8c-cell-empty">(previously selected — no longer available)</span></td>`;
     }
@@ -419,49 +437,46 @@
     `;
   }
 
-  function renderTextCell(row, field, placeholderLabel) {
+  function renderTextCell(row, field) {
     const value = row[field] || "";
-    if (row.isLocked) {
-      return `<td class="irc8c-cell-text">${
-        value
-          ? escapeHtml(value)
-          : `<span class="irc8c-cell-empty">${escapeHtml(placeholderLabel)}</span>`
-      }</td>`;
-    }
-    return `<td><textarea class="irc8c-cell-edit" data-field="${field}" data-slot="${row.slot}" rows="2" placeholder="${escapeHtml(placeholderLabel)}">${escapeHtml(value)}</textarea></td>`;
+    return `<td class="irc8c-cell-text">${
+      value ? escapeHtml(value) : `<span class="irc8c-cell-empty">N/A</span>`
+    }</td>`;
   }
 
   function renderDevTable() {
-    devTableBody.innerHTML = SLOTS.map(({ slot, source }) => {
-      const row = state.rows[slot] || { slot, isLocked: true };
-      const strengthCell = row.isLocked
-        ? renderLockedRefCell(row, "strengthRef", source, "N/A")
-        : `<td>${renderRefDropdown(row, "strengthRef", source)}</td>`;
-      const devNeedsCell = row.isLocked
-        ? renderLockedRefCell(row, "devNeedsRef", source, "N/A")
-        : `<td>${renderRefDropdown(row, "devNeedsRef", source)}</td>`;
+    devTableBody.innerHTML = SLOTS.map(({ slot, source }, i) => {
+      const row = state.rows[slot] || { slot };
       return `
         <tr data-slot="${slot}">
           <td class="irc8c-col-edit">
-            <button type="button" class="irc8c-icon-btn irc8c-toggle-lock-btn" data-slot="${slot}" title="${row.isLocked ? "Edit this row" : "Save & lock"}">
-              ${row.isLocked ? "&#9998;" : "&#10003;"}
+            <button type="button" class="irc8c-icon-btn irc8c-edit-btn" data-slot="${slot}" title="Edit this row" aria-label="Edit Development Plan row ${i + 1}">
+              &#9998;
             </button>
           </td>
-          ${strengthCell}
-          ${devNeedsCell}
-          ${renderTextCell(row, "actionPlan", "N/A")}
-          ${renderTextCell(row, "timeline", "N/A")}
-          ${renderTextCell(row, "resourcesNeeded", "N/A")}
+          ${renderRefCell(row, "strengthRef", source)}
+          ${renderRefCell(row, "devNeedsRef", source)}
+          ${renderTextCell(row, "actionPlan")}
+          ${renderTextCell(row, "timeline")}
+          ${renderTextCell(row, "resourcesNeeded")}
         </tr>
       `;
     }).join("");
   }
 
   // ------------------------------------------------------------------
-  // Events
+  // Edit modal
+  //
+  // Opens pre-filled with the row's current values. Nothing is saved
+  // until Submit; Cancel / Escape / clicking outside discards changes.
   // ------------------------------------------------------------------
+  devTableBody.addEventListener("click", (e) => {
+    const btn = e.target.closest(".irc8c-edit-btn");
+    if (btn) openEditModal(btn.dataset.slot);
+  });
+
   function closeAllDropdowns(exceptListbox) {
-    devTableBody.querySelectorAll(".irc8c-ref-listbox").forEach((listbox) => {
+    editForm.querySelectorAll(".irc8c-ref-listbox").forEach((listbox) => {
       if (listbox === exceptListbox) return;
       listbox.hidden = true;
       const trigger = listbox.previousElementSibling;
@@ -469,76 +484,159 @@
     });
   }
 
-  devTableBody.addEventListener("click", async (e) => {
+  // The list floats over the modal (position: fixed) so opening it never
+  // changes the modal's height. Under the trigger, or flipped above it
+  // when there isn't room below.
+  function positionListbox(trigger, listbox) {
+    const rect = trigger.getBoundingClientRect();
+    const gap = 4;
+    const margin = 12;
+    const below = window.innerHeight - rect.bottom - gap - margin;
+    const above = rect.top - gap - margin;
+    const openUp = below < 160 && above > below;
+    const room = Math.max(120, openUp ? above : below);
+
+    listbox.style.left = `${rect.left}px`;
+    listbox.style.width = `${rect.width}px`;
+    listbox.style.maxHeight = `${Math.min(280, room)}px`;
+    if (openUp) {
+      listbox.style.top = "auto";
+      listbox.style.bottom = `${window.innerHeight - rect.top + gap}px`;
+    } else {
+      listbox.style.bottom = "auto";
+      listbox.style.top = `${rect.bottom + gap}px`;
+    }
+  }
+
+  function renderRefEditField(field, source) {
+    const def = FIELD_DEFS[field];
+    const dir = def.direction === "highest" ? "Top" : "Lowest";
+    const hint = `${dir} ${TOP_N} · ${SOURCE_LABELS[source]}`;
+    return `
+      <div class="irc8c-edit-field">
+        <span class="irc8c-edit-label">${escapeHtml(def.label)}<span class="irc8c-edit-hint">${escapeHtml(hint)}</span></span>
+        ${renderRefDropdown(field, state.edit.refs[field], source)}
+      </div>
+    `;
+  }
+
+  function renderTextEditField(col, row) {
+    const id = `irc8c-edit-${col.field}`;
+    return `
+      <div class="irc8c-edit-field">
+        <label class="irc8c-edit-label" for="${id}">${escapeHtml(col.label)}</label>
+        <textarea id="${id}" class="irc8c-edit-input" data-field="${col.field}" rows="3">${escapeHtml(row[col.field] || "")}</textarea>
+      </div>
+    `;
+  }
+
+  function openEditModal(slot) {
+    const def = SLOTS.find((s) => s.slot === slot);
+    if (!def) return;
+    const row = state.rows[slot] || { slot };
+
+    state.edit = {
+      slot,
+      source: def.source,
+      refs: {
+        strengthRef: row.strengthRef || "",
+        devNeedsRef: row.devNeedsRef || "",
+      },
+    };
+
+    const rowNum = SLOTS.indexOf(def) + 1;
+    editTitle.textContent = "Edit Development Plan";
+    editSub.textContent = `Row ${rowNum} · ${SOURCE_LABELS[def.source]}`;
+    editFields.innerHTML =
+      renderRefEditField("strengthRef", def.source) +
+      renderRefEditField("devNeedsRef", def.source) +
+      TEXT_FIELDS.map((col) => renderTextEditField(col, row)).join("");
+    editError.hidden = true;
+    editError.textContent = "";
+    editSubmitBtn.disabled = false;
+    editOverlay.classList.add("visible");
+
+    const first = editFields.querySelector(".irc8c-ref-trigger");
+    if (first) first.focus();
+  }
+
+  function closeEditModal() {
+    editOverlay.classList.remove("visible");
+    editFields.innerHTML = "";
+    state.edit = null;
+  }
+
+  // Dropdown interactions inside the modal (picks update the draft only).
+  editForm.addEventListener("click", (e) => {
     const trigger = e.target.closest(".irc8c-ref-trigger");
     if (trigger) {
       const listbox = trigger.nextElementSibling;
       const wasOpen = !listbox.hidden;
       closeAllDropdowns();
       listbox.hidden = wasOpen;
+      if (!wasOpen) positionListbox(trigger, listbox);
       trigger.setAttribute("aria-expanded", String(!wasOpen));
       return;
     }
 
     const option = e.target.closest(".irc8c-ref-option");
-    if (option) {
+    if (option && state.edit) {
       const dropdown = option.closest(".irc8c-ref-dropdown");
-      const slot = dropdown.dataset.slot;
       const field = dropdown.dataset.field;
-      const value = option.dataset.value;
-      closeAllDropdowns();
-      try {
-        await saveRow(slot, { [field]: value });
-        renderDevTable();
-      } catch (err) {
-        alert(err.message);
-        renderDevTable(); // revert to last-saved value
-      }
+      state.edit.refs[field] = option.dataset.value;
+      dropdown.outerHTML = renderRefDropdown(
+        field,
+        option.dataset.value,
+        state.edit.source,
+      );
       return;
     }
 
-    if (!e.target.closest(".irc8c-ref-listbox")) {
-      closeAllDropdowns();
+    if (!e.target.closest(".irc8c-ref-dropdown")) closeAllDropdowns();
+  });
+
+  editForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!state.edit) return;
+    const { slot, refs } = state.edit;
+
+    const patch = { isLocked: true, ...refs };
+    editFields.querySelectorAll("textarea.irc8c-edit-input").forEach((ta) => {
+      patch[ta.dataset.field] = ta.value;
+    });
+
+    editSubmitBtn.disabled = true;
+    editCancelBtn.disabled = true;
+    editError.hidden = true;
+    try {
+      await saveRow(slot, patch);
+      renderDevTable();
+      closeEditModal();
+    } catch (err) {
+      editError.textContent = err.message;
+      editError.hidden = false;
+      editSubmitBtn.disabled = false;
+    } finally {
+      editCancelBtn.disabled = false;
     }
   });
 
-  document.addEventListener("click", (e) => {
-    if (!devTableBody.contains(e.target)) closeAllDropdowns();
+  editCancelBtn.addEventListener("click", closeEditModal);
+  editOverlay.addEventListener("mousedown", (e) => {
+    if (e.target === editOverlay) closeEditModal();
   });
+
+  // A floating list would drift away from its trigger if the field area
+  // scrolls or the window resizes, so just close it.
+  editFields.addEventListener("scroll", () => closeAllDropdowns());
+  window.addEventListener("resize", () => closeAllDropdowns());
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeAllDropdowns();
-  });
-
-  devTableBody.addEventListener("click", async (e) => {
-    const btn = e.target.closest(".irc8c-toggle-lock-btn");
-    if (!btn) return;
-
-    const slot = btn.dataset.slot;
-    const row = state.rows[slot];
-    if (!row) return;
-
-    btn.disabled = true;
-    try {
-      if (row.isLocked) {
-        // Unlock: just open the cells for editing, no data changes yet.
-        await saveRow(slot, { isLocked: false });
-      } else {
-        // Lock: commit whatever's currently typed, then lock.
-        const tr = btn.closest("tr");
-        const patch = { isLocked: true };
-        ["actionPlan", "timeline", "resourcesNeeded"].forEach((field) => {
-          const textarea = tr.querySelector(`textarea[data-field="${field}"]`);
-          if (textarea) patch[field] = textarea.value;
-        });
-        await saveRow(slot, patch);
-      }
-      renderDevTable();
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      btn.disabled = false;
-    }
+    if (e.key !== "Escape" || !editOverlay.classList.contains("visible"))
+      return;
+    const open = editForm.querySelector(".irc8c-ref-listbox:not([hidden])");
+    if (open) closeAllDropdowns();
+    else closeEditModal();
   });
 
   // ------------------------------------------------------------------
@@ -633,13 +731,9 @@
     return match ? match.main : "";
   }
 
-  // Reads the live textarea when the row is unlocked, so text typed but
-  // not yet saved still prints (same idea as EOPCRF4's feedback boxes).
+  // Table cells are read-only now (edits happen in the modal and are
+  // saved on Submit), so the saved row is always what prints.
   function printRowText(slot, field) {
-    const textarea = devTableBody.querySelector(
-      `textarea[data-slot="${slot}"][data-field="${field}"]`,
-    );
-    if (textarea) return textarea.value;
     const row = state.rows[slot] || {};
     return row[field] || "";
   }

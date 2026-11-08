@@ -294,7 +294,21 @@
     return `<td class="irc9-cell-text">${html}</td>`;
   }
 
+  // Oldest date first. Entries with no date sink to the bottom, and equal
+  // dates keep the order they were added in (by id). Sorting here means every
+  // path that calls renderTable() (load, add, edit, import, delete) is sorted.
+  function sortEntriesByDate() {
+    entries.sort((a, b) => {
+      if (!a.date && !b.date) return (a.id || 0) - (b.id || 0);
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1; // yyyy-mm-dd
+      return (a.id || 0) - (b.id || 0);
+    });
+  }
+
   function renderTable() {
+    sortEntriesByDate();
     tableBody.innerHTML = "";
 
     if (entries.length === 0) {

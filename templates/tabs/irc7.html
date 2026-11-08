@@ -44,19 +44,14 @@ block content %}
 
   <!-- ================= GUIDED FLOW: Dashboard table ================= -->
   <div class="irc7-flow">
-    <div class="irc7-flow-rail" aria-hidden="true">
-      <span class="irc7-flow-badge">1</span>
-    </div>
-
     <div class="irc7-flow-section irc7-flow-section-1">
-      <p class="irc7-flow-label">Dashboard table</p>
-
       <div class="irc7-table-card">
         <div class="irc7-dark-header irc7-dark-header-with-action">
           <div class="irc7-dark-header-text">
             <h3>SGOD Dashboard Table</h3>
             <p class="irc7-subtitle irc7-subtitle-dark">
               School-level indicator data for the dashboard, editable per year.
+              Press Enter to move down to the next school in the same column.
             </p>
           </div>
           <div class="irc7-toolbar-actions">
@@ -81,6 +76,17 @@ block content %}
             </button>
           </div>
         </div>
+
+        <!-- Column filter chips (built by renderFilterBar() in irc7.js):
+             show every column, or focus on one group / column with its
+             fill progress. Hidden until at least one column exists. -->
+        <div
+          class="irc7-filterbar"
+          id="irc7FilterBar"
+          role="toolbar"
+          aria-label="Filter columns"
+          style="display: none"
+        ></div>
 
         <div class="irc7-table-wrapper" id="irc7TableWrapper">
           <!-- Sticky header: lives in its own small table, separate from
@@ -169,12 +175,12 @@ block content %}
           <div class="irc7-table-scroll" id="irc7TableScroll">
             <table id="irc7-table" class="irc7-table">
               <colgroup id="irc7-colgroup">
-                <col data-min-width="90" />
-                <col data-min-width="240" />
-                <col data-min-width="130" />
-                <col data-min-width="110" />
-                <col data-min-width="90" />
-                <col data-min-width="130" />
+                <col data-min-width="72" />
+                <col data-min-width="170" />
+                <col data-min-width="96" />
+                <col data-min-width="84" />
+                <col data-min-width="70" />
+                <col data-min-width="96" />
               </colgroup>
 
               <tbody id="irc7-tbody">

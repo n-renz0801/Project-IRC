@@ -1209,6 +1209,614 @@
   background: #b91c1c;
 }
 
+/* ==================================================================
+   v2 REDESIGN -- roomier cells, color-coded groups, focus chips.
+   Sits after the base rules (so it wins on equal specificity) and
+   before @media print (whose !important rules still take priority).
+================================================================== */
+
+/* Group accent colors (set per header/cell/chip via irc7.js) */
+/* One cohesive family: seven hues spaced around the wheel, all at a
+   similar lightness/saturation so no column shouts, and every shade keeps
+   white header text above 4.5:1 contrast. Groups use the first four;
+   standalone columns use the last three. */
+.irc7-gc-0 {
+  --gc: #2c5aa0;
+} /* cobalt */
+.irc7-gc-1 {
+  --gc: #0f766e;
+} /* teal */
+.irc7-gc-2 {
+  --gc: #6341a8;
+} /* violet */
+.irc7-gc-3 {
+  --gc: #a15c07;
+} /* ochre */
+.irc7-gc-s {
+  --gc: #475569;
+}
+/* Standalone-column colors (separate from the group colors above) */
+.irc7-gc-4 {
+  --gc: #a8325f;
+} /* rose */
+.irc7-gc-5 {
+  --gc: #2f7a3f;
+} /* green */
+.irc7-gc-6 {
+  --gc: #1f6f8b;
+} /* steel cyan */
+
+/* Page flow is a single column now (the numbered rail is gone). */
+.irc7-flow {
+  display: block;
+}
+
+/* Card + header band: flat navy */
+.irc7-table-card {
+  border-radius: 14px;
+  border-color: #d9dfe9;
+  box-shadow: 0 2px 10px rgba(0, 21, 80, 0.07);
+}
+
+.irc7-dark-header {
+  background: var(--navy-deep, #001550);
+  padding: 18px 24px;
+}
+
+.irc7-dark-header h3 {
+  font-size: 17px;
+}
+.irc7-subtitle-dark {
+  color: #aab6d3;
+}
+
+.irc7-add-column-toolbar-btn {
+  color: var(--navy-deep, #001550);
+}
+
+/* Filter chips */
+.irc7-filterbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #f4f6fb;
+  border-bottom: 1px solid #e0e5ef;
+}
+
+.irc7-filterbar-label {
+  margin-right: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.irc7-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 13px;
+  border: 1.5px solid #d3dae8;
+  border-radius: 999px;
+  background: #fff;
+  color: #1f2937;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.irc7-chip:hover {
+  border-color: #001550;
+}
+
+.irc7-chip.is-active {
+  background: var(--navy-deep, #001550);
+  border-color: var(--navy-deep, #001550);
+  color: #fff;
+}
+
+.irc7-chip-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--gc, #475569);
+  flex-shrink: 0;
+}
+
+.irc7-chip.is-active .irc7-chip-dot {
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.irc7-chip-count {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.irc7-chip.is-active .irc7-chip-count {
+  color: #c3cde6;
+}
+.irc7-chip.is-done .irc7-chip-count {
+  color: #15803d;
+}
+.irc7-chip.is-active.is-done .irc7-chip-count {
+  color: #86efac;
+}
+
+/* Table headers: navy fixed block, colored added blocks */
+.irc7-table thead th {
+  padding: 14px 16px;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+  background: #0f2557;
+}
+
+.irc7-table thead th.irc7-frozen-col {
+  background: #0f2557;
+}
+
+.irc7-table thead tr:first-child th {
+  border-bottom: 3px solid #3b5a9a;
+}
+
+.irc7-table thead th.irc7-group-header {
+  background: var(--gc, #1e4976) !important;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.irc7-table thead th.irc7-sub-header.irc7-added-header {
+  background: color-mix(in srgb, var(--gc, #475569) 88%, #ffffff);
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+/* Highlight the column currently being typed in */
+.irc7-table thead th.irc7-col-active {
+  box-shadow: inset 0 -4px 0 #fbbf24;
+}
+
+/* Body: bigger rows, readable school names */
+.irc7-table tbody td {
+  padding: 12px 16px;
+  font-size: 13.5px;
+}
+
+.irc7-table tbody td.irc7-frozen-col[data-frozen-index="1"] {
+  text-align: left;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.irc7-table thead th.irc7-frozen-col[data-frozen-index="1"] {
+  text-align: left;
+}
+
+.irc7-table tbody tr:hover td.irc7-frozen-col {
+  background: #eef3ff;
+}
+.irc7-table tbody tr:focus-within td.irc7-frozen-col {
+  background: #e6eeff;
+}
+.irc7-table tbody tr:focus-within {
+  background: #f3f7ff;
+}
+
+/* Soft tint on every added cell, matching its group color */
+.irc7-table tbody td.irc7-editable-cell,
+.irc7-table tfoot td.irc7-totals-cell {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--gc, #475569) 7%, transparent),
+    color-mix(in srgb, var(--gc, #475569) 7%, transparent)
+  );
+  border-right: 1px solid color-mix(in srgb, var(--gc, #475569) 22%, #ffffff);
+  scroll-margin-top: 180px;
+  scroll-margin-bottom: 60px;
+}
+
+.irc7-table tbody td.irc7-editable-cell.irc7-col-active {
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--gc, #475569) 16%, transparent),
+    color-mix(in srgb, var(--gc, #475569) 16%, transparent)
+  );
+}
+
+/* Inputs: larger hit area, clear focus */
+.irc7-editable-cell {
+  padding: 6px 10px !important;
+}
+
+.irc7-cell-input {
+  padding: 9px 12px;
+  font-size: 14px;
+  border: 1px solid #d3dae8;
+  border-radius: 8px;
+  background: #fff;
+  min-height: 38px;
+}
+
+.irc7-cell-input:focus {
+  border-color: var(--gc, #3b5a9a);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gc, #3b5a9a) 22%, transparent);
+}
+
+.irc7-cell-input.irc7-cell-input--checkbox {
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  accent-color: var(--gc, #3b5a9a);
+}
+
+/* Totals row */
+.irc7-table tfoot td {
+  padding: 12px 16px;
+  border-top: 2px solid #0f2557;
+  background-color: #eef2f8;
+}
+
+.irc7-totals-label {
+  color: #0f2557;
+}
+
+/* ---------- Add / Edit Columns modal ---------- */
+.irc7-modal-content {
+  max-width: 760px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.irc7-modal-header {
+  background: var(--navy-deep, #001550);
+  border-bottom: none;
+}
+
+.irc7-modal-header h2 {
+  color: #fff;
+}
+.irc7-modal-close {
+  color: #aab6d3;
+}
+.irc7-modal-close:hover {
+  color: #fff;
+}
+
+.irc7-modal-body {
+  background: #f4f6fb;
+}
+
+.irc7-group-block {
+  background: #fff;
+  border: 1px solid #d3dae8;
+  border-top: 4px solid #1e4976;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.irc7-group-name-input {
+  font-size: 14px;
+  padding: 9px 12px;
+  border-radius: 8px;
+}
+
+.irc7-column-row {
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px solid #e3e8f1;
+  border-radius: 10px;
+}
+
+.irc7-column-name-input,
+.irc7-column-type-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.irc7-column-type-select {
+  width: 130px;
+}
+
+/* Standalone rows (direct children of the list) read as their own cards */
+#irc7-columns-manage-list > .irc7-column-row {
+  background: #fff;
+  border-color: #d3dae8;
+  border-left: 4px solid #475569;
+  padding: 12px 14px;
+}
+
+.irc7-add-column-btn {
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1.5px dashed #8fa3cc;
+  color: #0f2557;
+}
+
+.irc7-modal-footer {
+  background: #fff;
+}
+
+.irc7-modal-btn-submit {
+  background: var(--navy-deep, #001550);
+  border-color: var(--navy-deep, #001550);
+}
+
+.irc7-modal-btn-submit:hover {
+  background: #0f2557;
+  border-color: #0f2557;
+}
+
+/* ==================================================================
+   v3 -- compact density, wrapping cells, clearer columns modal
+================================================================== */
+
+/* ---------- Compact table ---------- */
+.irc7-table thead th {
+  padding: 10px 8px;
+  font-size: 11.5px;
+  line-height: 1.3;
+}
+
+.irc7-table thead th.irc7-group-header {
+  font-size: 12px;
+}
+
+.irc7-table tbody td {
+  padding: 8px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.irc7-table tbody td.irc7-frozen-col[data-frozen-index="1"] {
+  font-size: 12px;
+}
+
+.irc7-table tfoot td {
+  padding: 9px 8px;
+  font-size: 12px;
+}
+
+/* Fixed (reference) columns wrap long names instead of clipping */
+.irc7-table tbody td.irc7-frozen-col {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.irc7-editable-cell {
+  padding: 5px 6px !important;
+}
+
+/* Cell inputs: smaller type, text/paragraph wrap and grow */
+.irc7-cell-input {
+  font-size: 12px;
+  min-height: 32px;
+  padding: 6px 8px;
+  line-height: 1.4;
+}
+
+textarea.irc7-cell-input {
+  display: block;
+  resize: none;
+  overflow: hidden;
+  font-family: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+textarea.irc7-cell-input--paragraph {
+  text-align: left;
+}
+
+.irc7-cell-input.irc7-cell-input--checkbox {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- Add / Edit Columns modal: clearer separation ---------- */
+.irc7-modal-content {
+  max-width: 720px;
+}
+
+.irc7-modal-body {
+  padding: 20px 24px 24px;
+  background: #f4f6fb;
+}
+
+.irc7-modal-hint {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e1e6f0;
+  border-left: 3px solid #0f2557;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #475569;
+}
+
+#irc7-columns-manage-list {
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+/* Tiny kind labels, so groups and standalone columns read differently */
+.irc7-group-block-header::before,
+#irc7-columns-manage-list > .irc7-column-row::before {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.irc7-group-block-header::before {
+  content: "Group";
+  background: #0f2557;
+  color: #fff;
+}
+
+#irc7-columns-manage-list > .irc7-column-row::before {
+  content: "Column";
+  background: #e2e8f0;
+  color: #475569;
+}
+
+/* Group = one white card: tinted header strip + indented column list */
+.irc7-group-block {
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #cfd7e6;
+  border-top: 1px solid #cfd7e6;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 37, 87, 0.05);
+}
+
+.irc7-group-block-header {
+  margin: 0;
+  padding: 10px 12px;
+  background: #eaeff8;
+  border-bottom: 1px solid #cfd7e6;
+}
+
+.irc7-group-block .irc7-columns-list {
+  margin: 0;
+  padding: 12px 12px 4px 16px;
+  gap: 8px;
+}
+
+/* Columns inside a group: flat rows joined by a guide line */
+.irc7-group-block .irc7-column-row {
+  position: relative;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.irc7-group-block .irc7-column-row::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  width: 8px;
+  border-top: 1.5px solid #b8c3d9;
+}
+
+.irc7-group-block .irc7-columns-list {
+  border-left: 0;
+  position: relative;
+}
+
+.irc7-group-block .irc7-columns-list::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 12px;
+  bottom: 22px;
+  border-left: 1.5px solid #b8c3d9;
+}
+
+.irc7-group-block > .irc7-add-column-btn {
+  margin: 4px 12px 12px 16px;
+  border: none;
+  background: transparent;
+  color: #0f2557;
+  padding: 6px 8px;
+}
+
+.irc7-group-block > .irc7-add-column-btn:hover {
+  background: #eaeff8;
+}
+
+/* Standalone column = its own card */
+#irc7-columns-manage-list > .irc7-column-row {
+  padding: 10px 12px;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #cfd7e6;
+  border-left: 1px solid #cfd7e6;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 37, 87, 0.05);
+}
+
+/* Inputs / selects: consistent, bordered, easy to spot */
+.irc7-column-name-input,
+.irc7-group-name-input,
+.irc7-column-type-select {
+  height: 36px;
+  box-sizing: border-box;
+  border: 1px solid #c9d2e3;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.irc7-group-name-input {
+  font-weight: 600;
+}
+.irc7-column-type-select {
+  width: 124px;
+}
+
+.irc7-column-name-input:focus,
+.irc7-group-name-input:focus,
+.irc7-column-type-select:focus {
+  outline: none;
+  border-color: #0f2557;
+  box-shadow: 0 0 0 3px rgba(15, 37, 87, 0.14);
+}
+
+/* Remove buttons: quiet until hovered */
+.irc7-remove-column-btn,
+.irc7-remove-group-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #8a94a8;
+}
+
+.irc7-remove-column-btn:hover,
+.irc7-remove-group-btn:hover {
+  background: #fde8e8;
+  border-color: #f3b4b4;
+  color: #c0392b;
+}
+
+/* Add actions: their own footer-like section */
+.irc7-manage-add-row {
+  gap: 10px;
+  padding-top: 16px;
+  margin: 0;
+  border-top: 1px dashed #b8c3d9;
+}
+
+.irc7-manage-add-row .irc7-add-column-btn {
+  padding: 9px 14px;
+  background: #fff;
+  border: 1px solid #c9d2e3;
+  border-radius: 8px;
+  color: #0f2557;
+}
+
+.irc7-manage-add-row .irc7-add-column-btn:hover {
+  background: #eaeff8;
+  border-color: #0f2557;
+}
+
+.irc7-modal-footer {
+  padding: 14px 24px;
+  background: #fff;
+  border-top: 1px solid #d9dfe9;
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 900px) {
@@ -1584,6 +2192,14 @@
     padding: 0 !important;
     width: 100% !important;
     text-align: center;
+  }
+
+  /* Wrapping text cells: size to their content on paper so nothing clips. */
+  textarea.irc7-cell-input {
+    field-sizing: content;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
 
   /* Checkboxes keep their native box so a ticked cell still reads on paper. */

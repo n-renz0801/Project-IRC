@@ -657,6 +657,7 @@
   color: #374151;
   font-size: 12.5px;
   line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .irc8c-cell-empty {
@@ -841,49 +842,6 @@
   color: #9ca3af;
 }
 
-/* Action Plan / Timeline / Resources Needed -- shown as plain text
-   (.irc8c-cell-text above) while a row is locked; irc8c.js swaps the
-   cell to this textarea when the row's edit-toggle is unlocked.
-   Deliberately NOT a plain fixed-height + scroll box, and NOT
-   drag-resizable either:
-     - resize: none removes the manual drag handle entirely -- height
-       is never something the user can pull with the mouse.
-     - field-sizing: content (Chrome/Edge 123+) makes the box grow
-       taller only as wrapped/typed lines actually need the room, and
-       shrink back down if text is removed, so there's no dead space
-       and no fighting a scrollbar while typing a longer paragraph.
-     - min-height keeps it from starting shorter than one line;
-       max-height caps runaway growth for a very long entry, past which
-       it scrolls instead of continuing to grow.
-     - In browsers without field-sizing support yet, this simply falls
-       back to a normal fixed-height (min-height) box that scrolls once
-       full -- still never resizable, just not auto-growing. */
-.irc8c-cell-edit {
-  width: 100%;
-  min-height: 34px;
-  max-height: 160px;
-  padding: 7px 8px;
-  border: 1.5px solid var(--irc8c-dedp-light);
-  border-radius: 6px;
-  font-size: 12.5px;
-  font-family: inherit;
-  line-height: 1.5;
-  color: #1f2937;
-  background: #fff;
-  resize: none;
-  field-sizing: content;
-  overflow-y: auto;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.irc8c-cell-edit:focus {
-  outline: none;
-  border-color: var(--irc8c-dedp);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
-}
-
 .irc8c-dev-table td.irc8c-col-edit {
   text-align: center;
   vertical-align: top;
@@ -916,30 +874,168 @@
   cursor: not-allowed;
 }
 
-/* Edit/lock toggle -- the row's one button, in the narrow leading
-   column. Blue while it
-   shows the pencil (locked, click to edit); green once it shows the
-   checkmark (unlocked, click to save & lock again) so the two states
-   read at a glance without having to parse the icon. */
-.irc8c-toggle-lock-btn {
+/* Edit button -- the row's one button, in the narrow leading column.
+   Opens the row's edit modal. */
+.irc8c-edit-btn {
   background: var(--irc8c-blue-bg);
   color: var(--irc8c-dedp);
 }
 
-.irc8c-toggle-lock-btn:hover {
+.irc8c-edit-btn:hover {
   background: var(--irc8c-blue-border);
 }
 
-.irc8c-dev-table tbody tr:has(textarea.irc8c-cell-edit) .irc8c-toggle-lock-btn {
-  background: var(--irc8c-success-bg);
-  color: var(--irc8c-success-text);
+/* ------------------------------------------------------------------
+   Row edit modal -- opened by each row's edit button. Same overlay /
+   box language as the reset-confirmation modal, but wider and with a
+   scrolling field area. (Mirrors IRC8d's Part IV-B edit modal.)
+------------------------------------------------------------------ */
+
+.irc8c-edit-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
 }
 
-.irc8c-dev-table
-  tbody
-  tr:has(textarea.irc8c-cell-edit)
-  .irc8c-toggle-lock-btn:hover {
-  background: var(--irc8c-success-border);
+.irc8c-edit-overlay.visible {
+  display: flex;
+}
+
+.irc8c-edit-box {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100vh - 32px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.irc8c-edit-header {
+  padding: 18px 22px 12px;
+  flex-shrink: 0;
+}
+
+.irc8c-edit-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.irc8c-edit-sub {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+.irc8c-edit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 22px 16px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.irc8c-edit-label {
+  display: block;
+  margin: 0 0 5px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #374151;
+}
+
+.irc8c-edit-hint {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.irc8c-edit-input {
+  width: 100%;
+  min-height: 72px;
+  max-height: 220px;
+  padding: 8px 10px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  color: #1f2937;
+  background: #fff;
+  resize: none;
+  field-sizing: content;
+  overflow-y: auto;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.irc8c-edit-input:focus {
+  outline: none;
+  border-color: var(--irc8c-dedp);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+/* Inside the modal the dropdown list floats above it (position: fixed,
+   placed by irc8c.js under or above the trigger) so opening it never
+   adds to the modal's height and isn't clipped by the scrolling field
+   area. */
+.irc8c-edit-box .irc8c-ref-listbox {
+  position: fixed;
+  z-index: 1200;
+  right: auto;
+  margin: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.irc8c-edit-error {
+  margin: 0;
+  padding: 0 22px 10px;
+  font-size: 12.5px;
+  color: var(--irc8c-red-text);
+}
+
+.irc8c-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.irc8c-btn-primary {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--irc8c-dedp);
+  color: #fff;
+}
+
+.irc8c-btn-primary:hover {
+  background: var(--irc8c-dedp-dark);
+}
+
+.irc8c-btn-primary:disabled,
+.irc8c-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ------------------------------------------------------------------

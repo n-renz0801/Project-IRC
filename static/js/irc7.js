@@ -20,6 +20,7 @@
   const topScrollbar = document.getElementById("irc7TopScrollbar");
   const topScrollbarInner = document.getElementById("irc7TopScrollbarInner");
   const bottomSentinel = document.getElementById("irc7BottomSentinel");
+  const filterBar = document.getElementById("irc7FilterBar");
 
   const addColumnBtn = document.getElementById("addColumnBtn");
   const addColumnBtnLabel = document.getElementById("addColumnBtnLabel");
@@ -72,10 +73,10 @@
   // Minimum pixel width for each column type. Every added column (grouped
   // or standalone) gets a <col data-min-width="..."> using one of these.
   const ADDED_COLUMN_MIN_WIDTH = {
-    text: 140,
-    number: 100,
-    paragraph: 220,
-    checkbox: 80,
+    text: 90,
+    number: 70,
+    paragraph: 130,
+    checkbox: 56,
   };
 
   // ---------- Data model for added groups/columns ----------
@@ -114,7 +115,13 @@
   //    give each column exactly its minimum (px) — columns stop
   //    shrinking, and the wrapper's overflow-x: auto makes it scroll.
   function recalcLayout() {
-    const cols = Array.from(colgroup.children);
+    // Apply the column filter first so hidden columns are excluded from
+    // the width maths below.
+    applyFilter();
+
+    const cols = Array.from(colgroup.children).filter(
+      (c) => c.style.display !== "none",
+    );
     if (cols.length > 0) {
       const minWidths = cols.map((c) => parseFloat(c.dataset.minWidth) || 100);
       const totalMin = minWidths.reduce((sum, w) => sum + w, 0);
@@ -149,6 +156,8 @@
     updateStickyOffsets();
     updateFrozenOffsets();
     syncTopScrollbarWidth();
+    renderFilterBar();
+    autosizeAllTextareas();
   }
 
   let resizeTimer = null;
@@ -292,6 +301,247 @@
   } else {
     updateStickyOffsets();
   }
+
+  // ================= WRAPPING TEXT CELLS =================
+  // Text and paragraph cells are <textarea>s that grow with their
+  // content, so long entries wrap and stay fully visible instead of
+  // being cut off. Re-measured whenever column widths change.
+  function autosizeTextarea(el) {
+    // Hidden (filtered-out) cells measure 0 -- they're re-sized when shown.
+    if (!el.offsetParent) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }
+
+  function autosizeAllTextareas() {
+    tbody
+      .querySelectorAll("textarea.irc7-cell-input")
+      .forEach(autosizeTextarea);
+  }
+
+  // ================= GROUP COLORS =================
+  // Each group gets one of four accent colors (stable per group name);
+  // standalone columns share a neutral slate. The class only sets a
+  // --gc custom property -- irc7.css does the rest.
+  function tintIndexForName(name) {
+    let h = 0;
+    for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) % 1000;
+    return h % 4;
+  }
+
+  function tintClassFor(colId) {
+    const token = colIdToBlock.get(colId);
+    const b = token && columnBlocks.get(token);
+    return b
+      ? "irc7-gc-" + tintIndexForName(b.groupName)
+      : standaloneTintClass(colId);
+  }
+
+  // Standalone columns get their own colors (a separate set from the
+  // group colors, picked by column id) instead of a neutral gray.
+  function standaloneTintClass(colId) {
+    return "irc7-gc-" + (4 + (Number(colId) % 3));
+  }
+
+  // ================= COLUMN FILTER (chips with progress) =================
+  // Lets the user show one group / one column at a time -- ideal for
+  // filling a single indicator down all schools. null = show everything.
+  let activeFilter = null; // null | { kind: "block", token } | { kind: "col", id }
+
+  function colVisibleUnderFilter(colId) {
+    if (!activeFilter) return true;
+    if (activeFilter.kind === "col") return colId === activeFilter.id;
+    return colIdToBlock.get(colId) === activeFilter.token;
+  }
+
+  function applyFilter() {
+    if (activeFilter) {
+      const stillExists =
+        activeFilter.kind === "col"
+          ? columns.some((c) => c.id === activeFilter.id)
+          : columnBlocks.has(activeFilter.token);
+      if (!stillExists) activeFilter = null;
+    }
+
+    columns.forEach((c) => {
+      const d = colVisibleUnderFilter(c.id) ? "" : "none";
+      const colEl = colgroup.querySelector(`col[data-col-id="${c.id}"]`);
+      if (colEl) colEl.style.display = d;
+      const th =
+        colRow.querySelector(`th[data-col-id="${c.id}"]`) ||
+        groupRow.querySelector(`th[data-col-id="${c.id}"]`);
+      if (th) th.style.display = d;
+      tbody
+        .querySelectorAll(`td[data-col-id="${c.id}"]`)
+        .forEach((td) => (td.style.display = d));
+      const tot = totalsRow.querySelector(`td[data-col-id="${c.id}"]`);
+      if (tot) tot.style.display = d;
+    });
+
+    columnBlocks.forEach((b, token) => {
+      const th = groupRow.querySelector(`th[data-group-id="${token}"]`);
+      if (!th) return;
+      let n = 0;
+      b.columnIds.forEach((id) => {
+        if (colVisibleUnderFilter(id)) n++;
+      });
+      th.style.display = n ? "" : "none";
+      if (n) th.colSpan = n;
+    });
+  }
+
+  function setFilter(next) {
+    activeFilter = next;
+    recalcLayout();
+    tableScroll.scrollLeft = 0;
+  }
+
+  function filledCount(colId) {
+    let n = 0;
+    tbody
+      .querySelectorAll(
+        `td[data-col-id="${colId}"] input, td[data-col-id="${colId}"] textarea`,
+      )
+      .forEach((i) => {
+        if (i.type !== "checkbox" && i.value.trim() !== "") n++;
+      });
+    return n;
+  }
+
+  function renderFilterBar() {
+    if (!filterBar) return;
+    filterBar.innerHTML = "";
+    if (columns.length === 0) {
+      filterBar.style.display = "none";
+      return;
+    }
+    filterBar.style.display = "";
+    const totalRows = rowsData.length;
+
+    const label = document.createElement("span");
+    label.className = "irc7-filterbar-label";
+    label.textContent = "Show";
+    filterBar.appendChild(label);
+
+    function makeChip(text, tintClass, cols, isActive, onClick) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "irc7-chip" + (isActive ? " is-active" : "");
+      if (tintClass) {
+        const dot = document.createElement("span");
+        dot.className = "irc7-chip-dot " + tintClass;
+        chip.appendChild(dot);
+      }
+      const name = document.createElement("span");
+      name.textContent = text;
+      chip.appendChild(name);
+
+      const fillable = cols.filter((c) => c.type !== "checkbox");
+      if (fillable.length > 0 && totalRows > 0) {
+        const done = fillable.reduce((s, c) => s + filledCount(c.id), 0);
+        const of = fillable.length * totalRows;
+        const count = document.createElement("span");
+        count.className = "irc7-chip-count";
+        count.textContent = `${done}/${of}`;
+        if (done === of) chip.classList.add("is-done");
+        chip.appendChild(count);
+      }
+      chip.addEventListener("click", onClick);
+      filterBar.appendChild(chip);
+    }
+
+    makeChip("All columns", null, [], activeFilter === null, () =>
+      setFilter(null),
+    );
+
+    const seen = new Set();
+    columns.forEach((c) => {
+      const token = colIdToBlock.get(c.id);
+      if (token) {
+        if (seen.has(token)) return;
+        seen.add(token);
+        const b = columnBlocks.get(token);
+        const cols = columns.filter((x) => colIdToBlock.get(x.id) === token);
+        const isActive =
+          activeFilter &&
+          activeFilter.kind === "block" &&
+          activeFilter.token === token;
+        makeChip(
+          b.groupName,
+          "irc7-gc-" + tintIndexForName(b.groupName),
+          cols,
+          !!isActive,
+          () => setFilter(isActive ? null : { kind: "block", token }),
+        );
+      } else {
+        const isActive =
+          activeFilter &&
+          activeFilter.kind === "col" &&
+          activeFilter.id === c.id;
+        makeChip(c.name, standaloneTintClass(c.id), [c], !!isActive, () =>
+          setFilter(isActive ? null : { kind: "col", id: c.id }),
+        );
+      }
+    });
+  }
+
+  // ================= ENTRY HELPERS =================
+  // Highlight the column being typed in, and let Enter move down to the
+  // next school in the same column (Shift+Enter moves up).
+  let activeColId = null;
+
+  function setActiveColumn(id) {
+    if (activeColId === id) return;
+    document
+      .querySelectorAll(".irc7-col-active")
+      .forEach((el) => el.classList.remove("irc7-col-active"));
+    activeColId = id;
+    if (id == null) return;
+    document
+      .querySelectorAll(`th[data-col-id="${id}"], td[data-col-id="${id}"]`)
+      .forEach((el) => el.classList.add("irc7-col-active"));
+  }
+
+  tbody.addEventListener("focusin", (e) => {
+    const td = e.target.closest("td.irc7-editable-cell");
+    setActiveColumn(td ? Number(td.dataset.colId) : null);
+  });
+
+  tbody.addEventListener("focusout", (e) => {
+    if (!e.relatedTarget || !tbody.contains(e.relatedTarget)) {
+      setActiveColumn(null);
+    }
+  });
+
+  tbody.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const input = e.target;
+    if (
+      !input.classList ||
+      !input.classList.contains("irc7-cell-input") ||
+      input.type === "checkbox"
+    )
+      return;
+    e.preventDefault();
+    const td = input.closest("td");
+    const tr = td.closest("tr");
+    const sibling = e.shiftKey
+      ? tr.previousElementSibling
+      : tr.nextElementSibling;
+    if (!sibling) {
+      input.blur();
+      return;
+    }
+    const next = sibling.querySelector(
+      `td[data-col-id="${td.dataset.colId}"] input, td[data-col-id="${td.dataset.colId}"] textarea`,
+    );
+    if (next) {
+      next.focus();
+      try {
+        next.select();
+      } catch (_) {}
+    }
+  });
 
   // ================= LOADING FIXED ROWS + SAVED COLUMNS/VALUES =================
 
@@ -686,7 +936,7 @@
       tbody.querySelectorAll(`td[data-col-id="${col.id}"]`).forEach((td) => {
         const tr = td.closest("tr");
         const rowId = Number(tr.dataset.rowId);
-        const oldInput = td.querySelector("input");
+        const oldInput = td.querySelector("input, textarea");
         const oldVal =
           !crossesCheckbox && oldInput ? getCellInputValue(oldInput) : "";
         const keepValue =
@@ -820,6 +1070,9 @@
         }
       }
 
+      // Newly added columns would be hidden by an active filter -- reset it.
+      activeFilter = null;
+      recalcLayout();
       hideAddModal();
     } catch (err) {
       console.error("Failed to save IRC7 columns:", err);
@@ -923,7 +1176,8 @@
   // Header cell for a top-row group (spans the columns beneath it).
   function buildGroupHeaderCell(groupId, name, colSpan) {
     const th = document.createElement("th");
-    th.className = "irc7-group-header irc7-added-header";
+    th.className =
+      "irc7-group-header irc7-added-header irc7-gc-" + tintIndexForName(name);
     th.colSpan = colSpan;
     th.dataset.groupId = groupId;
     th.textContent = name;
@@ -933,7 +1187,8 @@
   // Header cell for an individual column (grouped or standalone).
   function buildColumnHeaderCell(colId, name) {
     const th = document.createElement("th");
-    th.className = "irc7-sub-header irc7-added-header irc7-fixed-col";
+    th.className =
+      "irc7-sub-header irc7-added-header irc7-fixed-col " + tintClassFor(colId);
     th.dataset.colId = colId;
     th.textContent = name;
     return th;
@@ -943,7 +1198,7 @@
     tbody.querySelectorAll("tr").forEach((tr) => {
       const rowId = Number(tr.dataset.rowId);
       const td = document.createElement("td");
-      td.className = "irc7-editable-cell";
+      td.className = "irc7-editable-cell " + tintClassFor(colId);
       td.dataset.colId = colId;
 
       const existingValue = cellValues[`${rowId}:${colId}`];
@@ -966,9 +1221,16 @@
   }
 
   function buildCellInput(type, rowId, colId, initialValue) {
-    const input = document.createElement("input");
-    input.type =
-      type === "number" ? "number" : type === "checkbox" ? "checkbox" : "text";
+    // Text / paragraph cells are auto-growing textareas so long content
+    // wraps; number and checkbox cells stay plain inputs.
+    const isMultiline = type === "text" || type === "paragraph";
+    const input = document.createElement(isMultiline ? "textarea" : "input");
+    if (isMultiline) {
+      input.rows = 1;
+      input.addEventListener("input", () => autosizeTextarea(input));
+    } else {
+      input.type = type === "number" ? "number" : "checkbox";
+    }
     input.className = "irc7-cell-input irc7-cell-input--" + type;
     if (type === "number") input.step = "any";
     if (type === "paragraph") input.placeholder = "Enter text...";
@@ -981,6 +1243,7 @@
     input.addEventListener("change", () => {
       saveCellValue(rowId, colId, getCellInputValue(input));
       updateColumnTotal(colId);
+      renderFilterBar();
     });
 
     return input;
@@ -1042,7 +1305,7 @@
 
   function buildTotalsCell(colId, type) {
     const td = document.createElement("td");
-    td.className = "irc7-totals-cell";
+    td.className = "irc7-totals-cell " + tintClassFor(colId);
     td.dataset.colId = colId;
     td.textContent = computeTotalText(colId, type);
     return td;
@@ -1233,8 +1496,16 @@
   // aligned. The on-screen widths are restored afterward so nothing
   // about the live page changes.
   let preprintColumnState = null;
+  let printFilterBackup = null;
 
   function applyPrintColumnWidths() {
+    // Always print every column, regardless of the on-screen filter.
+    printFilterBackup = activeFilter;
+    if (activeFilter) {
+      activeFilter = null;
+      applyFilter();
+    }
+
     const cols = Array.from(colgroup.children);
     if (cols.length === 0) return;
 
@@ -1256,6 +1527,8 @@
       headerTable.style.width = "100%";
       headerColgroup.innerHTML = colgroup.innerHTML;
     }
+
+    autosizeAllTextareas();
   }
 
   function restorePrintColumnWidths() {
@@ -1278,7 +1551,14 @@
   // the browser's own Ctrl+P, so this covers both the button above and
   // a manual print.
   window.addEventListener("beforeprint", applyPrintColumnWidths);
-  window.addEventListener("afterprint", restorePrintColumnWidths);
+  window.addEventListener("afterprint", () => {
+    restorePrintColumnWidths();
+    if (printFilterBackup) {
+      activeFilter = printFilterBackup;
+      printFilterBackup = null;
+      recalcLayout();
+    }
+  });
 
   // ================= RESET: VALUES ONLY, OR ENTIRE TABLE =================
   //
@@ -1341,6 +1621,7 @@
       if (input.type === "checkbox") input.checked = false;
       else input.value = "";
     });
+    autosizeAllTextareas();
 
     // Every number column's sum drops to 0 now that its inputs are
     // empty -- recompute in place rather than assuming "0" everywhere,

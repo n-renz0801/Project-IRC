@@ -193,8 +193,7 @@ block content %}
             Strengths and Development Needs are picked from IRC8a's
             highest/lowest-rated objectives (first two rows) and IRC8b's
             highest/lowest-rated competencies (last two rows). Click the pencil
-            to unlock a row for editing; while locked, the picks and text below
-            are read-only.
+            to edit a row in a pop-up; changes are saved when you press Submit.
           </p>
         </div>
         <div class="irc8c-table-wrapper">
@@ -223,6 +222,35 @@ block content %}
     <!-- /.irc8c-flow -->
   </div>
 </section>
+
+<!-- ================= ROW EDIT MODAL (opened by each row's edit button) ================= -->
+<div id="irc8c-edit-overlay" class="irc8c-edit-overlay">
+  <form
+    id="irc8c-edit-form"
+    class="irc8c-edit-box"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="irc8c-edit-title"
+    novalidate
+  >
+    <div class="irc8c-edit-header">
+      <h4 id="irc8c-edit-title">Edit row</h4>
+      <p id="irc8c-edit-sub" class="irc8c-edit-sub"></p>
+    </div>
+    <div id="irc8c-edit-fields" class="irc8c-edit-fields">
+      <!-- fields injected by irc8c.js -->
+    </div>
+    <p id="irc8c-edit-error" class="irc8c-edit-error" hidden></p>
+    <div class="irc8c-edit-actions">
+      <button type="button" id="irc8c-edit-cancel" class="irc8c-btn-secondary">
+        Cancel
+      </button>
+      <button type="submit" id="irc8c-edit-submit" class="irc8c-btn-primary">
+        Submit
+      </button>
+    </div>
+  </form>
+</div>
 
 <!-- ================= RESET-PAGE CONFIRMATION MODAL ================= -->
 <!-- Same visual pattern/markup as IRC6's reset-confirmation modal (see
