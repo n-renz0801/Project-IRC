@@ -49,3 +49,11 @@ data/*.csv
 
 .DS_Store
 Thumbs.db
+
+# Personal documents and uploads (do not track)
+uploads/
+docs/
+/*.xlsx
+/*.pdf
+/*.docx
+__pycache__/
