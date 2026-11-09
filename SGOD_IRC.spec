@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='SGOD_IRC',
+    name='Project-IRC-Personnel',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
