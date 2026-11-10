@@ -11,8 +11,7 @@ What it does: deletes build\, dist\, Project-IRC-Personnel.spec and the old spec
 (SGOD_IRC.spec), runs PyInstaller, then checks dist\Project-IRC-Personnel.exe exists.
 Close the running app first, or the delete step will fail.
 It never touches Git; commit the spec rename yourself.
-To add a PyInstaller option later, edit EXTRA (or the args list) below,
-and update the README command to match.
+To add a PyInstaller option later, edit EXTRA (or the args list) below.
 """
 import shutil
 import subprocess
