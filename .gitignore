@@ -1,58 +1,54 @@
 # Python
-
+__pycache__/
 *.py[cod]
 *.pyo
+*.egg-info/
 
-# Virtual environment
-
+# Virtual environments
 env/
 venv/
 .venv/
 
-# PyInstaller build files
-
+# PyInstaller build output (the .spec file stays tracked so builds are reproducible)
 build/
 dist/
 
 # Local database / application data
-
 instance/
+uploads/
 *.db
 *.sqlite
 *.sqlite3
 
-# Local Adobe Illustrator files
-
-adobe_illustrator/
-
-# Excel and CSV files
-
+# Personal documents, reference and working files (do not track)
+docs/
+excel/
+reference/
 data/*.xlsx
 data/*.csv
+/*.xlsx
+/*.pdf
+/*.docx
+
+# Local Adobe Illustrator files
+adobe_illustrator/
 
 # Microsoft Office temporary/lock files
-
 ~$*
 
-# Environment variables / secrets
+# Logs and test/cache folders
+*.log
+.pytest_cache/
+.mypy_cache/
 
+# Environment variables / secrets
 .env
 .env.*
 
 # IDE / editor files
-
 .vscode/
 .idea/
 
 # OS-generated files
-
 .DS_Store
 Thumbs.db
-
-# Personal documents and uploads (do not track)
-uploads/
-docs/
-/*.xlsx
-/*.pdf
-/*.docx
-__pycache__/
